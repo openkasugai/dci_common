@@ -1,0 +1,61 @@
+# Configuration for Logical-tenant
+ten_logic:
+  # Configuration for RHEL
+  rhel:
+    # Whether to perform OS updates (bool)
+    os_update: no
+
+    # Package installation
+    package_softs:
+      # Packages to install at the latest version (array of string)
+      # Example: [AAA, 
+      #           BBB, 
+      #           CCC]
+      latest: [
+      ]
+
+      # Packages to install with specified versions (array of dictionaries)
+      # Example: [{name:DDD, ver:1.0-2.1sample3.1},
+      # 　        {name:EEE, ver:2.1-4.3sample1.0}]
+      versions: [
+      ]
+
+# Configuration for Physical-infrastructure
+phys_infra:
+  # Configuration for RHEL
+  # The following follows the same format as ten_logic.rhel
+  rhel:
+    os_update: no
+
+    package_softs:
+      latest: [ 
+       ]
+
+      versions: [
+      ]
+
+  # Configuration for Ubuntu
+  # The following follows the same format as ten_logic.rhel
+  ubuntu:
+    os_update: no
+
+    package_softs:
+      latest: [
+      ]
+
+      versions: [
+      ]
+
+# Configuration for DCI-manager
+manager:
+  # Configuration for RHEL
+  # The following follows the same format as ten_logic.rhel
+  rhel:
+    os_update: no
+
+    package_softs:
+      latest: [
+      ]
+
+      versions: [
+      ]

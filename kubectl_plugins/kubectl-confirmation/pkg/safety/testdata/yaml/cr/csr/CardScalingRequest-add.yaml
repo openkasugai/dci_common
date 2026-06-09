@@ -1,0 +1,30 @@
+apiVersion: cluster.my.domain/v1alpha1
+kind: CardScalingRequest
+metadata:
+  name: my-deleting-card-1
+  namespace: default
+spec:
+  nodeName: my-node
+  scalingParameter:
+      op: add
+      model: H100
+      num: 1
+status:
+  phase: CardScaleCompleted
+  clusterNamespace: default
+  clusterName: my-cluster
+  oldDCIMachineInfo:
+    dciMachineName: worker-composed-0-md-ss59w-2t7hh
+    dciMachineTemplateName: worker-composed-0
+    machineDeploymentName: my-cluster-md0
+    dciMachineUID: <UID>
+    dciMachineTemplateUID: <UID>
+    machineDeploymentUID: <UID>
+  newDCIMachineInfo:
+    dciMachineName: worker-composed-1-md-fwlek-0adif
+    dciMachineTemplateName: worker-composed-1
+    machineDeploymentName: my-cluster-md1
+    dciMachineUID: <UID>
+    dciMachineTemplateUID: <UID>
+    machineDeploymentUID: <UID>
+  lastTransitionTime: "2025-10-27T10:30:00Z"

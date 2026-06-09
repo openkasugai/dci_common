@@ -1,0 +1,30 @@
+apiVersion: cluster.my.domain/v1alpha1
+kind: NodeScalingRequest
+metadata:
+  name: my-delete-node
+  namespace: default
+spec:
+  nodeRequestType: create
+  location: tokyo-dc
+  serverSpec:
+    type: ComposedServer
+    gpu:
+      model: H100
+      num: 2
+    nic:
+      model: ConnectX-6
+      num: 1
+status:
+  phase: Created
+  clusterNamespace: default
+  clusterName: my-cluster
+  machineDeploymentName: my-cluster-md0
+  machineDeploymentUID: <UID>
+  desiredReplicas: 2
+  conditions:
+    - type: Initialized
+      status: True
+    - type: Requested
+      status: True
+    - type: Completed
+      status: True

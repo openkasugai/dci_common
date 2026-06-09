@@ -1,0 +1,10 @@
+apiVersion: cluster.my.domain/v1alpha1
+kind: Other
+metadata:
+  name: my-delete-node
+  namespace: default
+spec:
+  nodeRequestType: delete
+  node: my-node
+status:
+  phase: Deleted

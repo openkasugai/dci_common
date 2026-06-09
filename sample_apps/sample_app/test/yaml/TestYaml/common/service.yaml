@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: test-hl-svc
+  namespace: default
+  labels:
+    dci/from-pod-name: 123-xyz-abc
+spec:
+  clusterIP: None

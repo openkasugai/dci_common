@@ -1,0 +1,125 @@
+# playbook.yaml
+---
+# 1: Logical-tenant RHEL machines
+- hosts: ten_logic_rhel_targets
+
+  # Abstract common settings shared by all servers into anchors
+  <<: &common_setup
+    # Skip metadata retrieval
+    gather_facts: false
+    # Execute tasks one host at a time
+    serial: 1
+    # Allow execution with sudo
+    become: true
+    # Continue execution even if a host becomes unreachable
+    ignore_unreachable: yes
+    # Continue execution even if errors occur
+    ignore_errors: yes
+    # Load the update target file
+    # {{ playbook_dir }} refers to the directory of this playbook
+    vars_files:
+      - "{{ playbook_dir }}/update_target.yaml"
+
+  # Load variables for the logical-tenant RHEL environment
+  vars:
+    os_update: "{{ ten_logic.rhel.os_update }}"
+    pkg_latest: "{{ ten_logic.rhel.package_softs.latest }}"
+    pkg_versioned: "{{ ten_logic.rhel.package_softs.versions }}"
+
+  # Execution tasks
+  # Abstract RHEL-related tasks into anchors
+  tasks: &rhel_update_tasks
+
+    # OS update
+    - name: "OS upgrade"
+      ansible.builtin.dnf:
+        name: "*"
+        state: latest
+      when: os_update | bool
+
+
+    # Install packages at the latest version
+    - name: "Install latest package_soft"
+      ansible.builtin.dnf:
+        name: "{{ item }}"
+        state: latest
+      loop: "{{ pkg_latest }}"
+
+    # Install packages with specified versions
+    - name: "Install versioned package_soft"
+      ansible.builtin.dnf:
+        name: "{{ item.name }}-{{ item.ver }}"
+        state: present
+      loop: "{{ pkg_versioned }}"
+
+
+# 2: Physical-infrastructure Ubuntu machines
+- hosts: phys_infra_ubuntu_targets
+
+  # Call common settings
+  <<: *common_setup
+
+  # Load variables for the physical-infrastructure Ubuntu environment
+  vars:
+    os_update: "{{ phys_infra.ubuntu.os_update }}"
+    pkg_latest: "{{ phys_infra.ubuntu.package_softs.latest }}"
+    pkg_versioned: "{{ phys_infra.ubuntu.package_softs.versions }}"
+
+  # Execution tasks for Ubuntu
+  tasks:
+
+    # Update package update cache
+    - name: "APT: update cash"
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 3600
+
+    # OS update
+    - name: "OS Update"
+      ansible.builtin.apt:
+        upgrade: dist
+      when: os_update | bool
+
+    # Install packages at the latest version
+    - name: "Install latest package_soft"
+      ansible.builtin.apt:
+        name: "{{ item }}"
+        state: latest
+      loop: "{{ pkg_latest }}"
+
+    # Install packages with specified versions
+    - name: "Install versioned package_soft"
+      ansible.builtin.apt:
+        name: "{{ item.name }}={{ item.ver }}"
+        state: present
+      loop: "{{ pkg_versioned }}"
+
+
+# 3: Physical-infrastructure RHEL machines
+- hosts: phys_infra_rhel_targets
+  # Call common settings
+  <<: *common_setup
+
+  # Load variables for the physical-infrastructure RHEL environment
+  vars:
+    os_update: "{{ phys_infra.rhel.os_update }}"
+    pkg_latest: "{{ phys_infra.rhel.package_softs.latest }}"
+    pkg_versioned: "{{ phys_infra.rhel.package_softs.versions }}"
+
+  # Call RHEL-related tasks
+  tasks: *rhel_update_tasks
+
+
+# 4: DCI-manager RHEL machines
+- hosts: manager_rhel_targets
+  # Call common settings
+  <<: *common_setup
+
+  # Load variables for the DCI-manager RHEL environment
+  vars:
+    os_update: "{{ manager.rhel.os_update }}"
+    pkg_latest: "{{ manager.rhel.package_softs.latest }}"
+    pkg_versioned: "{{ manager.rhel.package_softs.versions }}"
+
+  # Call RHEL-related tasks
+  tasks: *rhel_update_tasks

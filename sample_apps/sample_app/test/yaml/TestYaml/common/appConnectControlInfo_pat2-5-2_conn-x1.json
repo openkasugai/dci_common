@@ -1,0 +1,7 @@
+{
+  "address": "192.0.2.200",
+  "outputSubsets":[
+    "tcp://localhost:10010",
+    "udp://localhost:10011"
+  ]
+}

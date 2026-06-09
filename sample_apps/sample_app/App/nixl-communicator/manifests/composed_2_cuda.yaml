@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nixl-communicator-composed-2-cuda
+  namespace: dci
+  labels:
+    app.kubernetes.io/name: nixl-communicator-composed-2-cuda
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 0
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: nixl-communicator-composed-2-cuda
+  template:
+    metadata:
+      annotations:
+        k8s.v1.cni.cncf.io/networks: demo-network1
+      labels:
+        app.kubernetes.io/name: nixl-communicator-composed-2-cuda
+    spec:
+      serviceAccountName: default
+      shareProcessNamespace: true
+      containers:
+      - name: test-container
+        image: 10.10.0.30:30003/apfw/nixl-communicator:latest
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: USE_DNS
+          value: "false"
+        securityContext:
+          capabilities:
+            add: ["NET_RAW", "IPC_LOCK"]
+        ports:
+        resources:
+          claims:
+          - name: mig-device
+            request: mig-1g-12gb
+          requests:
+            nvidia.com/sriov_rdma_15b3: 1
+            rdma/rdma_shared_device_15b3: 1
+          limits:
+            nvidia.com/sriov_rdma_15b3: 1
+            rdma/rdma_shared_device_15b3: 1
+      resourceClaims:
+      - name: mig-device
+        resourceClaimTemplateName: mig-devices-h100-nvl
+      nodeSelector:
+        kubernetes.io/hostname: c3b74011-da00-4a7c-b921-a1dc8460958a.maas

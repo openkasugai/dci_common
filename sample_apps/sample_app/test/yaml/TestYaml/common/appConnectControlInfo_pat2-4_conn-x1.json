@@ -1,0 +1,75 @@
+{
+  "address": "192.0.2.200",
+  "services":[
+    {
+      "label": "appA",
+      "destinations":[
+        {
+          "name": "dciapp-perftest-proc-a1",
+          "namespace": "apptest",
+          "address": "192.0.2.100",
+          "status":{ 
+            "name": "appA",
+            "status": "PROCESSING",
+            "statuses":{
+              "compo1": "IDLE",
+              "compo2": "PROCESSING"
+            },
+            "metas":{
+              "aaa": "AAA"
+            },
+            "terminating": "false"
+          },
+          "metrics":{ 
+            "xxx": "1",
+            "yyy": "2"
+          },
+          "usages":{
+            "gpuTotalUtilization": "30",
+            "gpuSMUtilization": "30",
+            "gpuGraphicUtilization": "10",
+            "gpuMemoryUtilization": "10",
+            "cpuUtilization": "10"
+          },
+         "metas":{}
+        },{
+          "name": "dciapp-perftest-proc-a2",
+          "namespace": "apptest",
+          "address": "192.0.2.101",
+          "status":{ 
+            "name": "appA",
+            "status": "PROCESSING",
+            "statuses":{
+              "compo1": "PROCESSING",
+              "compo2": "IDLE"
+            },
+            "metas":{
+              "bbb": "BBB"
+            },
+            "terminating": "false"
+          },
+          "metrics":{ 
+            "xxx": "3",
+            "yyy": "4"
+          },
+          "usages":{
+            "gpuTotalUtilization": "30",
+            "gpuSMUtilization": "30",
+            "gpuGraphicUtilization": "10",
+            "gpuMemoryUtilization": "10",
+            "cpuUtilization": "10"
+          },
+         "metas":{}
+        }
+      ]
+    }
+  ],
+  "inputSubsets":[
+    "rtsp://203.0.113.244:8554",
+    "rtsp://203.0.113.245:8554"
+  ],
+  "outputSubsets":[
+    "https://example.com/app"
+  ]
+}
+

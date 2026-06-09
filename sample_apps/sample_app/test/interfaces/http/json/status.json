@@ -1,0 +1,12 @@
+{
+    "name": "hoge",
+    "status": "PROCESSING",
+    "statuses": {
+        "compo1": "IDLE",
+        "compo2": "PROCESSING"
+    },
+    "metas": {
+        "aaa": "AAA"
+    },
+    "terminating": false
+}

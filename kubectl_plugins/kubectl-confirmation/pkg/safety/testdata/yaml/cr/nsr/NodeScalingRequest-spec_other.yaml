@@ -1,0 +1,21 @@
+apiVersion: cluster.my.domain/v1alpha1
+kind: NodeScalingRequest
+metadata:
+  name: my-delete-node
+  namespace: default
+spec:
+  other: delete
+status:
+  phase: Deleted
+  clusterNamespace: default
+  clusterName: my-cluster
+  machineDeploymentName: my-cluster-md0
+  machineDeploymentUID: <UID>
+  desiredReplicas: 1
+  conditions:
+    - type: Initialized
+      status: True
+    - type: Requested
+      status: True
+    - type: Completed
+      status: True

@@ -1,0 +1,3 @@
+NodeScalingRequest{nodeRequestType=delete}
+CardScalingRequest{scalingParameter.op=delete}
+CardScalingRequest{scalingParameter.op=replace}

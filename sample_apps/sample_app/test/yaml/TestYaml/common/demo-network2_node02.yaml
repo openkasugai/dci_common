@@ -1,0 +1,24 @@
+# クライアント側のネットワーク HostDevice
+#   SR-IOV (sriovDevicePlugin)
+apiVersion: mellanox.com/v1alpha1
+kind: HostDeviceNetwork
+metadata:
+  name: demo-network2
+  namespace: apptest
+spec:
+  networkNamespace: "apptest"
+  resourceName: "sriov_rdma_wb-tc06"  # This value should match sriovDevicePlugin.resources[].name in NicClusterPolicy
+  ipam: |
+    {
+      "type": "whereabouts",
+      "datastore": "kubernetes",
+      "kubernetes": {
+        "kubeconfig": "/etc/cni/net.d/whereabouts.d/whereabouts.kubeconfig"
+      },
+      "subnet": "192.0.2.0/24",
+      "rangeStart": "192.0.2.100",
+      "rangeEnd": "192.0.2.200",
+      "gateway": "192.0.2.1", 
+      "log_file" : "/var/log/whereabouts.log",
+      "log_level" : "info"
+    }

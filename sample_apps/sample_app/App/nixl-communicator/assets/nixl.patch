@@ -1,0 +1,19 @@
+diff --git "a/meson.build" "b/meson.build"
+index e308779..90b9f99 100644
+--- "a/meson.build"
++++ "b/meson.build"
+@@ -165,10 +165,14 @@ if get_option('install_headers')
+   install_headers('src/api/cpp/nixl_descriptors.h', install_dir: prefix_inc)
+   install_headers('src/utils/serdes/serdes.h', install_dir: prefix_inc + '/utils/serdes')
+   install_headers('src/utils/common/nixl_time.h', install_dir: prefix_inc + '/utils/common')
++  install_headers('src/utils/common/str_tools.h', install_dir: prefix_inc + '/utils/common')
++  install_headers('src/utils/common/util.h', install_dir: prefix_inc + '/utils/common')
++  install_headers('src/utils/stream/metadata_stream.h', install_dir: prefix_inc + '/utils/stream')
+   install_headers('src/api/cpp/backend/backend_engine.h', install_dir: prefix_inc + '/backend')
+   install_headers('src/api/cpp/backend/backend_aux.h', install_dir: prefix_inc + '/backend')
+   install_headers('src/core/transfer_request.h', install_dir: prefix_inc)
+   install_headers('src/core/agent_data.h', install_dir: prefix_inc)
++  install_headers('src/core/sync.h', install_dir: prefix_inc)
+   install_headers('src/infra/mem_section.h', install_dir: prefix_inc)
+ endif
+ 
