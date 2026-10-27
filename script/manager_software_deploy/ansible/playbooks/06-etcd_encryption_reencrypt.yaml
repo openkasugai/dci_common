@@ -1,0 +1,21 @@
+- name: etcd secret再暗号化
+  hosts: all
+  become: false
+  vars:
+    play_description: |
+      事前準備(システム構築) - etcd secretの暗号化
+       - 既存Secretの再暗号化(CP1台目を対象とする手順)
+  tasks:
+    - name: 既存Secretの再暗号化
+      ansible.builtin.shell: |
+        kubectl get secrets --all-namespaces -o json | kubectl replace -f -
+      environment:
+        KUBECONFIG: "/home/{{ ansible_user }}/.kube/config"
+      register: secret_reencrypt_result
+      changed_when: true
+
+    - name: 一時ファイルのクリーンアップ
+      ansible.builtin.file:
+        path: /tmp/k8s_encryption_config
+        state: absent
+      delegate_to: localhost

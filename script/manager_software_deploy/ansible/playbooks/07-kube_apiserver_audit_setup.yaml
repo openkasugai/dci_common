@@ -1,0 +1,144 @@
+- name: kube-apiserverの監査設定
+  hosts: all
+  become: true
+  vars:
+    play_description: |
+      事前準備(システム構築) - kube-apiserverの監査の設定
+    audit_policy_path: "/etc/kubernetes/audit_policy.yaml"
+    audit_policy_source_path: "others/monitoring/audit-setting/audit_policy.yaml"
+    kube_apiserver_manifest: "/etc/kubernetes/manifests/kube-apiserver.yaml"
+    audit_log_dir: "/var/log/kubernetes/audit"       # 監査ログディレクトリ
+    audit_log_file: "{{ audit_log_dir }}/audit.log"  # 監査ログファイルパス
+    audit_log_maxsize: 20                             # 監査ログの最大サイズ（MB）
+    audit_log_maxbackup: 3                            # 監査ログの最大バックアップ数
+    audit_log_maxage: 3                               # 監査ログの最大保持日数
+  tasks:
+    - name: audit_policy.yamlを配置
+      ansible.builtin.copy:
+        src: "{{ dci_manager_path }}/{{ audit_policy_source_path }}"
+        dest: "{{ audit_policy_path }}"
+        owner: root
+        group: root
+        mode: '0644'
+        remote_src: yes
+
+    - name: kube-apiserver.yamlの監査設定を追加
+      block:
+        - name: kube-apiserver.yamlにaudit-policy-file引数を冪等に追加
+          ansible.builtin.shell: |
+            if [ -z "$(/usr/local/bin/yq e '.spec.containers[0].command[] | select(test("^--audit-policy-file="))' {{ kube_apiserver_manifest }})" ]; then
+              /usr/local/bin/yq -i e '.spec.containers[0].command += ["--audit-policy-file={{ audit_policy_path }}"]' {{ kube_apiserver_manifest }}
+              echo "Added --audit-policy-file argument."
+            else
+              echo "--audit-policy-file argument already exists, skipping."
+            fi
+          changed_when: "'Added --audit-policy-file argument.' in audit_policy_file_result.stdout"
+          register: audit_policy_file_result
+
+        - name: kube-apiserver.yamlにaudit-log-path引数を冪等に追加
+          ansible.builtin.shell: |
+            if [ -z "$(/usr/local/bin/yq e '.spec.containers[0].command[] | select(test("^--audit-log-path="))' {{ kube_apiserver_manifest }})" ]; then
+              /usr/local/bin/yq -i '.spec.containers[0].command += ["--audit-log-path={{ audit_log_file }}"]' {{ kube_apiserver_manifest }}
+              echo "Added --audit-log-path argument."
+            else
+              echo "--audit-log-path argument already exists, skipping."
+            fi
+          changed_when: '"Added --audit-log-path argument." in audit_log_path_result.stdout'
+          register: audit_log_path_result
+
+        - name: kube-apiserver.yamlにaudit-log-maxsize引数を冪等に追加
+          ansible.builtin.shell: |
+            if [ -z "$(/usr/local/bin/yq e '.spec.containers[0].command[] | select(test("^--audit-log-maxsize="))' {{ kube_apiserver_manifest }})" ]; then
+              /usr/local/bin/yq -i '.spec.containers[0].command += ["--audit-log-maxsize={{ audit_log_maxsize }}"]' {{ kube_apiserver_manifest }}
+              echo "Added --audit-log-maxsize argument."
+            else
+              echo "--audit-log-maxsize argument already exists, skipping."
+            fi
+          changed_when: '"Added --audit-log-maxsize argument." in audit_log_maxsize_result.stdout'
+          register: audit_log_maxsize_result
+
+        - name: kube-apiserver.yamlにaudit-log-maxbackup引数を冪等に追加
+          ansible.builtin.shell: |
+            if [ -z "$(/usr/local/bin/yq e '.spec.containers[0].command[] | select(test("^--audit-log-maxbackup="))' {{ kube_apiserver_manifest }})" ]; then
+              /usr/local/bin/yq -i '.spec.containers[0].command += ["--audit-log-maxbackup={{ audit_log_maxbackup }}"]' {{ kube_apiserver_manifest }}
+              echo "Added --audit-log-maxbackup argument."
+            else
+              echo "--audit-log-maxbackup argument already exists, skipping."
+            fi
+          changed_when: '"Added --audit-log-maxbackup argument." in audit_log_maxbackup_result.stdout'
+          register: audit_log_maxbackup_result
+
+        - name: kube-apiserver.yamlにaudit-log-maxage引数を冪等に追加
+          ansible.builtin.shell: |
+            if [ -z "$(/usr/local/bin/yq e '.spec.containers[0].command[] | select(test("^--audit-log-maxage="))' {{ kube_apiserver_manifest }})" ]; then
+              /usr/local/bin/yq -i '.spec.containers[0].command += ["--audit-log-maxage={{ audit_log_maxage }}"]' {{ kube_apiserver_manifest }}
+              echo "Added --audit-log-maxage argument."
+            else
+              echo "--audit-log-maxage argument already exists, skipping."
+            fi
+          changed_when: '"Added --audit-log-maxage argument." in audit_log_maxage_result.stdout'
+          register: audit_log_maxage_result
+
+        - name: kube-apiserver.yamlにaudit-policyのvolumeMount設定を冪等に追加
+          ansible.builtin.shell: |
+            if [ -z "$(/usr/local/bin/yq e '.spec.containers[0].volumeMounts[] | select(.name == "audit")' {{ kube_apiserver_manifest }})" ]; then
+              /usr/local/bin/yq -i '.spec.containers[0].volumeMounts += [{"mountPath":"{{ audit_policy_path }}", "name":"audit", "readOnly":true}]' {{ kube_apiserver_manifest }}
+              echo "Added audit volumeMount."
+            else
+              echo "Audit volumeMount already exists, skipping."
+            fi
+          changed_when: '"Added audit volumeMount." in audit_volumemount_result.stdout'
+          register: audit_volumemount_result
+
+        - name: kube-apiserver.yamlにaudit-logのvolumeMount設定を冪等に追加
+          ansible.builtin.shell: |
+            if [ -z "$(/usr/local/bin/yq e '.spec.containers[0].volumeMounts[] | select(.name == "audit-log")' {{ kube_apiserver_manifest }})" ]; then
+              /usr/local/bin/yq -i '.spec.containers[0].volumeMounts += [{"mountPath":"{{ audit_log_dir }}", "name":"audit-log", "readOnly":false}]' {{ kube_apiserver_manifest }}
+              echo "Added audit-log volumeMount."
+            else
+              echo "Audit-log volumeMount already exists, skipping."
+            fi
+          changed_when: '"Added audit-log volumeMount." in audit_log_volumemount_result.stdout'
+          register: audit_log_volumemount_result
+
+        - name: kube-apiserver.yamlにaudit-policyのvolume設定を冪等に追加
+          ansible.builtin.shell: |
+            if [ -z "$(/usr/local/bin/yq e '.spec.volumes[] | select(.name == "audit")' {{ kube_apiserver_manifest }})" ]; then
+              /usr/local/bin/yq -i '.spec.volumes += [{"hostPath":{"path":"{{ audit_policy_path }}", "type":"File"}, "name":"audit"}]' {{ kube_apiserver_manifest }}
+              echo "Added audit volume."
+            else
+              echo "Audit volume already exists, skipping."
+            fi
+          changed_when: '"Added audit volume." in audit_volume_result.stdout'
+          register: audit_volume_result
+
+        - name: kube-apiserver.yamlにaudit-logのvolume設定を冪等に追加
+          ansible.builtin.shell: |
+            if [ -z "$(/usr/local/bin/yq e '.spec.volumes[] | select(.name == "audit-log")' {{ kube_apiserver_manifest }})" ]; then
+              /usr/local/bin/yq -i '.spec.volumes += [{"hostPath":{"path":"{{ audit_log_dir }}", "type":"DirectoryOrCreate"}, "name":"audit-log"}]' {{ kube_apiserver_manifest }}
+              echo "Added audit-log volume."
+            else
+              echo "Audit-log volume already exists, skipping."
+            fi
+          changed_when: '"Added audit-log volume." in audit_log_volume_result.stdout'
+          register: audit_log_volume_result
+
+    - name: kube-apiserverの応答確認（再起動完了待ち）
+      ansible.builtin.shell: |
+        kubectl --kubeconfig /etc/kubernetes/admin.conf get --raw /healthz 2>&1
+      register: health_check
+      until: health_check.rc == 0 and health_check.stdout == "ok"
+      retries: 30
+      delay: 10
+      changed_when: false
+      when: >
+        audit_policy_file_result is changed or
+        audit_log_path_result is changed or
+        audit_log_maxsize_result is changed or
+        audit_log_maxbackup_result is changed or
+        audit_log_maxage_result is changed or
+        audit_volumemount_result is changed or
+        audit_log_volumemount_result is changed or
+        audit_volume_result is changed or
+        audit_log_volume_result is changed
+

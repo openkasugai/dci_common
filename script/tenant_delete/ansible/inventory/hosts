@@ -1,0 +1,6 @@
+#DCI管理用クラスタのK8s Control Plane(冗長構成の場合は全ノードを記述)
+# ※02-cleanup_certs_and_crio.yaml は全コントロールプレーンに対して実行されるため、冗長構成では全ノードを記載すること
+[dci_mgmt_k8s_control_plane]
+mgr-cp-1 ansible_host=192.168.1.1 ansible_user=admin
+mgr-cp-2 ansible_host=192.168.1.2 ansible_user=admin
+mgr-cp-3 ansible_host=192.168.1.3 ansible_user=admin

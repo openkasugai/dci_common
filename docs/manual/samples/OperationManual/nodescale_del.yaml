@@ -1,0 +1,8 @@
+apiVersion: cluster.my.domain/v1alpha1
+kind: NodeScalingRequest
+metadata:
+  namespace: default
+  name: node-deletion-request-cdi
+spec:
+  nodeRequestType: delete
+  node: cdi-c2.maas

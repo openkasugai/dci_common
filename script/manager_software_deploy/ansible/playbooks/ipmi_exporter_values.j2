@@ -1,0 +1,57 @@
+# IPMI Exporter values.yaml (自動生成)
+image:
+  tag: "v1.10.1"
+  
+nodeSelector:
+  node-role.kubernetes.io/control-plane: ""
+
+tolerations:
+  - key: node-role.kubernetes.io/control-plane
+    effect: NoSchedule  
+
+modules:
+{% for server in ipmi_servers %}
+  {{ server.ipmi_address }}:
+    user: "{{ server.ipmi_user }}"
+    pass: "{{ server.ipmi_password }}"
+    privilege: "{{ server.privilege }}"
+    driver: "LAN_2_0"
+    collectors: ["bmc", "ipmi", "chassis", "dcmi", "sel"]
+{% endfor %}
+
+scrapeConfig:
+  enabled: true
+  namespace: prometheus
+  labels:
+    release: prometheus
+  mode: remote
+  metricsPath: /ipmi
+  staticConfigs:
+    - targets:
+{% for server in ipmi_servers %}
+        - {{ server.ipmi_address }}
+{% endfor %}
+  relabelings:
+    - sourceLabels: [__address__]
+      separator: ;
+      regex: (.*)
+      targetLabel: __param_target
+      replacement: ${1}
+      action: replace
+    - sourceLabels: [__param_target]
+      separator: ;
+      regex: (.*)
+      targetLabel: instance
+      replacement: ${1}
+      action: replace
+    - separator: ;
+      regex: .*
+      targetLabel: __address__
+      replacement: ipmi-exporter-prometheus-ipmi-exporter.prometheus.svc.cluster.local:9290
+      action: replace
+    - sourceLabels: [__param_target]
+      separator: ;
+      regex: (.*)
+      targetLabel: __param_module
+      replacement: ${1}
+      action: replace

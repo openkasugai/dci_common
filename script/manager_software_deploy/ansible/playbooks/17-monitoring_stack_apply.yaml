@@ -1,0 +1,228 @@
+- name: モニタリングスタック適用（基盤構築）
+  hosts: all
+  vars:
+    play_description: |
+      事前準備(システム構築) - 監視用プロセスの配備
+    prometheus_namespace: prometheus
+    loki_namespace: loki
+    vector_namespace: vector
+    npd_namespace: npd
+    default_alert_settings_file: "{{ dci_manager_path }}/others/monitoring/kube-prometheus-stack/default-alert-settings.yaml"
+    mgr_kube_prometheus_stack_values_files:
+      - "{{ dci_manager_path }}/others/monitoring/kube-prometheus-stack/mgr_kube-prometheus_stack_values.yaml"
+      - "{{ dci_manager_path }}/others/monitoring/kube-prometheus-stack/mgr_kube-prometheus_stack_values-b.yaml"
+    mgr_loki_values_file: "{{ dci_manager_path }}/others/monitoring/loki/mgr_loki_values.yaml"
+    httproute_file: "{{ dci_manager_path }}/others/monitoring/loki/httproute.yaml"
+    mgr_vector_values_file: "{{ dci_manager_path }}/others/monitoring/vector/mgr_vector_values.yaml"
+    mgr_vector_audit_values_file: "{{ dci_manager_path }}/others/monitoring/vector/mgr_vector_audit_values.yaml"
+    npd_values_file: "{{ dci_manager_path }}/others/monitoring/npd/values.yaml"
+    ipmi_exporter_values_file: "{{ dci_manager_path }}/others/monitoring/ipmi_exporter/values.yaml"
+  environment:
+    KUBECONFIG: "/home/{{ ansible_user }}/.kube/config"
+  tasks:
+    - name: Helmリポジトリ追加
+      ansible.builtin.command:
+        cmd: /usr/local/bin/helm repo add {{ item.name }} {{ item.repo }}
+      loop:
+        - { name: "prometheus-community", repo: "{{ prometheus_chart_repo }}" }
+        - { name: "vector", repo: "{{ vector_chart_repo }}" }
+        - { name: "grafana", repo: "{{ grafana_chart_repo }}" }
+      loop_control:
+        label: "{{ item.name }}"
+      register: helm_repos
+      retries: 3
+      delay: 10
+      until: helm_repos.rc == 0 or 'already exists' in helm_repos.stdout
+      changed_when: 
+        - helm_repos.rc == 0
+        - '"already exists" not in helm_repos.stdout'
+      failed_when: 
+        - helm_repos.rc != 0
+        - '"already exists" not in helm_repos.stdout'
+        - "'connection refused' not in helm_repos.stderr | default('') | lower"
+        - "'timeout' not in helm_repos.stderr | default('') | lower"
+
+    - name: Helmリポジトリ更新
+      ansible.builtin.command:
+        cmd: /usr/local/bin/helm repo update
+      register: helm_repo_update
+      retries: 3
+      delay: 10
+      until: helm_repo_update.rc == 0
+      changed_when: false
+      failed_when:
+        - helm_repo_update.rc != 0
+        - "'connection refused' not in helm_repo_update.stderr | lower"
+        - "'timeout' not in helm_repo_update.stderr | lower"
+
+    - name: Namespace作成
+      ansible.builtin.command:
+        cmd: kubectl create namespace {{ item }}
+      loop:
+        - "{{ prometheus_namespace }}"
+        - "{{ loki_namespace }}"
+        - "{{ vector_namespace }}"
+      loop_control:
+        label: "{{ item }}"
+      register: ns_create
+      changed_when: '"created" in ns_create.stdout'
+      failed_when:
+        - ns_create.rc != 0
+        - '"already exists" not in ns_create.stderr'
+
+    # 各コンポーネントの配備
+    - name: default-alert-settings.yaml編集
+      ansible.builtin.shell: |
+        yq eval -i '.data["default-contact-points.yaml"] |= (
+          . | from_yaml | 
+          .contactPoints[0].receivers[0].settings.addresses = "{{ monitoring_alert_email }}" | 
+          to_yaml
+        )' {{ default_alert_settings_file }}
+      register: alert_settings_update
+      changed_when: alert_settings_update.rc == 0
+
+    - name: default-alert-settings適用
+      ansible.builtin.command:
+        cmd: kubectl apply -f {{ default_alert_settings_file }}
+      register: alert_settings_apply
+      changed_when: '"configured" in alert_settings_apply.stdout or "created" in alert_settings_apply.stdout'
+
+    ## kube-prometheus-stackのデプロイ
+    - name: prometheus values.yaml設定
+      block:
+        - name: grafana 管理者パスワード設定
+          ansible.builtin.replace:
+            path: "{{ item }}"
+            regexp: '(^\s*adminPassword:\s*).*$'
+            replace: '\1"{{ grafana_admin_password }}"'
+          loop: "{{ mgr_kube_prometheus_stack_values_files }}"
+
+        - name: grafana SMTP設定（enabled）
+          ansible.builtin.command:
+            cmd: yq eval -i '.grafana."grafana.ini".smtp.enabled = "{{ grafana_smtp_enable }}"' {{ item }}
+          loop: "{{ mgr_kube_prometheus_stack_values_files }}"
+          changed_when: true
+
+        - name: grafana SMTP設定（host）
+          ansible.builtin.command:
+            cmd: yq eval -i '.grafana."grafana.ini".smtp.host = "{{ grafana_smtp_host }}:{{ grafana_smtp_port }}"' {{ item }}
+          loop: "{{ mgr_kube_prometheus_stack_values_files }}"
+          changed_when: true
+
+    - name: kube-prometheus-stackのデプロイ
+      ansible.builtin.shell: >
+        /usr/local/bin/helm upgrade --install prometheus prometheus-community/kube-prometheus-stack
+        --version {{ prometheus_chart_version }} -n {{ prometheus_namespace }}
+        {{ mgr_kube_prometheus_stack_values_files | map('regex_replace', '^', '-f ') | join(' ') }}
+      args:
+        executable: /bin/bash
+      register: helm_prom
+      retries: 3
+      delay: 10
+      until: helm_prom.rc == 0
+      changed_when: 
+        - helm_prom.rc == 0
+        - ('"has been upgraded"' in helm_prom.stdout or '"has been installed"' in helm_prom.stdout)
+      failed_when:
+        - helm_prom.rc != 0
+        - "'connection refused' not in helm_prom.stderr | lower"
+        - "'timeout' not in helm_prom.stderr | lower"
+
+    ## Lokiのデプロイ
+    - name: Loki storage S3エンドポイントを設定
+      ansible.builtin.replace:
+        path: "{{ mgr_loki_values_file }}"
+        regexp: '(^\s*s3:\s*).*$'
+        replace: '\1http://{{ loki_storage_ip }}:{{ loki_storage_port }}'
+
+    - name: Loki storage アクセスキーIDを設定
+      ansible.builtin.replace:
+        path: "{{ mgr_loki_values_file }}"
+        regexp: '(^\s*access_key_id:\s*).*$'
+        replace: '\1{{ loki_storage_minio_user }}'
+
+    - name: Loki storage シークレットアクセスキーを設定
+      ansible.builtin.replace:
+        path: "{{ mgr_loki_values_file }}"
+        regexp: '(^\s*secret_access_key:\s*).*$'
+        replace: '\1{{ loki_storage_minio_password }}'
+
+    - name: Lokiのデプロイ
+      ansible.builtin.command:
+        cmd: >
+          /usr/local/bin/helm upgrade --install loki grafana/loki
+          --version {{ loki_chart_version }}
+          -n {{ loki_namespace }}
+          -f {{ mgr_loki_values_file }}
+          --set memcached.image.repository=docker.io/library/memcached
+          --set memcachedExporter.image.repository=docker.io/prom/memcached-exporter
+      register: helm_loki
+      changed_when: 
+        - helm_loki.rc == 0
+        - ('"has been upgraded"' in helm_loki.stdout or '"has been installed"' in helm_loki.stdout)
+
+    - name: httproute適用
+      ansible.builtin.command:
+        cmd: kubectl apply -f {{ httproute_file }}
+      register: httproute_apply
+      changed_when: '"configured" in httproute_apply.stdout or "created" in httproute_apply.stdout'
+
+    ## rsyslog設定
+    - name: rsyslog用auditログディレクトリ作成
+      become: true
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+      loop:
+        - /var/log/maas/audit
+        - /var/log/cdi/audit
+        - /var/log/network_sw/audit
+
+    - name: rsyslog IPルックアップテーブルを生成
+      become: true
+      ansible.builtin.copy:
+        content: "{{ {'version': 1, 'table': rsyslog_audit_machines} | to_nice_json }}\n"
+        dest: /etc/rsyslog.d/audit_machine_ips.lst
+        mode: '0644'
+      register: rsyslog_lookup_table_result
+
+    - name: rsyslog.confにルーティング設定を追記
+      become: true
+      ansible.builtin.blockinfile:
+        path: /etc/rsyslog.conf
+        insertafter: EOF
+        marker: "# {mark} ANSIBLE MANAGED BLOCK FOR AUDIT ROUTING"
+        block: |
+          lookup_table(
+            name="audit_machine_iplist"
+            file="/etc/rsyslog.d/audit_machine_ips.lst"
+            reloadOnHUP="on"
+          )
+
+          if lookup("audit_machine_iplist", $fromhost-ip) != ""  then {
+              set $!lk_result = lookup("audit_machine_iplist", $fromhost-ip);
+              $template LookupBasedLogs,"/var/log/%$!lk_result%/audit/%fromhost-ip%_%$year%%$month%%$day%.log"
+              *.* ?LookupBasedLogs
+              stop
+          }
+      register: rsyslog_conf_result
+
+    - name: rsyslogを再起動
+      become: true
+      ansible.builtin.service:
+        name: rsyslog
+        state: restarted
+      when: rsyslog_lookup_table_result is changed or rsyslog_conf_result is changed
+
+    - name: auditログローテーション用cronジョブを設定
+      become: true
+      ansible.builtin.blockinfile:
+        path: /etc/crontab
+        insertafter: EOF
+        marker: "# {mark} ANSIBLE MANAGED BLOCK FOR AUDIT LOG ROTATION"
+        block: |
+          # Delete logs older than 3 days at 01:00 every day
+          0 1 * * * root find /var/log/cdi/audit -type f -name '*.log' -mtime +3 -delete
+          0 1 * * * root find /var/log/maas/audit -type f -name '*.log' -mtime +3 -delete
+          0 1 * * * root find /var/log/network_sw/audit -type f -name '*.log' -mtime +3 -delete

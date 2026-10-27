@@ -1,0 +1,106 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cloud-config
+  namespace: dcirpm
+data:
+  cloud-configs: |
+    - server-type: host
+      location: dc1
+      body: |
+        #cloud-config
+        runcmd:
+        - "echo 'nameserver 8.8.8.8\nsearch maas' > /etc/resolv.conf"
+        - "sed -i '/^proxy=/d' /etc/yum.conf"
+        - "sed -i '/^proxy=/d' /etc/dnf/dnf.conf"
+        - |
+          for i in $(seq 1 10); do
+            if rhc connect --activation-key=xxxx --organization=12345678; then
+              echo "rhc connect succeeded on attempt $i"
+              break
+            fi
+
+            if [ "$i" -eq 10 ]; then
+              echo "rhc connect failed after 10 attempts"
+              exit 1
+            fi
+
+            echo "rhc connect failed on attempt $i, retrying in 5 seconds..."
+            sleep 5
+          done
+    - server-type: host
+      location: dc2
+      body: |
+        #cloud-config
+        runcmd:
+        - "echo 'nameserver 8.8.8.8\nsearch maas' > /etc/resolv.conf"
+        - "sed -i '/^proxy=/d' /etc/yum.conf"
+        - "sed -i '/^proxy=/d' /etc/dnf/dnf.conf"
+        - |
+          for i in $(seq 1 10); do
+            if rhc connect --activation-key=xxxx --organization=12345678; then
+              echo "rhc connect succeeded on attempt $i"
+              break
+            fi
+
+            if [ "$i" -eq 10 ]; then
+              echo "rhc connect failed after 10 attempts"
+              exit 1
+            fi
+
+            echo "rhc connect failed on attempt $i, retrying in 5 seconds..."
+            sleep 5
+          done
+    - server-type: spare
+      location: dc1
+      body: |
+        #cloud-config
+        runcmd:
+          - "echo -e \"nameserver 8.8.8.8 8.8.4.4\\nsearch maas\" > /etc/resolv.conf"
+          - "sed -i '/^proxy=/d' /etc/yum.conf"
+          - "sed -i '/^proxy=/d' /etc/dnf/dnf.conf"
+          - |
+            for i in $(seq 1 10); do
+              if rhc connect --activation-key=xxxx --organization=12345678; then
+                echo "rhc connect succeeded on attempt $i"
+                break
+              fi
+
+              if [ "$i" -eq 10 ]; then
+                echo "rhc connect failed after 10 attempts"
+                exit 1
+              fi
+
+              echo "rhc connect failed on attempt $i, retrying in 5 seconds..."
+              sleep 5
+            done
+          - "dnf install -y wget"
+          - "wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq && chmod +x /usr/bin/yq"
+          - "swapoff -a"
+          - "sed -i '/swap/ s/^/#/' /etc/fstab"
+          - "dnf install -y git"
+          - "dnf install -y containers-common"
+          - "export KUBERNETES_VERSION=v1.36"
+          - "echo [kubernetes] >> /etc/yum.repos.d/kubernetes.repo"
+          - "echo name=Kubernetes >> /etc/yum.repos.d/kubernetes.repo"
+          - "echo baseurl=https://pkgs.k8s.io/core:/stable:/$KUBERNETES_VERSION/rpm/ >> /etc/yum.repos.d/kubernetes.repo"
+          - "echo enabled=1 >> /etc/yum.repos.d/kubernetes.repo"
+          - "echo gpgcheck=1 >> /etc/yum.repos.d/kubernetes.repo"
+          - "echo gpgkey=https://pkgs.k8s.io/core:/stable:/$KUBERNETES_VERSION/rpm/repodata/repomd.xml.key >> /etc/yum.repos.d/kubernetes.repo"
+          - "dnf install -y kubelet-1.36.3-150500.1.1.x86_64 kubeadm-1.36.3-150500.1.1.x86_64 kubectl-1.36.3-150500.1.1.x86_64"
+          - "export CRIO_VERSION=v1.36"
+          - "echo [cri-o] >> /etc/yum.repos.d/cri-o.repo"
+          - "echo name=CRI-O >> /etc/yum.repos.d/cri-o.repo"
+          - "echo baseurl=https://download.opensuse.org/repositories/isv:/cri-o:/stable:/$CRIO_VERSION/rpm/ >> /etc/yum.repos.d/cri-o.repo"
+          - "echo enabled=1 >> /etc/yum.repos.d/cri-o.repo"
+          - "echo gpgcheck=1 >> /etc/yum.repos.d/cri-o.repo"
+          - "echo gpgkey=https://download.opensuse.org/repositories/isv:/cri-o:/stable:/$CRIO_VERSION/rpm/repodata/repomd.xml.key >> /etc/yum.repos.d/cri-o.repo"
+          - "dnf install -y cri-o-1.36.3-150500.1.1.x86_64"
+          - "setenforce 0"
+          - "sed -i 's/enforcing/permissive/g' /etc/selinux/config"
+          - "dnf install -y nfs-utils-2.5.4-34.el9.x86_64"
+          - "echo \"spare node setup done!\""
+        ntp:
+          enabled: true
+          servers:
+            - 172.28.197.80

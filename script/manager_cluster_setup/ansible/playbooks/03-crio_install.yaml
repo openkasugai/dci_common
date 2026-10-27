@@ -1,0 +1,32 @@
+- name: CRI-Oインストール
+  hosts: all
+  become: true
+  vars:
+    play_description: |
+      環境構築手順書 - 構築手順1：基本部分 マネージャ用k8sクラスタ構築
+       - CRI-Oインストール
+  tasks:
+    - name: CRI-Oリポジトリ追加
+      ansible.builtin.copy:
+        dest: /etc/yum.repos.d/cri-o.repo
+        content: |
+          [cri-o]
+          name=CRI-O
+          baseurl={{ crio_repo_url }}
+          enabled=1
+          gpgcheck=1
+          gpgkey={{ crio_repo_url }}/repodata/repomd.xml.key
+
+    - name: 指定バージョンのCRI-Oをインストール
+      ansible.builtin.dnf:
+        name:
+          - "{{ crio_package }}"
+        state: present
+      register: crio_install_result
+      retries: 3
+      delay: 10
+      until: crio_install_result is succeeded
+      failed_when: 
+        - crio_install_result is defined
+        - crio_install_result.failed is defined
+        - crio_install_result.failed

@@ -1,0 +1,83 @@
+- name: etcd secret暗号化の適用
+  hosts: all
+  become: true
+  vars:
+    play_description: |
+      事前準備(システム構築) - etcd secretの暗号化
+       - 暗号化設定を適用(全CPノードを対象とする手順)
+    encryption_config_path: /etc/kubernetes/encryption-config.yaml
+    kube_apiserver_manifest: /etc/kubernetes/manifests/kube-apiserver.yaml
+  tasks:
+    - name: encryption-config.yamlの存在確認
+      ansible.builtin.stat:
+        path: "{{ encryption_config_path }}"
+      register: encryption_config_exists
+
+    - name: encryption-config.yamlを各Control Planeにコピー
+      ansible.builtin.copy:
+        src: "/tmp/k8s_encryption_config/encryption-config.yaml"
+        dest: "{{ encryption_config_path }}"
+        owner: root
+        group: root
+        mode: '0600'
+      when: not encryption_config_exists.stat.exists
+      register: copy_encryption_config
+
+    - name: kube-apiserver.yamlにencryption-provider-configが設定済みか確認
+      ansible.builtin.shell: |
+        test -n "$(/usr/local/bin/yq e '.spec.containers[0].command[] | select(test("^--encryption-provider-config=\\Q{{ encryption_config_path }}\\E$"))' {{ kube_apiserver_manifest }})"
+      register: encryption_config_command_check
+      changed_when: false
+      failed_when: false
+
+    - name: kube-apiserver.yamlにvolume設定が存在するか確認
+      ansible.builtin.shell: |
+        test -n "$(/usr/local/bin/yq e '.spec.volumes[] | select(.name == "encryption-config")' {{ kube_apiserver_manifest }})"
+      register: encryption_config_volume_check
+      changed_when: false
+      failed_when: false
+
+    - name: kube-apiserver.yamlにvolumeMount設定が存在するか確認
+      ansible.builtin.shell: |
+        test -n "$(/usr/local/bin/yq e '.spec.containers[0].volumeMounts[] | select(.name == "encryption-config")' {{ kube_apiserver_manifest }})"
+      register: encryption_config_volume_mount_check
+      changed_when: false
+      failed_when: false
+
+    - name: kube-apiserver.yamlに設定を追加 (存在しない場合のみ実行)
+      block:
+        - name: kube-apiserver.yamlにencryption-provider-config引数を追加
+          ansible.builtin.shell: |
+            /usr/local/bin/yq -i e '.spec.containers[0].command += ["--encryption-provider-config={{ encryption_config_path }}"]' {{ kube_apiserver_manifest }}
+          when: encryption_config_command_check.rc != 0
+          register: add_encryption_config_cmd
+
+        - name: kube-apiserver.yamlにvolume設定を追加
+          ansible.builtin.shell: |
+            /usr/local/bin/yq -i e '.spec.volumes += [{"hostPath":{"path":"{{ encryption_config_path }}", "type":"File"}, "name":"encryption-config"}]' {{ kube_apiserver_manifest }}
+          when: encryption_config_volume_check.rc != 0
+          register: add_encryption_config_vol
+
+        - name: kube-apiserver.yamlにvolumeMount設定を追加
+          ansible.builtin.shell: |
+            /usr/local/bin/yq -i e '.spec.containers[0].volumeMounts += [{"mountPath":"{{ encryption_config_path }}", "name":"encryption-config", "readOnly":true}]' {{ kube_apiserver_manifest }}
+          when: encryption_config_volume_mount_check.rc != 0
+          register: add_encryption_config_volumemount
+
+      when: encryption_config_command_check.rc != 0 or
+            encryption_config_volume_check.rc != 0 or
+            encryption_config_volume_mount_check.rc != 0 or
+            (copy_encryption_config is defined and copy_encryption_config.changed)
+
+    - name: kube-apiserverの応答確認（再起動完了待ち）
+      ansible.builtin.shell: |
+        kubectl --kubeconfig /etc/kubernetes/admin.conf get --raw /healthz 2>&1
+      register: health_check
+      until: health_check.rc == 0 and health_check.stdout == "ok"
+      retries: 30
+      delay: 10
+      changed_when: false
+      when: encryption_config_command_check.rc != 0 or
+            encryption_config_volume_check.rc != 0 or
+            encryption_config_volume_mount_check.rc != 0 or
+            (copy_encryption_config is defined and copy_encryption_config.changed)

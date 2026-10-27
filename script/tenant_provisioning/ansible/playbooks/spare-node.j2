@@ -1,0 +1,24 @@
+apiVersion: example.com/v1
+kind: LogicalServer
+metadata:
+  name: {{ item.node_name }}
+  namespace: dcirpm
+spec:
+  tenantLogicalInfraRef:
+    apiVersion: example.com/v1
+    kind: TenantLogicalInfra
+    name: spare-node-cluster
+    namespace: dcirpm
+  role: spare
+  location: {{ item.location }}
+  serverSpec:
+    type: {{ item.server_type }}
+    gpu:
+      model: {{ item.gpu.model }}
+      num: {{ item.gpu.num }}
+    nic:
+      model: {{ item.nic.model }}
+      num: {{ item.nic.num }}
+    os:
+      distribution: {{ item.os.distribution }}
+      version: {{ item.os.version }}

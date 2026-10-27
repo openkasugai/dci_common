@@ -1,0 +1,338 @@
+- name: 作業ディレクトリ作成
+  ansible.builtin.file:
+    path: "{{ tenant_work_dir }}"
+    state: directory
+    mode: '0755'
+
+# テナント用のネームスペースの作成
+- name: テナント用ネームスペース作成
+  ansible.builtin.command:
+    cmd: kubectl create namespace {{ tenant_namespace }}
+  register: ns_create
+  changed_when: ns_create.rc == 0
+  failed_when: 
+    - ns_create.rc != 0
+    - '"already exists" not in ns_create.stderr'
+
+# Cluster Autoscaler用kubeconfigの作成およびSecret化
+- name: Cluster Autoscaler RBACマニフェストに環境変数を展開
+  ansible.builtin.shell: |
+    envsubst '${TENANT_NAME} ${TENANT_NAMESPACE}' < cluster-autoscaler-rbac-template.yaml > cluster-autoscaler-rbac.yaml
+  args:
+    chdir: "{{ cluster_autoscaler_dir }}"
+  environment:
+    TENANT_NAME: "{{ tenant_name }}"
+    TENANT_NAMESPACE: "{{ tenant_namespace }}"
+  changed_when: true
+
+- name: Cluster Autoscaler RBACマニフェストを適用
+  ansible.builtin.command: kubectl apply -f {{ cluster_autoscaler_dir }}/cluster-autoscaler-rbac.yaml
+  register: ca_rbac_apply
+  changed_when: "'created' in ca_rbac_apply.stdout or 'configured' in ca_rbac_apply.stdout"
+
+- name: Cluster Autoscaler APIサーバIP取得
+  ansible.builtin.shell: kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}' | cut -d'/' -f3 | cut -d':' -f1
+  register: ca_server_url
+  changed_when: false
+
+- name: Cluster Autoscaler CA証明書取得
+  ansible.builtin.command: kubectl get secret -n {{ tenant_namespace }} cluster-autoscaler-for-{{ tenant_name }}-secret -o jsonpath='{.data.ca\.crt}'
+  register: ca_ca_crt
+  changed_when: false
+
+- name: Cluster Autoscaler トークン取得
+  ansible.builtin.shell: |
+    kubectl get secret -n {{ tenant_namespace }} cluster-autoscaler-for-{{ tenant_name }}-secret -o jsonpath='{.data.token}' | base64 -d
+  register: ca_token
+  changed_when: false
+
+- name: Cluster Autoscaler Management-kubeconfig マニフェストに環境変数を展開
+  ansible.builtin.shell: |
+    envsubst '${SERVER_IP_ADDRESS} ${SERVER_PORT} ${CA_CRT} ${TOKEN}' < cluster-autoscaler-management-cluster-kubeconfig.yaml > cluster-autoscaler-mgmt.kubeconfig
+  args:
+    chdir: "{{ cluster_autoscaler_dir }}"
+  environment:
+    SERVER_IP_ADDRESS: "{{ ca_server_url.stdout }}"
+    SERVER_PORT: "6443"
+    CA_CRT: "{{ ca_ca_crt.stdout }}"
+    TOKEN: "{{ ca_token.stdout }}"
+  changed_when: true
+
+- name: Cluster Autoscaler Secret作成（冪等性確保）
+  ansible.builtin.shell: |
+    if kubectl get secret -n {{ tenant_namespace }} cluster-autoscaler-mgmt-kubeconfig-for-{{ tenant_name }} &>/dev/null; then
+      echo "Secret already exists"
+    else
+      kubectl create secret generic cluster-autoscaler-mgmt-kubeconfig-for-{{ tenant_name }} -n {{ tenant_namespace }} --from-file=kubeconfig={{ cluster_autoscaler_dir }}/cluster-autoscaler-mgmt.kubeconfig
+      echo "Secret created"
+    fi
+  args:
+    executable: /bin/bash
+  register: ca_secret_create
+  changed_when: "'Secret created' in ca_secret_create.stdout"
+
+# テナント構築用リソースの作成と適用
+- name: テナント構築用リソースの作成
+  ansible.builtin.command: "bash ./make-components-configuration.sh {{ tenant_namespace }} {{ tenant_name }} {{ tenant_harbor_ip }} {{ tenant_component_version }}"
+  args:
+    chdir: "{{ tenant_components_script_dir }}"
+  register: make_components_result
+  changed_when: '"created" in make_components_result.stdout or "updated" in make_components_result.stdout'
+
+# テナント論理インフラで使用するNFSサーバの設定
+- name: NFS Subdir External Provisioner 設定を更新
+  ansible.builtin.replace:
+    path: "{{ tenant_components_deployments_dir }}/{{ tenant_namespace }}-components/nfs-subdir-external-provisioner.yaml"
+    regexp: "{{ nfs_item.regexp }}"
+    replace: "{{ nfs_item.replace }}"
+    backup: no
+  loop:
+    - regexp: '^(\s+)server:\s+.*$'
+      replace: '\1server: "{{ nfs_server_ip }}"'
+    - regexp: '^(\s+)path:\s+.*$'
+      replace: '\1path: "{{ nfs_server_export_path }}"'
+  loop_control:
+    loop_var: nfs_item
+
+# テナント論理インフラで使用するバックアップストレージの設定
+- name: Velero バックアップストレージ設定を更新
+  ansible.builtin.replace:
+    path: "{{ tenant_components_deployments_dir }}/{{ tenant_namespace }}-components/velero.yaml"
+    regexp: "{{ velero_item.regexp }}"
+    replace: "{{ velero_item.replace }}"
+    backup: no
+  loop:
+    - regexp: '^(\s+)bucket:\s+.*$'
+      replace: '\1bucket: {{ velero_bucket }}'
+    - regexp: '^(\s+)s3Url:\s+http://.*$'
+      replace: '\1s3Url: http://{{ velero_storage_ip }}:{{ velero_storage_port }}'
+    - regexp: '^(\s+)aws_access_key_id\s+=\s+.*$'
+      replace: '\1aws_access_key_id = {{ velero_minio_user }}'
+    - regexp: '^(\s+)aws_secret_access_key\s+=\s+.*$'
+      replace: '\1aws_secret_access_key = {{ velero_minio_password }}'
+  loop_control:
+    loop_var: velero_item
+
+# ClusterAPIのMachineHealthCheck(MHC)による障害ノード自動交換(修復)機能を無効にする
+- name: MachineHealthCheck無効化（unhealthy-5m.yamlを削除）
+  ansible.builtin.file:
+    path: "{{ tenant_components_deployments_dir }}/{{ tenant_namespace }}-components/unhealthy-5m.yaml"
+    state: absent
+  when: disable_machine_health_check
+
+# Kyvernoのプロキシ設定ポリシーを無効にする（テナントがプロキシなしで外部通信できる場合）
+- name: Kyvernoプロキシ設定ポリシー無効化（inject-proxy-settings-config.yamlを削除）
+  ansible.builtin.file:
+    path: "{{ tenant_components_deployments_dir }}/{{ tenant_namespace }}-components/inject-proxy-settings-config.yaml"
+    state: absent
+  when: disable_kyverno_proxy_settings
+
+# Lokiのyaml編集
+- name: Loki storage 設定を更新
+  ansible.builtin.replace:
+    path: "{{ tenant_components_deployments_dir }}/{{ tenant_namespace }}-components/loki.yaml"
+    regexp: "{{ loki_item.regexp }}"
+    replace: "{{ loki_item.replace }}"
+  loop:
+    - regexp: 's3: .*'
+      replace: 's3: http://{{ loki_storage_ip }}:{{ loki_storage_port }}'
+    - regexp: 'access_key_id: .*'
+      replace: 'access_key_id: {{ loki_storage_minio_user }}'
+    - regexp: 'secret_access_key: .*'
+      replace: 'secret_access_key: {{ loki_storage_minio_password }}'
+    - regexp: 'chunks: .*'
+      replace: 'chunks: {{ loki_storage_bucket_chunks }}'
+    - regexp: 'ruler: .*'
+      replace: 'ruler: {{ loki_storage_bucket_ruler }}'
+    - regexp: 'admin: .*'
+      replace: 'admin: {{ loki_storage_bucket_admin }}'
+    - regexp: 'bucketnames: .*'
+      replace: 'bucketnames: {{ loki_storage_bucket_chunks }}'
+  loop_control:
+    loop_var: loki_item
+
+# Temporalのパスワード設定
+- name: Temporal Cassandraパスワード設定
+  ansible.builtin.replace:
+    path: "{{ tenant_components_deployments_dir }}/{{ tenant_namespace }}-components/temporal.yaml"
+    regexp: '(user: "user"\n\s*password:\s*)"\*\*\*\*\*\*"'
+    replace: '\1"{{ temporal_cassandra_password }}"'
+
+- name: Temporal MySQLパスワード設定
+  ansible.builtin.replace:
+    path: "{{ tenant_components_deployments_dir }}/{{ tenant_namespace }}-components/temporal.yaml"
+    regexp: '(user: "temporal"\n\s*password:\s*)"\*\*\*\*\*\*"'
+    replace: '\1"{{ temporal_mysql_password }}"'
+
+# Prometheusのパスワード設定
+- name: Prometheus Grafana管理者パスワード設定（prometheus-config.yaml）
+  ansible.builtin.replace:
+    path: "{{ tenant_components_resources_dir }}/prometheus/prometheus-config.yaml"
+    regexp: '(^\s*adminPassword:\s*).*$'
+    replace: '\1{{ prometheus_grafana_admin_password }}'
+
+- name: テナント構築用リソースを適用
+  ansible.builtin.command: "kubectl apply -f {{ tenant_namespace }}-components"
+  args:
+    chdir: "{{ tenant_components_deployments_dir }}"
+  register: kubectl_apply_result
+  changed_when: '"created" in kubectl_apply_result.stdout or "configured" in kubectl_apply_result.stdout'
+
+# Scale Controller用kubeconfigの作成およびSecret化
+- name: scale_controller RBACマニフェストに環境変数を展開
+  ansible.builtin.shell: |
+    envsubst '${TENANT_NAME} ${TENANT_NAMESPACE}' < rbac-in-management-cluster-template.yaml > rbac-in-management-cluster.yaml
+  args:
+    chdir: "{{ scale_controller_dir }}"
+  environment:
+    TENANT_NAME: "{{ tenant_name }}"
+    TENANT_NAMESPACE: "{{ tenant_namespace }}"
+  changed_when: true
+
+- name: scale_controller RBACマニフェストを適用
+  ansible.builtin.command: kubectl apply -f {{ scale_controller_dir }}/rbac-in-management-cluster.yaml 
+  register: rbac_apply
+  changed_when: "'created' in rbac_apply.stdout or 'configured' in rbac_apply.stdout"
+
+- name: scale_controller APIサーバIP取得
+  ansible.builtin.shell: kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}' | cut -d'/' -f3 | cut -d':' -f1
+  register: server_url
+  changed_when: false
+
+- name: scale_controller CA証明書取得
+  ansible.builtin.command: kubectl get secret -n {{ tenant_namespace }} scale-controller-for-{{ tenant_name }}-secret -o jsonpath='{.data.ca\.crt}'
+  register: ca_crt
+  changed_when: false
+
+- name: scale_controller トークン取得
+  ansible.builtin.shell: |
+    kubectl get secret -n {{ tenant_namespace }} scale-controller-for-{{ tenant_name }}-secret -o jsonpath='{.data.token}' | base64 -d
+  register: token
+  changed_when: false
+
+- name: scale_controller Management-API-kubeconfig マニフェストに環境変数を展開
+  ansible.builtin.shell: |
+    envsubst '${SERVER_IP_ADDRESS} ${SERVER_PORT} ${CA_CRT} ${TOKEN}' < management-cluster-kubeconfig.yaml > management.kubeconfig
+  args:
+    chdir: "{{ scale_controller_dir }}"
+  environment:
+    SERVER_IP_ADDRESS: "{{ server_url.stdout }}"
+    SERVER_PORT: "6443"
+    CA_CRT: "{{ ca_crt.stdout }}"
+    TOKEN: "{{ token.stdout }}"
+  changed_when: true
+
+- name: scale_controller Secret作成（冪等性確保）
+  ansible.builtin.shell: |
+    if kubectl get secret -n {{ tenant_namespace }} management-api-kubeconfig-for-{{ tenant_name }} &>/dev/null; then
+      echo "Secret already exists"
+    else
+      kubectl create secret generic management-api-kubeconfig-for-{{ tenant_name }} -n {{ tenant_namespace }} --from-file=kubeconfig={{ scale_controller_dir }}/management.kubeconfig
+      echo "Secret created"
+    fi
+  args:
+    executable: /bin/bash
+  register: secret_create
+  changed_when: "'Secret created' in secret_create.stdout"
+  
+# テナントのHarborインストールの事前準備
+- name: Harbor証明書ファイルの存在確認
+  ansible.builtin.stat:
+    path: "{{ item }}"
+  loop:
+    - "{{ tenant_work_dir }}/{{ harbor_private_key_file }}"
+    - "{{ tenant_work_dir }}/{{ harbor_ca_file }}"
+  register: harbor_cert_files
+
+- name: 証明書ペアの存在判定
+  ansible.builtin.set_fact:
+    harbor_cert_exists: "{{ harbor_cert_files.results | map(attribute='stat.exists') | select('equalto', true) | list | length == 2 }}"
+
+- name: Harbor証明書生成用の秘密鍵を生成
+  ansible.builtin.shell: >
+    openssl genrsa -out {{ tenant_work_dir }}/{{ harbor_private_key_file }} 4096
+  when: not harbor_cert_exists
+  changed_when: true
+
+- name: 自己署名CA証明書を生成
+  ansible.builtin.shell: >
+    openssl req -x509 -new -nodes
+    -key {{ tenant_work_dir }}/{{ harbor_private_key_file }}
+    -sha256 -days {{ harbor_ca_expiration }}
+    -subj "/CN={{ harbor_ca_name }}"
+    -out {{ tenant_work_dir }}/{{ harbor_ca_file }}
+  when: not harbor_cert_exists
+  changed_when: true
+
+- name: Pythonスクリプトをターゲットにコピー
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/edit_tenant_yaml_for_harbor.py"
+    dest: "{{ ansible_work_dir }}/edit_tenant_yaml_for_harbor.py"
+    mode: '0755'
+
+- name: テナント構築yamlファイルをターゲットホストにコピー
+  ansible.builtin.copy:
+    src: "{{ tenant_yaml_path }}"
+    dest: "{{ tenant_work_dir }}/{{ tenant_yaml_file }}"
+    mode: '0644'
+
+- name: マニフェストファイルの読み込み
+  ansible.builtin.slurp:
+    src: "{{ tenant_work_dir }}/{{ tenant_yaml_file }}"
+  register: manifest_raw
+
+- name: CA証明書の読み込み
+  ansible.builtin.slurp:
+    src: "{{ tenant_work_dir }}/{{ harbor_ca_file }}"
+  register: harbor_ca_crt
+
+- name: CA証明書を注入
+  ansible.builtin.command: >
+    python3 {{ ansible_work_dir }}/edit_tenant_yaml_for_harbor.py
+    {{ manifest_raw.content }} {{ harbor_ca_crt.content }} {{ tenant_work_dir }}/{{ tenant_yaml_file }}
+  register: inject_result
+  changed_when: true
+
+- name: CA証明書をDCIマネージャシステムの信頼する証明書ストアに移動
+  ansible.builtin.copy:
+    src: "{{ tenant_work_dir }}/{{ harbor_ca_file }}"
+    dest: "/etc/pki/ca-trust/source/anchors/{{ harbor_ca_file }}"
+    owner: root
+    group: root
+    mode: '0644'
+    remote_src: true
+  become: true
+  register: ca_trust_copy_result
+
+- name: システムのCAトラストストアを更新
+  ansible.builtin.command: update-ca-trust extract
+  when: ca_trust_copy_result.changed
+  become: true
+  changed_when: true
+
+- name: CRIOサービスを再起動
+  ansible.builtin.systemd_service:
+    name: crio
+    state: restarted
+  become: true
+  when: ca_trust_copy_result.changed
+
+- name: プライベートCAキー格納ディレクトリを作成
+  ansible.builtin.file:
+    path: "/etc/pki/CA/private"
+    state: directory
+    mode: '0700'
+    owner: root
+    group: root
+  become: true
+
+- name: 秘密鍵をプライベートCAディレクトリに移動
+  ansible.builtin.copy:
+    src: "{{ tenant_work_dir }}/{{ harbor_private_key_file }}"
+    dest: "/etc/pki/CA/private/{{ harbor_private_key_file }}"
+    owner: root
+    group: root
+    mode: '0600'
+    remote_src: true
+  become: true
+  register: ca_key_move_result

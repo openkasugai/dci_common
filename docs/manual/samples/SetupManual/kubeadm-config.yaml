@@ -1,0 +1,33 @@
+apiVersion: kubeadm.k8s.io/v1beta4
+kind: InitConfiguration
+localAPIEndpoint:
+  advertiseAddress: "172.28.193.10"  ★マネージャ用NWインタフェースのアドレス(<MGR-IPAddr-CP1>)
+  bindPort: 6443
+nodeRegistration:
+  criSocket: unix:///var/run/crio/crio.sock
+  imagePullPolicy: IfNotPresent
+  imagePullSerial: true
+  name: "d1-f01-k8s-master01"        ★ホスト名(<mgr-master01>)
+  taints: null
+---
+apiVersion: kubeadm.k8s.io/v1beta4
+kind: ClusterConfiguration
+kubernetesVersion: "v1.34.2"
+controlPlaneEndpoint: "172.28.193.30:6443"  ★仮想のvipアドレス:6443(<MGR-IPAddr-VIP>:6443)
+networking:
+  podSubnet: "10.244.0.0/16"
+  serviceSubnet: "10.96.0.0/12"
+imageRepository: registry.k8s.io
+clusterName: kubernetes
+certificatesDir: /etc/kubernetes/pki
+etcd:
+  local:
+    dataDir: /var/lib/etcd
+apiServer: {}
+controllerManager: {}
+scheduler: {}
+dns: {}
+proxy: {}
+caCertificateValidityPeriod: 87600h0m0s
+certificateValidityPeriod: 8760h0m0s
+encryptionAlgorithm: RSA-2048

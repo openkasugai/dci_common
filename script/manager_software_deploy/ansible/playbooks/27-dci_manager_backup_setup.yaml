@@ -1,0 +1,82 @@
+- name: DCIマネージャバックアップ用Veleroの配備
+  hosts: all
+  vars:
+    play_description: |
+      事前準備(システム構築) - DCIマネージャのバックアップ用コンポーネントの配備
+    mgr_velero_values_file: "{{ dci_manager_path }}/others/backup/mgr_velero_values.yaml"  # Velero values.yamlファイル
+    mgr_velero_namespace: "velero"  # Velero用namespace
+  environment:
+    KUBECONFIG: "/home/{{ ansible_user }}/.kube/config"
+  tasks:
+    - name: マニフェストを更新
+      ansible.builtin.replace:
+        path: "{{ mgr_velero_values_file }}"
+        regexp: "{{ item.regexp }}"
+        replace: "{{ item.replace }}"
+        backup: no
+      loop:
+        - regexp: '^(\s+)bucket:\s+.*$'
+          replace: '\1bucket: {{ velero_bucket }}'
+        - regexp: '^(\s+)s3Url:\s+http://.*$'
+          replace: '\1s3Url: http://{{ velero_storage_ip }}:{{ velero_storage_port }}'
+        - regexp: '^(\s+)aws_access_key_id\s+=\s+.*$'
+          replace: '\1aws_access_key_id = {{ velero_minio_user }}'
+        - regexp: '^(\s+)aws_secret_access_key\s+=\s+.*$'
+          replace: '\1aws_secret_access_key = {{ velero_minio_password }}'
+
+    - name: Namespace作成（velero）
+      ansible.builtin.command: kubectl create namespace {{ mgr_velero_namespace }}
+      register: ns_create_result
+      changed_when: '"created" in ns_create_result.stdout'
+      failed_when: 
+        - ns_create_result.rc != 0
+        - '"already exists" not in ns_create_result.stderr'
+
+    - name: Helmリポジトリ追加（vmware-tanzu）
+      ansible.builtin.command:
+        cmd: /usr/local/bin/helm repo add vmware-tanzu {{ mgr_velero_chart_repo }}
+      register: helm_repo_velero
+      retries: 3
+      delay: 10
+      until: helm_repo_velero.rc == 0 or 'already exists' in helm_repo_velero.stderr
+      changed_when: 
+        - helm_repo_velero.rc == 0
+        - '"already exists" not in helm_repo_velero.stdout'
+        - '"already exists" not in helm_repo_velero.stderr'
+      failed_when:
+        - helm_repo_velero.rc != 0
+        - '"already exists" not in helm_repo_velero.stderr'
+        - "'connection refused' not in helm_repo_velero.stderr | lower"
+        - "'timeout' not in helm_repo_velero.stderr | lower"
+
+    - name: Helmリポジトリ更新
+      ansible.builtin.command:
+        cmd: /usr/local/bin/helm repo update
+      register: helm_repo_update
+      retries: 3
+      delay: 10
+      until: helm_repo_update.rc == 0
+      changed_when: false
+      failed_when:
+        - helm_repo_update.rc != 0
+        - "'connection refused' not in helm_repo_update.stderr | lower"
+        - "'timeout' not in helm_repo_update.stderr | lower"
+
+    - name: Velero Helm配備（新規インストールまたはアップグレード）
+      ansible.builtin.command:
+        cmd: >
+          /usr/local/bin/helm upgrade --install velero vmware-tanzu/velero 
+          --version {{ mgr_velero_version }}
+          --namespace {{ mgr_velero_namespace }}
+          -f {{ mgr_velero_values_file }}
+      register: helm_deploy_velero
+      retries: 3
+      delay: 10
+      until: helm_deploy_velero.rc == 0
+      changed_when: 
+        - helm_deploy_velero.rc == 0
+        - '"has been upgraded" in helm_deploy_velero.stdout or "has been installed" in helm_deploy_velero.stdout'
+      failed_when:
+        - helm_deploy_velero.rc != 0
+        - "'connection refused' not in helm_deploy_velero.stderr | lower"
+        - "'timeout' not in helm_deploy_velero.stderr | lower"

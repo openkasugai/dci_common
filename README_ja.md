@@ -1,8 +1,6 @@
 [日本語](./README_ja.md) / [英語](./README.md)
 
-> このリポジトリは DCI2.0 / DHRC の先行公開版です。バグ報告を歓迎しますが、新機能の要望および Pull Request の受付は、2026年9月末予定の正式リリース後に開始する予定です。
-
-# DHRC: Dynamic Hardware Resource Controller 概要
+# DHRC: Dynamic Hardware Resource Control 概要
 
 DHRCは、分散コンピューティングリソースを柔軟かつ効率的に管理・制御するためのオープンソースソフトウェアです。IOWN時代に求められる省電力・低遅延・高柔軟性を実現する次世代アーキテクチャDCI (Data-Centric Infrastructure) の中核機能として設計されています。
 
@@ -35,7 +33,7 @@ DCIに関する詳細情報については、以下のリソースを参照し�
 # DHRCの構成
 DHRCは、DCIマネージャ、DCI物理インフラ、DCIテナント論理インフラの3要素で構成されています。
 
-<img src="./docs/_image/Architecure_ja.png" width="900px" alt="構成図">
+<img src="./docs/_image/Architecture_jp.png" width="900px" alt="構成図">
 
 |要素|説明|主な機能|
 |:--|:--|:--|
@@ -48,10 +46,10 @@ DHRCは、DCIマネージャ、DCI物理インフラ、DCIテナント論理イ�
 
 |リポジトリ|説明|
 |:--|:--|
-|[dci_common](https://github.com/openkasugai/dci_common) <br>(本リポジトリ)|DHRC のメインリポジトリです。DHRC を構成する各コンポーネントのサブリポジトリを参照するとともに、DHRC の構築・運用に必要なマニュアルやスクリプト、I/F 実装例としてのスタブコードを格納します。|
-|[dci_manager](https://github.com/openkasugai/dci_manager)|DCIマネージャのコードを格納します。例えば、ClusterAPI用の独自プロバイダ機能、リソースプール管理機能、構成管理DB、構成品配備スクリプト、外部OSS用のファイルがあります。|
-|[dci_physical_infrastructure](https://github.com/openkasugai/dci_physical_infrastructure)|DCI物理インフラのコードを格納します。例えば、MAAS管理機能、CDI管理機能、NW機器管理機能、外部OSS用のファイルがあります。|
-|[dci_tenant_infrastructure](https://github.com/openkasugai/dci_tenant_infrastructure)|DCIテナント論理インフラのコードを格納します。例えば、DCIアプリ間の接続機能、監視基盤、リソーススケーリング機能、外部OSS用のファイルがあります。|
+|dci_common <br>(本リポジトリ)|DHRC のメインリポジトリです。DHRC を構成する各コンポーネントのサブリポジトリを参照するとともに、DHRC の構築・運用に必要なマニュアルやスクリプト、I/F 実装例としてのスタブコードを格納します。|
+|dci_manager|DCIマネージャのコードを格納します。例えば、ClusterAPI用の独自プロバイダ機能、リソースプール管理機能、構成管理DB、構成品配備スクリプト、外部OSS用のファイルがあります。|
+|dci_physical_infrastructure|DCI物理インフラのコードを格納します。例えば、MAAS管理機能、CDI管理機能、NW機器管理機能、外部OSS用のファイルがあります。|
+|dci_tenant_infrastructure|DCIテナント論理インフラのコードを格納します。例えば、DCIアプリ間の接続機能、監視基盤、リソーススケーリング機能、外部OSS用のファイルがあります。|
 
 # ライセンス
 

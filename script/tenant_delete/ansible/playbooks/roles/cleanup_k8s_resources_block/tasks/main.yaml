@@ -1,0 +1,52 @@
+# テナントごとのK8sリソース・ファイルクリーンアップ処理
+- name: cleanup_components.sh を実行 ({{ tenant_namespace }})
+  ansible.builtin.command: >
+    {{ dci_manager_path }}/others/tenant-infrastructure-management/scripts/cleanup_components.sh {{ tenant_namespace }}
+  changed_when: true
+
+- name: ScrapeConfigファイルの存在確認 ({{ tenant_namespace }})
+  ansible.builtin.stat:
+    path: "{{ dci_manager_path }}/others/monitoring/kube-prometheus-stack/scrapeconfig-{{ tenant_namespace }}.yaml"
+  register: scrapeconfig_stat
+
+- name: テナントのScrapeConfigを削除 ({{ tenant_namespace }})
+  ansible.builtin.command: >
+    kubectl delete -f {{ dci_manager_path }}/others/monitoring/kube-prometheus-stack/scrapeconfig-{{ tenant_namespace }}.yaml
+    --ignore-not-found
+  register: scrapeconfig_delete
+  changed_when: "'deleted' in scrapeconfig_delete.stdout"
+  when: scrapeconfig_stat.stat.exists
+
+- name: テナントnamespace内の全リソースを削除 ({{ tenant_namespace }})
+  ansible.builtin.shell: |
+    kubectl api-resources --verbs=list --namespaced -o name | \
+      xargs -n 1 kubectl delete -n "{{ tenant_namespace }}" --ignore-not-found --all
+  args:
+    executable: /bin/bash
+  changed_when: true
+
+- name: テナントnamespaceを削除 ({{ tenant_namespace }})
+  ansible.builtin.command: >
+    kubectl delete ns {{ tenant_namespace }} --ignore-not-found
+  register: ns_delete
+  changed_when: "'deleted' in ns_delete.stdout"
+
+- name: テナントコンポーネントデプロイメントディレクトリを削除 ({{ tenant_namespace }})
+  ansible.builtin.file:
+    path: "{{ dci_manager_path }}/others/tenant-infrastructure-management/deployments/{{ tenant_namespace }}-components"
+    state: absent
+
+- name: テナントkubeconfigファイルを削除 ({{ tenant_namespace }})
+  ansible.builtin.file:
+    path: "{{ dci_manager_path }}/others/tenant-infrastructure-management/resources/accounts/tenant-manager/{{ kubeconfig_file }}"
+    state: absent
+
+- name: テナントHarborCA証明書ファイルを削除 (ホームディレクトリ配下) ({{ tenant_namespace }})
+  ansible.builtin.file:
+    path: "/home/{{ ansible_user }}/{{ harbor_ca_file }}"
+    state: absent
+
+- name: テナントHarbor秘密鍵ファイルを削除 (ホームディレクトリ配下) ({{ tenant_namespace }})
+  ansible.builtin.file:
+    path: "/home/{{ ansible_user }}/{{ harbor_private_key_file }}"
+    state: absent

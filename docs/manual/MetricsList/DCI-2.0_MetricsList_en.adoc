@@ -1,0 +1,392 @@
+= Metrics List
+:toc: macro
+:toclevels: 4
+:sectnums:
+:sectnumlevels: 4
+:figure-caption: Figure
+:table-caption: Table
+:docinfo: shared
+:source-highlighter: highlight.js
+:highlightjs-theme: vs2015
+
+Version 1.0
+
+November 5, 2026
+
+NTT, Inc.
+
+
+== DCI Application
+
+[cols="1,1,3,4",options="header"]
+|===
+|Classification |Category |Item |Metrics
+
+.13+|DCI Application
+.5+|Pod Information
+|Throughput per DCI Application (Pod) (network)
+|container_network_receive / transmit_bytes_total
+
+|CPU usage per DCI Application (Pod)
+|kube_node_status_capacity (number of CPU cores), container_cpu_usage_seconds_total
+
+|Memory usage per DCI Application (Pod)
+|kube_node_status_capacity (memory bytes), container_memory_working_set_bytes, container_memory_rss
+
+|Receive bandwidth per DCI Application (Pod)
+|container_network_receive_bytes_total
+
+|Transmit bandwidth per DCI Application (Pod)
+|container_network_transmit_bytes_total
+
+.2+|Pod Information
+|Receive packet rate per DCI Application (Pod)
+|container_network_receive_packets_total
+
+|Transmit packet rate per DCI Application (Pod)
+|container_network_transmit_packets_total
+
+
+.6+|GPU Information Allocated to Pod
+|GPU utilization
+|DCGM_FI_DEV_GPU_UTIL, DCGM_FI_PROF_SM_ACTIVE, DCGM_FI_PROF_GR_ENGINE_ACTIVE
+
+|GPU memory utilization
+|DCGM_FI_DEV_FB_USED
+
+|Memory temperature
+|DCGM_FI_DEV_MEMORY_TEMP
+
+|GPU temperature
+|DCGM_FI_DEV_GPU_TEMP
+
+|Power consumption
+|DCGM_FI_DEV_POWER_USAGE
+
+|Total energy consumption
+|DCGM_FI_DEV_TOTAL_ENERGY_CONSUMPTION
+
+.2+|Main Container
+.2+|Main Container Information
+|CPU usage per DCI Application
+|container_cpu_usage_seconds_total
+
+|Memory usage per DCI Application
+|container_memory_usage_bytes
+
+.12+|Sidecar Container
+.6+|Sidecar Container Information (Connection Management)
+|CPU usage of connection management sidecar
+|container_cpu_usage_seconds_total
+
+|Memory usage of connection management sidecar
+|container_memory_usage_bytes
+
+|Receive bandwidth of connection management sidecar
+|container_network_receive_bytes_total
+
+|Transmit bandwidth of connection management sidecar
+|container_network_transmit_bytes_total
+
+|Receive packet rate of connection management sidecar
+|container_network_receive_packets_total
+
+|Transmit packet rate of connection management sidecar
+|container_network_transmit_packets_total
+
+.6+|Sidecar Container Information (Status Monitoring)
+|CPU usage of status monitoring sidecar
+|container_cpu_usage_seconds_total
+
+|Memory usage of status monitoring sidecar
+|container_memory_usage_bytes
+
+|Receive bandwidth of status monitoring sidecar
+|container_network_receive_bytes_total
+
+|Transmit bandwidth of status monitoring sidecar
+|container_network_transmit_bytes_total
+
+|Receive packet rate of status monitoring sidecar
+|container_network_receive_packets_total
+
+|Transmit packet rate of status monitoring sidecar
+|container_network_transmit_packets_total
+
+|===
+
+
+== DCI Tenant Logical Infrastructure
+
+[cols="2,2,3,4",options="header"]
+|===
+|Classification |Category |Item |Metrics
+
+.6+|Logical Server (K8s Control Plane, K8s Node): VM
+.6+|Node Information
+|CPU usage per Node
+|node_cpu_seconds_total
+
+|Memory usage per Node
+|node_memory_MemTotal_bytes, node_memory_MemFree_bytes, node_memory_Buffers_bytes, node_memory_Cached_bytes
+
+|Disk I/O per Node
+|node_disk_read_bytes_total, node_disk_written_bytes_total, node_disk_io_time_seconds_total
+
+|Disk usage per Node
+|node_filesystem_size_bytes, node_filesystem_avail_bytes
+
+|Network receive volume per Node
+|node_network_receive_bytes_total
+
+|Network transmit volume per Node
+|node_network_transmit_bytes_total
+
+.21+|Logical Server (K8s Node): Physical Server (COTS, Composed)
+.6+|Node Information
+|CPU usage per Node
+|node_cpu_seconds_total
+
+|Memory usage per Node
+|node_memory_MemTotal_bytes, node_memory_MemFree_bytes, node_memory_Buffers_bytes, node_memory_Cached_bytes
+
+|Disk I/O per Node
+|node_disk_read_bytes_total, node_disk_written_bytes_total, node_disk_io_time_seconds_total
+
+|Disk usage per Node
+|node_filesystem_size_bytes, node_filesystem_avail_bytes
+
+|Network receive volume per Node
+|node_network_receive_bytes_total
+
+|Network transmit volume per Node
+|node_network_transmit_bytes_total
+
+.15+|GPU Information
+|SM clock frequency
+|DCGM_FI_DEV_SM_CLOCK
+
+|Memory clock frequency
+|DCGM_FI_DEV_MEM_CLOCK
+
+|Memory temperature
+|DCGM_FI_DEV_MEMORY_TEMP
+
+|GPU temperature
+|DCGM_FI_DEV_GPU_TEMP
+
+|Power consumption
+|DCGM_FI_DEV_POWER_USAGE
+
+|Total energy consumption
+|DCGM_FI_DEV_TOTAL_ENERGY_CONSUMPTION
+
+|PCIe replay counter
+|DCGM_FI_DEV_PCIE_REPLAY_COUNTER
+
+|XID errors
+|DCGM_FI_DEV_XID_ERRORS
+
+|NVLINK total bandwidth
+|DCGM_FI_DEV_NVLINK_BANDWIDTH_TOTAL
+
+|vGPU license status
+|DCGM_FI_DEV_VGPU_LICENSE_STATUS
+
+|Graphics engine active time ratio
+|DCGM_FI_PROF_GR_ENGINE_ACTIVE
+
+|Tensor pipe active cycle ratio
+|DCGM_FI_PROF_PIPE_TENSOR_ACTIVE
+
+|Device memory interface data send/receive active cycle ratio
+|DCGM_FI_PROF_DRAM_ACTIVE
+
+|PCIe TX data volume
+|DCGM_FI_PROF_PCIE_TX_BYTES
+
+|PCIe RX data volume
+|DCGM_FI_PROF_PCIE_RX_BYTES
+
+|===
+
+
+== DCI Manager
+
+[cols="1,1,3,4",options="header"]
+|===
+|Classification |Category |Item |Metrics
+
+.2+|DCI Manager Cluster
+.2+|Resource Pool Management Information
+|Logical Server provisioning time
+|provisioning_duration_seconds
+
+|Number of requests accumulated in the controller workqueue
+|workqueue_depth
+
+.13+|Logical Server (VM)
+.7+|Node Information
+|CPU usage information
+|node_cpu_seconds_total
+
+|Memory usage information
+|node_memory_MemAvailable_bytes
+
+|Network traffic information
+|node_network_receive_bytes_total, node_network_transmit_bytes_total
+
+|Disk usage information
+|node_filesystem_size_bytes, node_filesystem_free_bytes
+
+|Disk I/O
+|node_disk_reads_completed_total, node_disk_writes_completed_total
+
+|Network receive volume
+|node_network_receive_bytes_total
+
+|Network transmit volume
+|node_network_transmit_bytes_total
+
+.6+|Pod Information
+|CPU usage per Pod
+|container_cpu_usage_seconds_total
+
+|Memory usage per Pod
+|container_memory_working_set_bytes
+
+|Receive bandwidth per Pod
+|container_network_receive_bytes_total
+
+|Transmit bandwidth per Pod
+|container_network_transmit_bytes_total
+
+|Receive packet rate per Pod
+|container_network_receive_packets_total
+
+|Transmit packet rate per Pod
+|container_network_transmit_packets_total
+
+|===
+
+== Physical Infrastructure
+
+[cols="1,2,3,4",options="header"]
+|===
+|Classification |Category |Item |Metrics
+
+.21+|Physical Server
+.7+|Running Physical Servers in Resource Pool
+
+|CPU utilization of physical server
+|server_cpu_usage
+
+|Memory utilization of physical server
+|server_memory_usage
+
+|Network traffic information
+|node_network_receive_bytes_total, node_network_transmit_bytes_total
+
+|Disk usage information
+|node_filesystem_size_bytes
+
+|Disk I/O
+|node_disk_read_bytes_total
+
+|Network receive volume
+|node_network_receive_bytes_total
+
+|Network transmit volume
+|node_network_transmit_bytes_total
+
+.7+|Physical Servers for Tenant Logical Infrastructure VMs
+
+|CPU utilization of physical server
+|server_cpu_usage
+
+|Memory utilization of physical server
+|server_memory_usage
+
+|Network traffic information
+|node_network_receive_bytes_total, node_network_transmit_bytes_total
+
+|Disk usage information
+|node_filesystem_size_bytes
+
+|Disk I/O
+|node_disk_read_bytes_total
+
+|Network receive volume
+|node_network_receive_bytes_total
+
+|Network transmit volume
+|node_network_transmit_bytes_total
+
+.7+|Physical Servers for DCI Management Server (for VMs)
+
+|CPU utilization of physical server
+|server_cpu_usage
+
+|Memory utilization of physical server
+|server_memory_usage
+
+|Network traffic information
+|node_network_receive_bytes_total, node_network_transmit_bytes_total
+
+|Disk usage information
+|node_filesystem_size_bytes
+
+|Disk I/O
+|node_disk_read_bytes_total
+
+|Network receive volume
+|node_network_receive_bytes_total
+
+|Network transmit volume
+|node_network_transmit_bytes_total
+
+.12+|NW Device
+.12+|NW Device Packet Statistics
+|Receive counter value of a specific port of the NW device held on the Physical Infrastructure side
+|interface_rx_pk
+
+|Transmit counter value of a specific port of the NW device held on the Physical Infrastructure side
+|interface_tx_pk
+
+|Receive bit rate
+|interface_rx_bps
+
+|Transmit bit rate
+|interface_tx_bps
+
+|Receive interface utilization
+|interface_rx_util
+
+|Transmit interface utilization
+|interface_tx_util
+
+|Number of receive error packets
+|interface_rx_err
+
+|Number of transmit error packets
+|interface_tx_err
+
+|Number of receive dropped packets
+|interface_rx_drp
+
+|Number of transmit dropped packets
+|interface_tx_drp
+
+|Number of receive overrun packets
+|interface_rx_ovr
+
+|Number of transmit overrun packets
+|interface_tx_ovr
+
+|===
+
+++++
+<div style="text-align: right;">
+Copyright 2026 NTT, Inc.
+</div>
+++++

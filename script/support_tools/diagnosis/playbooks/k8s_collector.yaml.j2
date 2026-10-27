@@ -1,0 +1,101 @@
+---
+# Kubernetes診断情報収集Playbook（汎用リソース対応）
+# このPlaybookはDCI診断ツールから呼び出され、Kubernetesクラスタの状態情報を収集します
+# 各リソースは個別ファイルとして /tmp/k8s_diagnosis/ に保存されます
+
+- name: Kubernetes Resource Collection for Diagnosis
+  hosts: {{ target_host }}
+  gather_facts: false
+  
+  vars:
+    # 管理クラスタのkubeconfig
+    manager_kubeconfig: "/home/{{ '{{' }} ansible_user {{ '}}' }}/.kube/config"
+    # テナントクラスタのkubeconfig（cluster_type が tenant の場合のみ使用）
+    {% if cluster_type == 'tenant' %}
+    tenant_kubeconfig: "/home/{{ '{{' }} ansible_user {{ '}}' }}/auto_script_work/{{ tenant_namespace }}/{{ tenant_kubeconfig_file }}"
+    {% endif %}
+    # 使用するkubeconfigを cluster_type に応じて選択
+    kubeconfig_file: "{% if cluster_type == 'tenant' %}{{ '{{' }} tenant_kubeconfig {{ '}}' }}{% else %}{{ '{{' }} manager_kubeconfig {{ '}}' }}{% endif %}"
+  
+  tasks:
+    # 作業ディレクトリを作成
+    - name: Create diagnosis work directory
+      ansible.builtin.file:
+        path: /tmp/k8s_diagnosis
+        state: directory
+        mode: '0755'
+    
+    # エラーログファイルを初期化
+    - name: Initialize error log
+      ansible.builtin.copy:
+        content: ""
+        dest: /tmp/k8s_diagnosis/errors.log
+        mode: '0644'
+    
+    # 汎用リソース収集ループ
+    {% for resource in generic_resources %}
+    - name: "Collect {{ resource.kind }}{% if resource.namespace %} in {{ resource.namespace }}{% endif %} (index {{ loop.index }})"
+      ansible.builtin.shell: >
+        kubectl --kubeconfig="{{ '{{' }} kubeconfig_file {{ '}}' }}"
+        get {% if resource.api_version %}{{ resource.kind | lower }}.{{ resource.api_version.split('/')[0] }}{% else %}{{ resource.kind | lower }}{% endif %}
+        {%- if resource.namespace %}
+        -n {{ resource.namespace }}
+        {%- elif resource.namespaced %}
+        --all-namespaces
+        {%- endif %}
+        -o json
+      register: resource_{{ loop.index }}_output
+      changed_when: false
+      failed_when: false
+    
+    - name: "Save {{ resource.kind }} data (index {{ loop.index }})"
+      ansible.builtin.copy:
+        content: "{{ '{{' }} resource_{{ loop.index }}_output.stdout {{ '}}' }}"
+        dest: "/tmp/k8s_diagnosis/{{ resource.kind | lower }}{% if resource.namespace %}_{{ resource.namespace }}{% endif %}_{{ loop.index }}.json"
+        mode: '0644'
+      when: resource_{{ loop.index }}_output.rc == 0
+    
+    - name: "Log {{ resource.kind }} collection error (index {{ loop.index }})"
+      ansible.builtin.lineinfile:
+        path: /tmp/k8s_diagnosis/errors.log
+        line: "[{{ resource.kind | upper }}{% if resource.namespace %}/{{ resource.namespace }}{% endif %}] rc={{ '{{' }} resource_{{ loop.index }}_output.rc {{ '}}' }}: {{ '{{' }} resource_{{ loop.index }}_output.stderr {{ '}}' }}"
+        create: yes
+      when: resource_{{ loop.index }}_output.rc != 0
+    {% endfor %}
+    
+    # 汎用リソース table形式出力収集ループ（kind別に重複なく収集）
+    {% set seen_kinds = [] %}
+    {% for resource in generic_resources %}
+    {% if resource.kind not in seen_kinds %}
+    {% set _ = seen_kinds.append(resource.kind) %}
+    - name: "Collect {{ resource.kind }} table output (all namespaces)"
+      ansible.builtin.shell: >
+        kubectl --kubeconfig="{{ '{{' }} kubeconfig_file {{ '}}' }}"
+        get {% if resource.api_version %}{{ resource.kind | lower }}.{{ resource.api_version.split('/')[0] }}{% else %}{{ resource.kind | lower }}{% endif %}
+        {%- if resource.namespaced %}
+        --all-namespaces
+        {%- endif %}
+      register: {{ resource.kind | lower | replace('-', '_') }}_wide_output
+      changed_when: false
+      failed_when: false
+    
+    - name: "Save {{ resource.kind }} table output"
+      ansible.builtin.copy:
+        content: "{{ '{{' }} {{ resource.kind | lower | replace('-', '_') }}_wide_output.stdout {{ '}}' }}"
+        dest: "/tmp/k8s_diagnosis/{{ resource.kind | lower }}_wide.txt"
+        mode: '0644'
+      when: {{ resource.kind | lower | replace('-', '_') }}_wide_output.rc == 0
+    {% endif %}
+    {% endfor %}
+    
+    # 収集完了メタデータ
+    - name: Save collection metadata
+      ansible.builtin.shell: |
+        cat > /tmp/k8s_diagnosis/metadata.json << 'EOF'
+        {
+          "collection_timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+          "resources_collected": {{ generic_resources | length }}
+        }
+        EOF
+      args:
+        executable: /bin/bash

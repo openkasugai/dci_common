@@ -1,0 +1,46 @@
+- name: workerノードrsyslog設定（ネットワークSWログ受信）
+  hosts: dci_mgmt_k8s_node[0]
+  vars:
+    play_description: |
+      事前準備(システム構築) - workerノードのrsyslog設定（ネットワークSWログ受信）
+  tasks:
+    - name: ネットワークSWログ用ディレクトリ作成
+      become: true
+      ansible.builtin.file:
+        path: /var/log/network_sw
+        state: directory
+        mode: '0755'
+
+    - name: rsyslog TCP受信・ルーティング設定を追記
+      become: true
+      ansible.builtin.blockinfile:
+        path: /etc/rsyslog.conf
+        insertafter: EOF
+        marker: "# {mark} ANSIBLE MANAGED BLOCK FOR NETWORK SW RSYSLOG"
+        block: |
+          module(load="imtcp") # needs to be done just once
+          input(type="imtcp" port="514")
+          if $fromhost-ip == "127.0.0.1" then stop
+          if $fromhost-ip == "::1" then stop
+
+          $template RemoteLogs,"/var/log/network_sw/%fromhost-ip%_%$year%%$month%%$day%.log"
+          *.* ?RemoteLogs
+          & ~
+      register: rsyslog_network_sw_result
+
+    - name: rsyslogを再起動
+      become: true
+      ansible.builtin.service:
+        name: rsyslog
+        state: restarted
+      when: rsyslog_network_sw_result is changed
+
+    - name: ネットワークSWログローテーション用cronジョブを設定
+      become: true
+      ansible.builtin.blockinfile:
+        path: /etc/crontab
+        insertafter: EOF
+        marker: "# {mark} ANSIBLE MANAGED BLOCK FOR NETWORK SW LOG ROTATION"
+        block: |
+          # Delete logs older than 3 days at 01:00 every day
+          0 1 * * * root find /var/log/network_sw -type f -name '*.log' -mtime +3 -delete

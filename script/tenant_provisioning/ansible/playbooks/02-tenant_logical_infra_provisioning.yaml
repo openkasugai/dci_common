@@ -1,0 +1,14 @@
+- name: テナント論理インフラセットアップ
+  hosts: all
+  vars:
+    play_description: |
+      A1 - テナント論理インフラ構築
+  environment:
+    KUBECONFIG: "/home/{{ ansible_user }}/.kube/config"
+  tasks:
+    - name: テナント論理インフラyaml適用
+      ansible.builtin.command:
+        cmd: "kubectl apply -f {{ ansible_work_dir }}/{{ item.tenant_namespace }}/{{ item.tenant_yaml_file }}"
+      register: tenant_setup_result
+      changed_when: "'unchanged' not in tenant_setup_result.stdout"
+      loop: "{{ tenants }}"

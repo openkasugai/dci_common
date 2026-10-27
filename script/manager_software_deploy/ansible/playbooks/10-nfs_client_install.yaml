@@ -1,0 +1,16 @@
+- name: NFS Clientの配備
+  hosts: all
+  become: true
+  vars:
+    play_description: |
+      事前準備(システム構築) - NFS Subdir External Provisionerの配備
+       - NFS Clinetの配備(全ノードを対象とする手順)
+  tasks:
+    - name: nfs-utilsパッケージのインストール (冪等)
+      ansible.builtin.dnf:
+        name: "{{ nfs_utils_package }}"
+        state: present
+      register: package_install_result
+      retries: 3
+      delay: 10
+      until: package_install_result is succeeded

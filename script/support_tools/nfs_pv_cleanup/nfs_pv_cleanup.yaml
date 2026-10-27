@@ -1,0 +1,24 @@
+- name: NFSサーバテナントPVデータ削除
+  hosts: nfs_servers
+  vars:
+    play_description: |
+      削除したテナントのPVに使用されていたNFSサーバ上のデータを削除する
+  tasks:
+    - name: NFSサーバのテナントPVデータを削除 ({{ item.tenant_namespace }})
+      become: yes
+      ansible.builtin.shell: >
+        rm -rf {{ item.nfs_server_export_path }}/*
+      args:
+        executable: /bin/bash
+      loop: "{{ tenants }}"
+      loop_control:
+        label: "{{ item.tenant_namespace }}"
+      register: nfs_delete_result
+      changed_when: true
+
+    - name: 削除結果を表示
+      ansible.builtin.debug:
+        msg: "{{ item.item.tenant_namespace }} ({{ item.item.nfs_server_export_path }}/*): 削除完了"
+      loop: "{{ nfs_delete_result.results }}"
+      loop_control:
+        label: "{{ item.item.tenant_namespace }}"

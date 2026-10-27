@@ -1,0 +1,83 @@
+### 環境に合わせて設定変更 ##############################
+
+# テナント情報
+tenants:
+  - tenant_name: tenant-1                                             # テナント用のクラスタ名
+    tenant_namespace: tenant-1                                        # テナント用のネームスペース
+    tenant_yaml_file: tenant-1.yaml                                   # テナント構築マニフェストファイル名
+    tenant_yaml_path: "{{ playbook_dir }}/../utility/tenant-1.yaml"   # テナント構築マニフェストファイルの配置パス(Ansibleコントローラ上)
+    tenant_harbor_url: 192.168.2.123                                 # テナント用HarborサーバIPアドレス
+    tenant_harbor_port: 30003                                         # テナント用Harborサーバポート
+    harbor_private_key_file: tenant-1.key                             # テナント用Harbor証明書生成用秘密鍵ファイル名
+    harbor_ca_file: tenant-1.crt                                      # テナント用Harbor自己署名証明書ファイル名
+    harbor_ca_name: tenant-1                                          # テナント用Harbor CA名
+    harbor_ca_expiration: 3650                                        # テナント用Harbor証明書期限(単位: 日)
+    nfs_server_ip: "192.168.2.105"                                   # NFSサーバIPアドレス(テナント論理インフラ用)
+    nfs_server_export_path: "/export/nfs"                             # NFSサーバエクスポートパス(テナント論理インフラ用)
+    velero_bucket: "minio/test-velero-bucket01"                       # 使用するバケット名(テナント論理インフラ用)
+    velero_storage_ip: "192.168.2.105"                               # バックアップストレージのIPアドレス(テナント論理インフラ用)
+    velero_storage_port: "9000"                                       # バックアップストレージのポート(テナント論理インフラ用)
+    velero_minio_user: "minio"                                        # MINIOのルートユーザ(テナント論理インフラ用)
+    velero_minio_password: "{{ tenant_1_velero_minio_password }}"     # MINIOのルートユーザのパスワード(テナント論理インフラ用)(vault.yaml参照)
+    disable_machine_health_check: false                               # MachineHealthCheckを無効にする場合はtrue
+    disable_kyverno_proxy_settings: true                              # Kyvernoプロキシ設定ポリシーを無効にする場合はtrue（テナントがプロキシなしで外部通信できる場合）
+    loki_storage_ip: "192.168.2.105"                                 # Lokiストレージ(MinIO)のIPアドレス
+    loki_storage_port: "9000"                                         # Lokiストレージ(MinIO)のポート番号
+    loki_storage_minio_user: "minio"                                  # Lokiストレージ(MinIO)のアクセスキーID
+    loki_storage_minio_password: "{{ tenant_1_loki_storage_minio_password }}"  # Lokiストレージ(MinIO)のシークレットアクセスキー(vault.yaml参照)
+    loki_storage_bucket_chunks: "loki-tenant-c1"                        # Lokiストレージ chunksバケット名（storage_config.aws.bucketnames と共通）
+    loki_storage_bucket_ruler: "loki-tenant-c1-ruler"                   # Lokiストレージ rulerバケット名
+    loki_storage_bucket_admin: "loki-tenant-c1-admin"                   # Lokiストレージ adminバケット名
+    temporal_cassandra_password: "{{ tenant_1_temporal_cassandra_password }}"  # TemporalのCassandraパスワード(vault.yaml参照)
+    temporal_mysql_password: "{{ tenant_1_temporal_mysql_password }}"           # TemporalのMySQLパスワード(vault.yaml参照)
+    prometheus_grafana_admin_password: "{{ tenant_1_prometheus_grafana_admin_password }}"  # テナント用Grafana管理者パスワード(vault.yaml参照)
+
+# テナントネットワーク情報
+manager_nw:   # マネージャー用NW (システムで一意の設定)
+  cidr: 192.168.193.0/24
+  ip_range:
+    start: 192.168.193.70
+    end: 192.168.193.78
+  vid: 1193
+
+cni_nw:   # CNI用NW (VMを作成するいずれかのテナントのテナント構築yamlと同じ内容を設定する)
+  cidr: 192.168.166.0/24
+  ip_range:
+    start: 192.168.166.10
+    end: 192.168.166.200
+  vid: 1166
+
+host_nw:   # ホスト用NW (VMを作成するいずれかのテナントのテナント構築yamlと同じ内容を設定する)
+  cidr: 192.168.163.0/24
+  ip_range:
+    start: 192.168.163.10
+    end: 192.168.163.200
+  vid: 1163
+
+# 予備ノード情報
+spare_nodes:
+# 対象の接続先がない場合は、項目ごと削除
+  - node_name: spare-node01            # 予備ノード名
+    node_yaml_file: spare-node01.yaml  # 予備ノードマニフェストファイル名
+    location: dc1                      # 所属する拠点名
+    server_type: COTSServer            # サーバタイプ(ComposedServer/COTSServer/VM/ComposedServerOrCOTSServer)
+    os:                                # OS情報(MAASに登録済みカスタムイメージ)
+      distribution: rhel               # ディストリビューション
+      version: 9.6-custom              # バージョン
+    gpu:                               # GPU情報
+      model: NVIDIA-BLACKWELL          # GPUモデル
+      num: 1                           # GPU搭載数
+    nic:                               # NIC情報
+      model: NVIDIA-CONNECTX-6-DX      # NICモデル
+      num: 1                           # NIC搭載数
+
+### DHRC 各コンポーネントのimage名・バージョン ######################
+# バージョン
+tag_tenant_version: 1.0.0
+
+### 以下は編集不要 #####################################
+# 作業ディレクトリ
+ansible_work_dir: "/home/{{ ansible_user }}/auto_script_work"
+
+# DHRC関連変数
+dci_manager_path: "/home/{{ ansible_user }}/dci_manager"  # DCIマネージャパス

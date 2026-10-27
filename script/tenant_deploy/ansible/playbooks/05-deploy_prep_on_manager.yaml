@@ -1,0 +1,23 @@
+- name: マネージャクラスタで監視連携設定
+  hosts: all
+  gather_facts: false
+  vars:
+    play_description: |
+      事前準備(テナント構築時のDCI運用者の作業)
+      - Prometheus(テナント側)とPrometheus(マネージャ側)の連携
+      - Vector(テナント側)とLoki(マネージャ側)連携
+      - デフォルトのアラートルールの設定
+  environment:
+    KUBECONFIG: "/home/{{ ansible_user }}/.kube/config"
+  tasks:
+    - name: テナント数分ループ
+      ansible.builtin.include_role:
+        name: deploy_prep_on_manager_block
+      vars:
+        tenant_namespace: "{{ item.tenant_namespace }}"
+        tenant_name: "{{ item.tenant_name }}"
+        tenant_work_dir: "{{ ansible_work_dir }}/{{ item.tenant_namespace }}"
+        kubeconfig_file: "{{ item.kubeconfig_file }}"
+        gateway_loadbalancer_vip: "{{ item.gateway_loadbalancer_vip }}"
+        alert_email: "{{ item.alert_email }}"
+      loop: "{{ tenants }}"

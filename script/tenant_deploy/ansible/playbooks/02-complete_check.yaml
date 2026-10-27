@@ -1,0 +1,13 @@
+- name: cloud-init完了確認
+  hosts: all
+  vars:
+    play_description: |
+      A1 - 構成品配備
+      - cloud-initの完了確認
+  tasks:
+    - name: cloud-init完了確認
+      ansible.builtin.command: cloud-init status
+      become: true
+      register: cloud_init_status
+      changed_when: false
+      failed_when: "'status: done' not in cloud_init_status.stdout"

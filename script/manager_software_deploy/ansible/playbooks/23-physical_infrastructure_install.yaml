@@ -1,0 +1,187 @@
+- name: DCI物理インフラの配備
+  hosts: all
+  vars:
+    play_description: |
+      事前準備(システム構築) - リソースプール管理Pod、DCI物理インフラの配備
+      - DCI物理インフラの配備
+  environment:
+    KUBECONFIG: "/home/{{ ansible_user }}/.kube/config"
+  tasks:
+    - name: localhost の fact を取得
+      ansible.builtin.setup:
+        gather_subset:
+          - min
+      delegate_to: localhost
+      delegate_facts: true
+      run_once: true
+
+    # SSH鍵生成
+    - name: SSH鍵配置先ディレクトリの作成
+      ansible.builtin.file:
+        path: "{{ hostvars[item].ansible_user_dir }}/.ssh"
+        state: directory
+        mode: '0700'
+      delegate_to: "{{ item }}"
+      loop:
+        - "{{ inventory_hostname }}"
+        - localhost
+      loop_control:
+        label: "{{ item }}"
+
+    - name: SSH鍵ペアの存在確認
+      ansible.builtin.stat:
+        path: "{{ hostvars[item].ansible_user_dir }}/.ssh/id_ed25519"
+      register: ssh_key_stat_result
+      delegate_to: "{{ item }}"
+      loop:
+        - "{{ inventory_hostname }}"
+        - localhost
+      loop_control:
+        label: "{{ item }}"
+
+    - name: SSH鍵の生成（存在しない場合）
+      ansible.builtin.command:
+        cmd: ssh-keygen -t ed25519 -f {{ hostvars[item.item].ansible_user_dir }}/.ssh/id_ed25519 -N ""
+        creates: "{{ hostvars[item.item].ansible_user_dir }}/.ssh/id_ed25519"
+      delegate_to: "{{ item.item }}"
+      when: not item.stat.exists
+      loop: "{{ ssh_key_stat_result.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+
+    # SSH鍵用Secret作成
+    - name: 既存のSSH鍵Secret確認
+      ansible.builtin.command:
+        cmd: kubectl get secret physical-infrastructure-ssh-keys
+      register: secret_check
+      changed_when: false
+      failed_when: false
+
+    - name: SSH鍵マウント用Secretの作成
+      ansible.builtin.command:
+        cmd: >
+          kubectl create secret generic physical-infrastructure-ssh-keys
+          --from-file=id_ed25519=/home/{{ ansible_user }}/.ssh/id_ed25519
+      when: secret_check.rc != 0
+
+    # sshpassのインストール
+    - name: sshpassパッケージのインストール
+      become: true
+      ansible.builtin.package:
+        name: sshpass
+        state: present
+
+    # SSH公開鍵の登録
+    - name: 公開鍵の登録
+      ansible.builtin.shell: |
+        sshpass -p '{{ item.password }}' ssh-copy-id -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i {{ ansible_user_dir }}/.ssh/id_ed25519.pub {{ item.user }}@{{ item.host }}
+      loop: "{{ physical_infrastructure_ssh_remotes | default([]) }}"
+      loop_control:
+        label: "{{ item.user }}@{{ item.host }}"
+
+    # SSH公開鍵の登録(MAASサーバ)
+    - name: SSH公開鍵ファイルの読み込み
+      ansible.builtin.slurp:
+        src: "{{ hostvars[item].ansible_user_dir }}/.ssh/id_ed25519.pub"
+      register: ssh_public_key_files
+      delegate_to: "{{ item }}"
+      loop:
+        - "{{ inventory_hostname }}"
+        - localhost
+      loop_control:
+        label: "{{ item }}"
+
+    - name: MAAS APIキーの分割
+      ansible.builtin.set_fact:
+        maas_oauth_consumer_key: "{{ maas_api_key.split(':')[0] }}"
+        maas_oauth_token: "{{ maas_api_key.split(':')[1] }}"
+        maas_oauth_signature: "{{ maas_api_key.split(':')[2] }}"
+
+    - name: MAASへSSH公開鍵を登録
+      ansible.builtin.uri:
+        url: "{{ maas_api_url }}/account/prefs/sshkeys/"
+        method: POST
+        headers:
+          Authorization: >-
+            OAuth oauth_version=1.0,
+            oauth_signature_method=PLAINTEXT,
+            oauth_consumer_key={{ maas_oauth_consumer_key }},
+            oauth_token={{ maas_oauth_token }},
+            oauth_signature=&{{ maas_oauth_signature }},
+            oauth_nonce={{ 99999999 | random | to_uuid }},
+            oauth_timestamp={{ ansible_date_time.epoch }}
+        body_format: form-urlencoded
+        body:
+          key: "{{ item.content | b64decode | trim }}"
+        status_code: [200, 201, 400, 409, 500, 502, 503, 504]
+      loop: "{{ ssh_public_key_files.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+      register: maas_ssh_key_register
+      retries: 3
+      delay: 5
+      until: maas_ssh_key_register.status in [200, 201, 400, 409]
+      changed_when: maas_ssh_key_register.status in [200, 201]
+      failed_when:
+        - maas_ssh_key_register.status is defined
+        - maas_ssh_key_register.status not in [200, 201, 400, 409]
+        - maas_ssh_key_register.status not in [500, 502, 503, 504]
+
+    # Helmレジストリログイン
+    - name: Harborレジストリへのログイン（Helm）
+      ansible.builtin.shell: >
+        helm registry login -u {{ harbor_manager_user }} -p {{ harbor_manager_password }} {{ harbor_manager_url }}:{{ harbor_manager_port }}
+      register: helm_login_result
+      changed_when: true
+      failed_when: 
+        - helm_login_result.rc != 0
+
+    # 追加プロダクト情報のマージ
+    - name: product-mappingsマージスクリプトをターゲットにコピー
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/merge_product_mappings.py"
+        dest: "{{ ansible_work_dir }}/merge_product_mappings.py"
+        mode: '0755'
+
+    - name: product-mappings-configmap.yamlに追加プロダクト情報をマージ
+      ansible.builtin.command: >
+        python3 {{ ansible_work_dir }}/merge_product_mappings.py
+        {{ dci_physical_infrastructure_path }}/chart/templates/product-mappings-configmap.yaml
+        '{{ additional_nw_products | to_json }}'
+        '{{ additional_server_products | to_json }}'
+        '{{ additional_cdi_products | to_json }}'
+        '{{ additional_maas_products | to_json }}'
+      register: merge_product_mappings_result
+      changed_when: merge_product_mappings_result.rc == 0
+      failed_when:
+        - merge_product_mappings_result.rc != 0
+        - merge_product_mappings_result.rc != 2
+
+    # 物理インフラのデプロイ（新規インストールまたはアップグレード）
+    - name: 物理インフラのデプロイ
+      ansible.builtin.command:
+        cmd: >
+          /usr/local/bin/helm upgrade --install {{ physical_infrastructure_chart }}
+          oci://{{ harbor_manager_url }}:{{ harbor_manager_port }}/{{ harbor_project_physical_infrastructure }}/{{ physical_infrastructure_chart }}
+          --set {{ physical_infrastructure_chart }}-cdi.image.repository={{ harbor_manager_url }}:{{ harbor_manager_port }}/{{ harbor_project_physical_infrastructure }}/cdi
+          --set {{ physical_infrastructure_chart }}-cdi.image.tag={{ tag_physical_version }}
+          --set {{ physical_infrastructure_chart }}-cdi.tls.enabled={{ physical_infrastructure_tls }}
+          --set {{ physical_infrastructure_chart }}-maas.image.repository={{ harbor_manager_url }}:{{ harbor_manager_port }}/{{ harbor_project_physical_infrastructure }}/maas
+          --set {{ physical_infrastructure_chart }}-maas.image.tag={{ tag_physical_version }}
+          --set {{ physical_infrastructure_chart }}-maas.tls.enabled={{ physical_infrastructure_tls }}
+          --set {{ physical_infrastructure_chart }}-network.image.repository={{ harbor_manager_url }}:{{ harbor_manager_port }}/{{ harbor_project_physical_infrastructure }}/network
+          --set {{ physical_infrastructure_chart }}-network.image.tag={{ tag_physical_version }}
+          --set {{ physical_infrastructure_chart }}-network.tls.enabled={{ physical_infrastructure_tls }}
+          --set {{ physical_infrastructure_chart }}-log.image.repository={{ harbor_manager_url }}:{{ harbor_manager_port }}/{{ harbor_project_physical_infrastructure }}/log
+          --set {{ physical_infrastructure_chart }}-log.image.tag={{ tag_physical_version }}
+          --set {{ physical_infrastructure_chart }}-exporter.image.repository={{ harbor_manager_url }}:{{ harbor_manager_port }}/{{ harbor_project_physical_infrastructure }}/exporter
+          --set {{ physical_infrastructure_chart }}-exporter.image.tag={{ tag_physical_version }}
+          --set global.db.api.accessUrl=https://{{ postgrest_db_api_hostname }}:{{ postgrest_db_api_port }}
+          --version v{{ tag_physical_version }}
+          --wait
+          --timeout 40m
+      register: helm_upgrade_result
+      changed_when: 
+        - helm_upgrade_result.rc == 0
+        - ("has been upgraded" in helm_upgrade_result.stdout or "has been installed" in helm_upgrade_result.stdout)
+      failed_when: helm_upgrade_result.rc != 0

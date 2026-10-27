@@ -1,0 +1,233 @@
+- name: CNPGを用いたKubernetes PostgreSQL環境構築 (DCIインフラ)
+  hosts: all
+  vars:
+    play_description: |
+      事前準備(システム構築) - リソースプール管理Pod、DCI物理インフラの配備
+      - CloudNativePGのインストール
+      - PostgreSQLのインストール
+      - 構成管理DB（PostgreSQL）にサーバ情報等を事前に登録
+    cnpg_namespace: cnpg-system 
+    cnpg_values_yaml: "{{ dci_manager_path }}/others/configuration-management-database/cnpg-operator/values.yaml" # cnpg-operatorのvalues.yaml
+    database_namespace: database
+    database_root_cert_yaml: "{{ dci_manager_path }}/others/configuration-management-database/database-cluster/root-cert.yaml"
+    database_server_cert_yaml: "{{ dci_manager_path }}/others/configuration-management-database/database-cluster/server-cert.yaml"
+    database_replication_cert_yaml: "{{ dci_manager_path }}/others/configuration-management-database/database-cluster/replication-cert.yaml"
+    database_init_yaml: "{{ dci_manager_path }}/others/configuration-management-database/database-cluster/database-init.yaml" # DBクラスタ初期化yaml
+    database_cluster_value_yaml: "{{ dci_manager_path }}/others/configuration-management-database/database-cluster/values.yaml"  # DBクラスタのvalues.yaml
+    init_mgmt_db_script_path: "{{ dci_manager_path }}/others/configuration-management-database/init-mgmt-db" # 管理DB初期化スクリプトパス
+    port_forward_svc: svc/database-cluster-rw # ポートフォワード対象サービス
+    port_forward_port: 5432 # ローカルリッスンポート
+    db_secret_name: database-cluster-app # Secretリソース名
+  environment:
+    KUBECONFIG: "/home/{{ ansible_user }}/.kube/config"
+    PATH: "/home/{{ ansible_user }}/gopath/bin:/home/{{ ansible_user }}/go/bin:{{ ansible_env.PATH }}"
+  tasks:
+    # CloudNativePGのインストール
+    - name: cnpg Helmリポジトリ追加
+      ansible.builtin.command: /usr/local/bin/helm repo add cnpg {{ cnpg_helm_repo }}
+      register: cnpg_repo_result
+      retries: 3
+      delay: 10
+      until: cnpg_repo_result.rc == 0 or 'already exists' in cnpg_repo_result.stdout
+      changed_when: 
+        - cnpg_repo_result.rc == 0
+        - '"already exists" not in cnpg_repo_result.stdout'
+      failed_when: 
+        - cnpg_repo_result.rc != 0
+        - '"already exists" not in cnpg_repo_result.stdout'
+        - "'connection refused' not in cnpg_repo_result.stderr | lower"
+        - "'timeout' not in cnpg_repo_result.stderr | lower"
+
+    - name: cnpg Helmリポジトリ更新
+      ansible.builtin.command: /usr/local/bin/helm repo update cnpg
+      register: cnpg_repo_update_result
+      retries: 3
+      delay: 10
+      until: cnpg_repo_update_result.rc == 0
+      changed_when: false
+      failed_when: 
+        - cnpg_repo_update_result.rc != 0
+        - "'connection refused' not in cnpg_repo_update_result.stderr | lower"
+        - "'timeout' not in cnpg_repo_update_result.stderr | lower"
+
+    - name: cnpg-operatorをHelmでインストール
+      ansible.builtin.command: >
+        /usr/local/bin/helm upgrade --install cnpg --namespace {{ cnpg_namespace }} --create-namespace
+        -f {{ cnpg_values_yaml }} --version {{ cnpg_version }} --wait --timeout 5m {{ cnpg_chart_name }}
+      register: cnpg_install_result
+      retries: 3
+      delay: 10
+      until: cnpg_install_result.rc == 0
+      changed_when: 
+        - cnpg_install_result.rc == 0
+        - '"has been upgraded" in cnpg_install_result.stdout or "has been installed" in cnpg_install_result.stdout'
+      failed_when: 
+        - cnpg_install_result.rc != 0
+        - "'connection refused' not in cnpg_install_result.stderr | lower"
+        - "'timeout' not in cnpg_install_result.stderr | lower"
+
+    # PostgreSQLのインストール
+    - name: Namespace作成（database）
+      become: false
+      ansible.builtin.command:
+        cmd: kubectl create namespace {{ database_namespace }}
+      register: ns_create
+      changed_when: ns_create.rc == 0
+      failed_when: 
+        - ns_create.rc != 0
+        - '"already exists" not in ns_create.stderr'
+
+    - name: root-cert.yaml適用
+      ansible.builtin.command: kubectl apply -f "{{ database_root_cert_yaml }}"
+      register: root_cert_result
+      changed_when: "'created' in root_cert_result.stdout or 'configured' in root_cert_result.stdout"
+      failed_when: 
+        - root_cert_result is defined
+        - root_cert_result.rc is defined
+        - root_cert_result.rc != 0
+
+    - name: cnpg-root-ca secretからCA証明書を取得
+      ansible.builtin.shell: |
+        kubectl -n {{ database_namespace }} get secret cnpg-root-ca -o jsonpath='{.data.tls\.crt}' | base64 -d > {{ ansible_work_dir }}/ca.crt
+      register: ca_cert_extract
+      changed_when: false
+      failed_when: 
+        - ca_cert_extract is defined
+        - ca_cert_extract.rc is defined
+        - ca_cert_extract.rc != 0
+
+    - name: cnpg-ca secretを作成
+      ansible.builtin.command: kubectl -n {{ database_namespace }} create secret generic cnpg-ca --from-file=ca.crt={{ ansible_work_dir }}/ca.crt
+      register: ca_secret_result
+      changed_when: "'created' in ca_secret_result.stdout"
+      failed_when: 
+        - ca_secret_result is defined
+        - ca_secret_result.rc is defined
+        - ca_secret_result.rc != 0
+        - '"already exists" not in ca_secret_result.stderr'
+
+    - name: server-cert.yaml適用
+      ansible.builtin.command: kubectl apply -f "{{ database_server_cert_yaml }}"
+      register: server_cert_result
+      changed_when: "'created' in server_cert_result.stdout or 'configured' in server_cert_result.stdout"
+      failed_when: 
+        - server_cert_result is defined
+        - server_cert_result.rc is defined
+        - server_cert_result.rc != 0
+
+    - name: replication-cert.yaml適用
+      ansible.builtin.command: kubectl apply -f "{{ database_replication_cert_yaml }}"
+      register: replication_cert_result
+      changed_when: "'created' in replication_cert_result.stdout or 'configured' in replication_cert_result.stdout"
+      failed_when: 
+        - replication_cert_result is defined
+        - replication_cert_result.rc is defined
+        - replication_cert_result.rc != 0
+
+    - name: database-init.yaml適用
+      ansible.builtin.command: kubectl apply -f "{{ database_init_yaml }}"
+      register: db_init_result
+      changed_when: "'unchanged' not in db_init_result.stdout"
+      failed_when: db_init_result.rc != 0
+
+    - name: databaseクラスタをHelmでインストール
+      ansible.builtin.command: >
+        /usr/local/bin/helm upgrade --install database --namespace {{ database_namespace }} --create-namespace 
+        -f {{ database_cluster_value_yaml }} --version {{ cnpg_database_cluster_version }} 
+        --wait --timeout 10m {{ cnpg_database_cluster_chart_name }}
+      register: db_helm_result
+      changed_when: 
+        - db_helm_result.rc == 0
+        - '"has been upgraded" in db_helm_result.stdout or "has been installed" in db_helm_result.stdout'
+      failed_when: 
+        - db_helm_result is defined
+        - db_helm_result.rc is defined
+        - db_helm_result.rc != 0
+
+    # 構成管理DB（PostgreSQL）にサーバ情報等を事前に登録
+    - name: 登録用のgoプログラムの存在確認 
+      ansible.builtin.stat:
+        path: "{{ db_init_file }}"
+      register: db_init_file_stat
+      delegate_to: localhost
+      
+    - name: 登録用のgoプログラムを転送
+      ansible.builtin.copy:
+        src: "{{ db_init_file }}"
+        dest: "{{ init_mgmt_db_script_path }}/main.go"
+        mode: '0755'
+      when: db_init_file_stat.stat.exists
+
+    - name: ポートフォワード用スクリプトを転送
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/start_port_forward.sh"
+        dest: /tmp/start_port_forward.sh
+        mode: '0755'
+
+    - name: ポートフォワード実行（非同期）
+      ansible.builtin.shell: /tmp/start_port_forward.sh {{ port_forward_svc }} {{ port_forward_port }}:{{ port_forward_port }} {{ database_namespace }}
+      async: 60
+      poll: 0
+      register: port_forward_async
+
+    - name: ポートフォワード起動待機
+      ansible.builtin.async_status:
+        jid: "{{ port_forward_async.ansible_job_id }}"
+      register: job_result
+      until: job_result.finished
+      retries: 30
+      delay: 1
+      when: port_forward_async is not skipped
+
+    - name: ポートフォワード確立待機（接続確認）
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: "{{ port_forward_port }}"
+        state: started
+        timeout: 30
+      changed_when: false
+
+    - name: DBパスワード取得
+      ansible.builtin.shell: |
+        kubectl get secrets -n database {{ db_secret_name }} -o jsonpath='{.data.password}' | base64 -d
+      register: db_password
+      changed_when: false
+      failed_when: 
+        - db_password is defined
+        - db_password.rc is defined
+        - db_password.rc != 0
+
+    - name: make initdb
+      ansible.builtin.shell: make initdb
+      args:
+        chdir: "{{ init_mgmt_db_script_path }}"
+        executable: /bin/bash
+      environment:
+        PG_PASSWORD: "{{ db_password.stdout }}"
+      register: make_initdb
+      changed_when: false
+
+    - name: ポートフォワードプロセス終了
+      ansible.builtin.shell: |
+        if [ -f /tmp/kubectl_port_forward.pid ]; then
+          PID=$(cat /tmp/kubectl_port_forward.pid)
+          if ps -p $PID > /dev/null 2>&1; then
+            kill $PID
+            echo "Port forward process (PID: $PID) terminated"
+          else
+            echo "Port forward process not running"
+          fi
+          rm -f /tmp/kubectl_port_forward.pid
+        else
+          echo "No port forward PID file found"
+        fi
+        # ログファイルのクリーンアップ（オプション）
+        if [ -f /tmp/kubectl_port_forward.log ]; then
+          echo "Port forward log file cleaned up"
+          rm -f /tmp/kubectl_port_forward.log
+        fi
+      register: cleanup_result
+      changed_when: '"terminated" in cleanup_result.stdout'
+      ignore_errors: true
+      failed_when: false
+

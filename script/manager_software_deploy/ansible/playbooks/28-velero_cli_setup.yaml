@@ -1,0 +1,36 @@
+- name: Velero CLIセットアップ
+  hosts: all
+  become: true
+  vars:
+    play_description: |
+      事前準備(システム構築) - Velero CLIのインストール
+  tasks:
+    - name: Velero CLIアーカイブ取得
+      become: false
+      ansible.builtin.get_url:
+        url: "{{ velero_cli_download_url }}"
+        dest: "{{ ansible_work_dir }}/{{ velero_cli_installer }}"
+        timeout: 120
+      register: velero_cli_download_result
+      retries: 3
+      delay: 5
+      until: velero_cli_download_result is succeeded
+      failed_when: velero_cli_download_result.failed
+
+    - name: Velero CLIアーカイブ展開
+      become: false
+      ansible.builtin.unarchive:
+        src: "{{ ansible_work_dir }}/{{ velero_cli_installer }}"
+        dest: "{{ ansible_work_dir }}/"
+        remote_src: yes
+      register: velero_cli_unarchive_result
+      failed_when: velero_cli_unarchive_result.failed
+
+    - name: Velero CLIバイナリ配置
+      ansible.builtin.copy:
+        src: "{{ ansible_work_dir }}/velero-v{{ velero_cli_version }}-linux-amd64/velero"
+        dest: /usr/local/bin/velero
+        mode: '0755'
+        remote_src: yes
+      register: velero_cli_copy_result
+      failed_when: velero_cli_copy_result.failed

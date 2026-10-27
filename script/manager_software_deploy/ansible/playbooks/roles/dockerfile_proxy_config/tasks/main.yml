@@ -1,0 +1,14 @@
+- name: "プロキシ設定を追記"
+  ansible.builtin.blockinfile:
+    path: "{{ item }}"
+    insertafter: "^FROM .* AS builder"
+    block: |
+      ARG http_proxy={{ proxy_url }}
+      ARG https_proxy={{ proxy_url }}
+      ARG no_proxy={{ no_proxy_list }}
+      ARG HTTP_PROXY={{ proxy_url }}
+      ARG HTTPS_PROXY={{ proxy_url }}
+      ARG NO_PROXY={{ no_proxy_list }}
+    marker: "# {mark} ANSIBLE MANAGED BLOCK FOR PROXY SETTINGS"
+  loop: "{{ dockerfile_paths }}"
+  when: proxy_setup_enabled | bool

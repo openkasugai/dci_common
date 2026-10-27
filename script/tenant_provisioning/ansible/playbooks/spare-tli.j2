@@ -1,0 +1,13 @@
+apiVersion: example.com/v1
+kind: TenantLogicalInfra
+metadata:
+  name: spare-node-cluster
+  namespace: dcirpm
+spec:
+  logicalNetwork:
+    manager:
+      cidrBlock: {{ manager_nw.cidr }}
+      ipAddressRange:
+        end: {{ manager_nw.ip_range.end }}
+        start: {{ manager_nw.ip_range.start }}
+      vlanID: {{ manager_nw.vid }}

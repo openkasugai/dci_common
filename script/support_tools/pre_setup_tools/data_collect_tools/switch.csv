@@ -1,0 +1,4 @@
+NW_SWITCH_NAME,LOCATION,NW_IP_ADDR,NW_USER,VENDOR,PRODUCT_NAME,OS,PORT_START,PORT_END,TYPE
+d1-m01-l2-switch-host01,loc1.location,192.168.2.10,sw-user,edgecore networks,DCS208/AS5812-54X,Edgecore SONiC,Ethernet0,Ethernet32,host
+d1-m01-l3-l2-switch-cni01,loc1.location,192.168.2.11,sw-user,edgecore networks,DCS208/AS5812-54X,Edgecore SONiC,Ethernet0,Ethernet32,cni
+d1-m01-l2-switch-app01,loc2.location,192.168.2.12,sw-user,edgecore networks,DCS208/AS5812-54X,Edgecore SONiC,Ethernet0,Ethernet32,app

@@ -1,0 +1,39 @@
+- name: CRI-O設定
+  hosts: all
+  become: true
+  vars:
+    play_description: |
+      環境構築手順書 - 構築手順1：基本部分 マネージャ用k8sクラスタ構築
+       - CRI-O設定
+  tasks:
+    - name: CRI-O設定ファイルの存在確認
+      ansible.builtin.stat:
+        path: /etc/cni/net.d/10-crio-bridge.conflist.disabled
+      register: crio_config_file
+
+    - name: CRI-Oネットワーク設定
+      ansible.builtin.shell: |
+        mkdir -p /etc/crio/net.d
+        mv /etc/cni/net.d/10-crio-bridge.conflist.disabled /etc/crio/net.d/
+        rm -rf /etc/cni/net.d
+      when: crio_config_file.stat.exists
+      register: crio_network_setup
+      changed_when: crio_network_setup.rc == 0
+      failed_when: false
+
+    - name: systemctl daemon-reload
+      ansible.builtin.systemd:
+        daemon_reload: yes
+      register: daemon_reload_result
+      failed_when: false
+
+    - name: CRI-Oサービス有効化・起動
+      ansible.builtin.systemd:
+        name: crio
+        enabled: yes
+        state: started
+
+    - name: CRI-Oサービスの状態確認
+      ansible.builtin.shell: systemctl status crio
+      register: crio_status
+      changed_when: false

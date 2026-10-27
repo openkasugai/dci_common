@@ -1,0 +1,61 @@
+- name: システム事前セットアップ（Control Planeノードのみ）
+  hosts: all
+  become: true
+  vars:
+    play_description: |
+      事前準備(システム構築) - 事前準備
+       - CPノードを対象とする手順
+  tasks:
+    - name: シングルノードクラスタ判定
+      ansible.builtin.set_fact:
+        single_node_cluster: >-
+          {{
+            (groups['dci_mgmt_k8s_control_plane'] | length == 1) and
+            (groups['dci_mgmt_k8s_node'] | length == 1) and
+            (groups['dci_mgmt_k8s_control_plane'][0] == groups['dci_mgmt_k8s_node'][0])
+          }}
+
+    - name: helmバイナリ取得・展開・配置
+      block:
+        - name: helmアーカイブ取得
+          become: false
+          ansible.builtin.get_url:
+            url: "{{ helm_download_url }}"
+            dest: "{{ ansible_work_dir }}/{{ helm_installer }}"
+            timeout: 120
+          register: helm_download_result
+          retries: 3
+          delay: 5
+          until: helm_download_result is succeeded
+          failed_when: helm_download_result.failed
+
+        - name: helmアーカイブ展開
+          become: false
+          ansible.builtin.unarchive:
+            src: "{{ ansible_work_dir }}/{{ helm_installer }}"
+            dest: "{{ ansible_work_dir }}/"
+            remote_src: yes
+          register: helm_unarchive_result
+          failed_when: helm_unarchive_result.failed
+
+        - name: helmバイナリ配置
+          ansible.builtin.copy:
+            src: "{{ ansible_work_dir }}/linux-amd64/helm"
+            dest: /usr/local/bin/helm
+            mode: '0755'
+            remote_src: yes
+          register: helm_copy_result
+          failed_when: helm_copy_result.failed
+
+    - name: taint解除（DCI管理用クラスタを1台で構成する場合にのみ）
+      become: false
+      ansible.builtin.command:
+        cmd: kubectl taint nodes --all node-role.kubernetes.io/control-plane-
+      environment:
+        KUBECONFIG: "/home/{{ ansible_user }}/.kube/config"
+      when: single_node_cluster | bool
+      register: taint_remove_result
+      changed_when: taint_remove_result.rc == 0
+      failed_when:
+        - taint_remove_result.rc != 0
+        - '"not found" not in taint_remove_result.stderr'

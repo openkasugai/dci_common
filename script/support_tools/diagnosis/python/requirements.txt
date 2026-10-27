@@ -1,0 +1,7 @@
+# Python dependencies for DCI Diagnosis Tool
+
+# YAML parsing
+PyYAML>=6.0
+
+# Template engine for Playbook generation
+Jinja2>=3.0.0

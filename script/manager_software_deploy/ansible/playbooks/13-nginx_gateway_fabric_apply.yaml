@@ -1,0 +1,81 @@
+- name: Gateway APIの配備
+  hosts: all
+  vars:
+    play_description: |
+      事前準備(システム構築) - Gatewayの配備
+    gateway_values_file: "{{ dci_manager_path }}/others/gateway/mgr_gateway_values.yaml" # nginx-gateway-fabricのvalues.yamlファイルパス
+    nginx_gateway_namespace: nginx-gateway # nginx-gateway用namespace
+  environment:
+    KUBECONFIG: "/home/{{ ansible_user }}/.kube/config"
+  tasks:
+    - name: Gateway API CRDsの存在確認
+      ansible.builtin.shell:
+        cmd: kubectl get crd | grep gateway.networking.k8s.io
+      register: gateway_crd_check
+      changed_when: false
+      failed_when: gateway_crd_check.rc not in [0, 1]
+
+    - name: Gateway API CRDsインストール
+      ansible.builtin.command:
+        cmd: kubectl apply --server-side -f {{ gateway_api_url }}
+      register: gateway_api_install
+      retries: 3
+      delay: 10
+      until: gateway_api_install.rc == 0
+      changed_when: "'created' in gateway_api_install.stdout or 'configured' in gateway_api_install.stdout"
+      when: gateway_crd_check.rc != 0
+    
+    - name: mgr_gateway_values.yamlをテンプレートから生成
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/mgr_gateway_values.j2"
+        dest: "{{ gateway_values_file }}"
+        mode: '0644'
+      become: false
+
+    - name: Namespace作成（nginx-gateway）
+      become: false
+      ansible.builtin.command:
+        cmd: kubectl create namespace {{ nginx_gateway_namespace }}
+      register: ns_create
+      changed_when: ns_create.rc == 0
+      failed_when: 
+        - ns_create.rc != 0
+        - '"already exists" not in ns_create.stderr'
+
+    - name: nginx-gateway-fabricのデプロイ（新規インストールまたはアップグレード）
+      become: false
+      ansible.builtin.command:
+        cmd: >
+          /usr/local/bin/helm upgrade --install ngf
+          {{ gateway_fabric_chart_url }}
+          -n {{ nginx_gateway_namespace }} 
+          --version {{ gateway_fabric_version }} 
+          -f {{ gateway_values_file }}
+          --wait --timeout 5m
+      register: helm_nginx_gateway_fabric
+      changed_when: 
+        - helm_nginx_gateway_fabric.rc == 0
+        - '"has been upgraded" in helm_nginx_gateway_fabric.stdout or "has been installed" in helm_nginx_gateway_fabric.stdout'
+      failed_when:
+        - helm_nginx_gateway_fabric.rc != 0
+
+    - name: Gateway関連YAMLファイルのVIP設定更新
+      ansible.builtin.replace:
+        path: "{{ dci_manager_path }}/others/gateway/{{ item }}"
+        regexp: '192\.168\.10\.204'
+        replace: "{{ gateway_loadbalancer_vip }}"
+        backup: no
+      loop:
+        - gateway-lb.yaml
+        - vip-cert.yaml
+
+    - name: Gateway関連YAMLファイル適用
+      ansible.builtin.command:
+        cmd: kubectl apply -f {{ dci_manager_path }}/others/gateway/{{ item }}
+      loop:
+        - gateway-lb.yaml
+        - gateway.yaml
+        - gateway-ca-issuer.yaml
+        - vip-cert.yaml
+      register: gateway_files_apply
+      changed_when: "'created' in gateway_files_apply.stdout or 'configured' in gateway_files_apply.stdout"

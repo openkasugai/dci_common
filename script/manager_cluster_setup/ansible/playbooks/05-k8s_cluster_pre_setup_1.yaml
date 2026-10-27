@@ -1,0 +1,62 @@
+- name: k8sクラスタ構築事前準備1
+  hosts: all
+  become: true
+  vars:
+    play_description: |
+      環境構築手順書 - 構築手順1：基本部分 マネージャ用k8sクラスタ構築
+       - k8sクラスタ構築事前準備1
+  tasks:
+    - name: kubeletサービス有効化・起動
+      ansible.builtin.systemd:
+        name: kubelet
+        enabled: yes
+        state: started
+
+    - name: kubeletサービス状態確認
+      ansible.builtin.shell: systemctl status kubelet
+      register: kubelet_status
+      failed_when: false
+      changed_when: false
+
+    - name: /etc/sysctl.confにnet.ipv4.ip_forward=1を追記
+      ansible.builtin.lineinfile:
+        path: /etc/sysctl.conf
+        regexp: '^net.ipv4.ip_forward'
+        line: 'net.ipv4.ip_forward = 1'
+        backup: yes
+
+    - name: sysctl反映
+      ansible.builtin.command:
+        cmd: sysctl -p /etc/sysctl.conf
+      changed_when: false
+
+    - name: /etc/hostsにクラスタ参加ノード情報を追記
+      ansible.builtin.lineinfile:
+        path: /etc/hosts
+        regexp: '^[0-9.]+ {{ item }}(\s|$)'
+        line: "{{ hostvars[item]['cni_address'] }} {{ item }}"
+        state: present
+        create: yes
+        backup: yes
+      loop: "{{ groups['all'] }}"
+      loop_control:
+        label: "{{ hostvars[item]['cni_address'] }} {{ item }}"
+      when: hostvars[item]['cni_address'] is defined
+
+    - name: 現在のカーネルパラメータ確認
+      ansible.builtin.shell: cat /proc/cmdline | grep -q 'selinux=0' && echo 'disabled' || echo 'enabled'
+      register: current_selinux_status
+      changed_when: false
+
+    - name: grubbyでSELinux無効化
+      ansible.builtin.shell: grubby --update-kernel ALL --args selinux=0
+      when: current_selinux_status.stdout == 'enabled'
+      register: selinux_modified
+
+    - name: 再起動
+      ansible.builtin.reboot:
+        msg: "SELinux無効化のため再起動します"
+        reboot_timeout: 600
+        pre_reboot_delay: 10
+        post_reboot_delay: 30
+      when: selinux_modified is defined and selinux_modified is changed

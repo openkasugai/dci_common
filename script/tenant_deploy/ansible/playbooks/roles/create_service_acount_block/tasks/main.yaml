@@ -1,0 +1,83 @@
+# ServiceAccount作成資材の編集
+- name: 一時ServiceAccountマニフェストを作成
+  ansible.builtin.template:
+    src: "{{ playbook_dir }}/tenant-manager_sa.j2"
+    dest: "{{ tenant_work_dir }}/tenant-manager_sa.yaml"
+    mode: '0644'
+
+# テナント論理インフラにServiceAccountを作成
+- name: テナントクラスタにServiceAccount用のnamespaceを作成
+  ansible.builtin.command: >
+    kubectl --kubeconfig={{ tenant_work_dir }}/{{ kubeconfig_file }} create namespace sa-{{ tenant_namespace }}
+  register: create_ns_result
+  failed_when:
+    - create_ns_result.rc != 0
+    - '"already exists" not in create_ns_result.stderr'
+  changed_when: create_ns_result.rc == 0
+
+- name: テナントクラスタにServiceAccountマニフェストを適用
+  ansible.builtin.command: >
+    kubectl --kubeconfig={{ tenant_work_dir }}/{{ kubeconfig_file }} apply -f {{ tenant_work_dir }}/tenant-manager_sa.yaml
+  changed_when: true
+
+- name: ServiceAccount secret作成待機
+  ansible.builtin.shell: |
+    kubectl --kubeconfig={{ tenant_work_dir }}/{{ kubeconfig_file }} \
+      wait --for=jsonpath='{.data.token}' \
+      -n sa-{{ tenant_namespace }} \
+      secret/tenant-manager-sa-secret \
+      --timeout=120s
+  register: sa_secret_wait
+  retries: 3
+  delay: 10
+  until: sa_secret_wait.rc == 0
+  changed_when: false
+
+# テナント運用者用のkubeconfigを作成するための環境変数設定
+- name: ServiceAccount secretのCA証明書を取得
+  ansible.builtin.shell: >
+    kubectl --kubeconfig={{ tenant_work_dir }}/{{ kubeconfig_file }} get -n sa-{{ tenant_namespace }} secret tenant-manager-sa-secret -o jsonpath='{.data.ca\.crt}'
+  args:
+    executable: /bin/bash
+  register: ca_crt_output
+  changed_when: false
+
+- name: ServiceAccountトークンを取得
+  ansible.builtin.shell: >
+    kubectl --kubeconfig={{ tenant_work_dir }}/{{ kubeconfig_file }} get -n sa-{{ tenant_namespace }} secret tenant-manager-sa-secret -o jsonpath='{.data.token}' | base64 -d
+  args:
+    executable: /bin/bash
+  register: token_output
+  changed_when: false
+
+- name: kubeconfigからサーバIPアドレスを取得
+  ansible.builtin.shell: >
+    kubectl --kubeconfig={{ tenant_work_dir }}/{{ kubeconfig_file }} config view --minify 
+    -o jsonpath='{.clusters[0].cluster.server}' | cut -d'/' -f3 | cut -d':' -f1
+  args:
+    executable: /bin/bash
+  register: server_ip_output
+  changed_when: false
+
+- name: kubeconfigからサーバポートを取得
+  ansible.builtin.shell: >
+    kubectl --kubeconfig={{ tenant_work_dir }}/{{ kubeconfig_file }} config view --minify 
+    -o jsonpath='{.clusters[0].cluster.server}' | cut -d':' -f3
+  args:
+    executable: /bin/bash
+  register: server_port_output
+  changed_when: false
+
+- name: kubeconfig作成用の環境変数を設定
+  ansible.builtin.set_fact:
+    ca_crt: "{{ ca_crt_output.stdout }}"
+    token: "{{ token_output.stdout }}"
+    server_ip: "{{ server_ip_output.stdout }}"
+    server_port: "{{ server_port_output.stdout }}"
+
+# テナント運用者用のkubeconfigを作成
+- name: テンプレートからテナント管理者kubeconfigを作成
+  ansible.builtin.template:
+    src: "{{ playbook_dir }}/tenant-manager_sa_config.j2"
+    dest: "{{ sa_config_for_tenant }}"
+    mode: '0644'

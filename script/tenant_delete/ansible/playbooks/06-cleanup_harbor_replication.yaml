@@ -1,0 +1,12 @@
+- name: テナント削除後 HarborレプリケーションとRegistry設定のクリーンアップ
+  hosts: all
+  vars:
+    play_description: |
+      テナント削除後の手順 - マネージャHarborのReplicationポリシーとRegistryを削除
+  tasks:
+    - name: テナント数分ループ
+      ansible.builtin.include_role:
+        name: cleanup_harbor_replication_block
+      vars:
+        tenant_namespace: "{{ item.tenant_namespace }}"
+      loop: "{{ tenants }}"

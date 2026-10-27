@@ -1,0 +1,35 @@
+#DCI管理用クラスタのK8s Control Plane
+[dci_mgmt_k8s_control_plane]
+mgr-cp-1 ansible_host=192.168.1.1 ansible_user=admin
+mgr-cp-2 ansible_host=192.168.1.2 ansible_user=admin
+mgr-cp-3 ansible_host=192.168.1.3 ansible_user=admin
+
+# テナント論理インフラ定義 =========================================================
+
+# すべてのテナントを包含するグループ
+[dci_tenants:children]
+tenant_1
+
+# すべてのテナントのK8s Control Planeのプライマリノードを包含するグループ
+[dci_tenant_k8s_control_plane_primary]
+tenant-1-cp-1
+
+# tenant-1定義 #########################################################
+[tenant_1:children]
+tenant_1_k8s_control_plane
+tenant_1_k8s_node
+
+[tenant_1_k8s_control_plane]
+#テナント論理インフラクラスタのK8s Control Plane
+tenant-1-cp-1 ansible_host=192.168.2.1 ansible_user=admin
+tenant-1-cp-2 ansible_host=192.168.2.2 ansible_user=admin
+tenant-1-cp-3 ansible_host=192.168.2.3 ansible_user=admin
+
+[tenant_1_k8s_node]
+#テナント論理インフラクラスタのK8s node
+tenant-1-wk-1 ansible_host=192.168.2.4 ansible_user=admin
+tenant-1-wk-2 ansible_host=192.168.2.5 ansible_user=admin
+########################################################################
+
+# ================================================================================
+

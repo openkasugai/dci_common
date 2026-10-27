@@ -1,0 +1,62 @@
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: dciapp-nixlcomm-proc-3b-hpa
+  namespace: dci
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: dciapp-nixlcomm-proc-3b
+  minReplicas: 1
+  maxReplicas: 3
+  metrics:
+    - type: Pods
+      pods:
+        metric:
+          name: pod_cpu_utilization_percent
+        target:
+          type: AverageValue
+          averageValue: "74"
+    - type: Pods
+      pods:
+        metric:
+          name: pod_memory_utilization_percent
+        target:
+          type: AverageValue
+          averageValue: "74"
+    - type: Pods
+      pods:
+        metric:
+          name: pod_gpu_sm_utilization
+        target:
+          type: AverageValue
+          averageValue: "0.74"
+    - type: Pods
+      pods:
+        metric:
+          name: pod_gpu_memory_usage_ratio
+        target:
+          type: AverageValue
+          averageValue: "0.74"
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+      - type: Percent
+        value: 20
+        periodSeconds: 60
+      - type: Pods
+        value: 1
+        periodSeconds: 60
+      selectPolicy: Max
+    scaleDown:
+      stabilizationWindowSeconds: 180
+      policies:
+      - type: Percent
+        value: 20
+        periodSeconds: 60
+      - type: Pods
+        value: 1
+        periodSeconds: 60
+      selectPolicy: Max

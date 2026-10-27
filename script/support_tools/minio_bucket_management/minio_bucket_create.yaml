@@ -1,0 +1,31 @@
+- name: MinIOバケット作成
+  hosts: minio_servers
+  vars:
+    play_description: |
+      MinIOサーバにバケットを作成する
+  tasks:
+    - name: MinIOバケットを作成
+      become: yes
+      ansible.builtin.shell: |
+        docker run --rm --network {{ minio_network }} \
+          --entrypoint sh {{ minio_image }} -c "
+            mc alias set {{ minio_alias }} {{ minio_endpoint }} {{ minio_user }} {{ minio_password }} && \
+            if mc ls {{ minio_alias }}/{{ item }} &>/dev/null; then
+              echo 'ALREADY_EXISTS'
+            else
+              mc mb {{ minio_alias }}/{{ item }}
+              echo 'CREATED'
+            fi
+          "
+      args:
+        executable: /bin/bash
+      loop: "{{ buckets }}"
+      register: bucket_create_result
+      changed_when: "'CREATED' in bucket_create_result.stdout"
+
+    - name: 作成結果を表示
+      ansible.builtin.debug:
+        msg: "{{ item.item }}: {{ item.stdout_lines[-1] }}"
+      loop: "{{ bucket_create_result.results }}"
+      loop_control:
+        label: "{{ item.item }}"

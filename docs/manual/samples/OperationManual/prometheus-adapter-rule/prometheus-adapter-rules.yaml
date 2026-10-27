@@ -1,0 +1,60 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-adapter-rules
+  namespace: dci
+data:
+  config.yaml: |
+    rules:
+      - seriesQuery: '{__name__="container_cpu_usage_seconds_total", container!="", pod!="", namespace!=""}'
+        resources:
+          overrides:
+            namespace: {resource: "namespace"}
+            pod: {resource: "pod"}
+        name:
+          matches: "^(.*)_total"
+          as: "pod_cpu_utilization_percent"
+        metricsQuery: |
+          sum(rate(container_cpu_usage_seconds_total{<<.LabelMatchers>>, container!="POD", container!="", mode!="idle"}[5m])) by (<<.GroupBy>>)
+          /
+          sum(kube_pod_container_resource_limits{resource="cpu", unit="core", <<.LabelMatchers>>, container!="POD", container!=""}) by (<<.GroupBy>>)
+          * 100
+      - seriesQuery: '{__name__="container_memory_working_set_bytes", container!="", pod!="", namespace!=""}'
+        resources:
+          overrides:
+            namespace: {resource: "namespace"}
+            pod: {resource: "pod"}
+        name:
+          matches: "^(.*)_bytes"
+          as: "pod_memory_utilization_percent"
+        metricsQuery: |
+          sum(container_memory_working_set_bytes{<<.LabelMatchers>>, container!="POD", container!=""}) by (<<.GroupBy>>)
+          /
+          sum(kube_pod_container_resource_limits{resource="memory", unit="byte", <<.LabelMatchers>>, container!="POD", container!=""}) by (<<.GroupBy>>)
+          * 100
+      - seriesQuery: '{__name__="DCGM_FI_PROF_SM_ACTIVE",exported_container!="", exported_pod!="", exported_namespace!="",dra_mig_device_uuid!=""}'
+        resources:
+          overrides:
+            exported_namespace: {resource: "namespace"}
+            exported_pod: {resource: "pod"}
+        name:
+          matches: "DCGM_FI_PROF_SM_ACTIVE"
+          as: "pod_gpu_sm_utilization"
+        metricsQuery: |
+          avg by (<<.GroupBy>>) (
+            DCGM_FI_PROF_SM_ACTIVE{<<.LabelMatchers>>}
+          )
+      - seriesQuery: '{__name__=~"DCGM_FI_DEV_FB_USED|DCGM_FI_DEV_FB_TOTAL", exported_container!="", exported_pod!="", exported_namespace!="",dra_mig_device_uuid!=""}'
+        resources:
+          overrides:
+            exported_namespace: {resource: "namespace"}
+            exported_pod: {resource: "pod"}
+        name:
+          matches: "DCGM_FI_DEV_FB_USED"
+          as: "pod_gpu_memory_usage_ratio"
+        metricsQuery: |
+          avg by (<<.GroupBy>>) (
+            sum by (exported_pod, exported_namespace, dra_mig_device_uuid) (DCGM_FI_DEV_FB_USED{<<.LabelMatchers>>})
+            /
+            sum by (exported_pod, exported_namespace, dra_mig_device_uuid) (DCGM_FI_DEV_FB_TOTAL{<<.LabelMatchers>>})
+          )

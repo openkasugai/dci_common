@@ -1,0 +1,20 @@
+# Ansible Vault暗号化用ファイル
+# 機密情報（パスワード、APIキー、SSH鍵、組織ID等）を格納
+
+## Github関連の機密情報
+github_username: git_user # GitHubユーザ名
+github_pat: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa # GitHub PAT(個人アクセストークン)
+
+# MAASサーバ
+maas_api_key: "xxxxxxxxxxxxxxxxxx:xxxxxxxxxxxxxxxxxx:xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+
+# RHELサブスクリプション
+rhc_activation_key: "***"
+rhc_org: "12345678"
+
+# バックアップストレージ設定
+velero_minio_password: "*****"         # MINIOのルートユーザのパスワード(Velero DCI管理クラスタ用)
+loki_storage_minio_password: "*****"   # MINIOのルートユーザのパスワード(Loki DCI管理クラスタ用)
+
+# モニタリングスタック設定
+grafana_admin_password: "*****"   # Grafana管理者パスワード(DCI管理クラスタ用)

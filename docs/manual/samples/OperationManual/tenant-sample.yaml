@@ -1,0 +1,945 @@
+---
+apiVersion: cluster.x-k8s.io/v1beta2
+kind: Cluster
+metadata:
+  name: tenant-1
+  namespace: tenant-1
+  labels:
+    dciSystem: enabled
+spec:
+  clusterNetwork:
+    services:
+      cidrBlocks: ["10.96.0.0/12"]
+    pods:
+      cidrBlocks: ["10.245.0.0/16"]
+    serviceDomain: cluster.local
+  controlPlaneRef:
+    apiGroup: controlplane.cluster.x-k8s.io
+    kind: KubeadmControlPlane
+    name: controlplane
+  infrastructureRef:
+    apiGroup: infrastructure.cluster.x-k8s.io
+    kind: DCICluster
+    name: tenant-1
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+kind: DCICluster
+metadata:
+  name: tenant-1
+  namespace: tenant-1
+spec:
+  controlPlaneEndpoint:
+    host: 172.28.165.30
+    port: 6443
+  logicalNetwork:
+    manager:
+      cidrBlock: 172.28.193.0/24
+      vlanID: 1193
+      ipAddressRange:
+        start: 172.28.193.70
+        end: 172.28.193.78
+    host:
+      cidrBlock: 172.28.162.0/24
+      vlanID: 1162
+      ipAddressRange:
+        start: 172.28.162.10
+        end: 172.28.162.200
+    cni:
+      cidrBlock: 172.28.165.0/24
+      vlanID: 1165
+      ipAddressRange:
+        start: 172.28.165.10
+        end: 172.28.165.200
+    appData:
+      cidrBlock: 172.28.168.0/24
+      vlanID: 1168
+      ipAddressRange:
+        start: 172.28.168.10
+        end: 172.28.168.200
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+kind: DCIMachineTemplate
+metadata:
+  name: controlplane
+  namespace: tenant-1
+spec:
+  template:
+    spec:
+      location: dc1
+      serverSpec:
+        type: VM
+        os:
+          distribution: rhel
+          version: 9.6-custom
+        minCPU: 4
+        minMemory: 32768
+        minStorage: 80
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+kind: DCIMachineTemplate
+metadata:
+  name: worker-1
+  namespace: tenant-1
+spec:
+  template:
+    spec:
+      location: dc1
+      serverSpec:
+        type: COTSServer
+        os:
+          distribution: rhel
+          version: 9.6-custom
+        gpu:
+          model: NVIDIA-H100-PCIE-80GB
+          num: 1
+        nic:
+          model: NVIDIA-CONNECTX-6-DX
+          num: 1
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
+kind: KubeadmConfigTemplate
+metadata:
+  name: worker
+  namespace: tenant-1
+spec:
+  template:
+    spec:
+      verbosity: 7
+      joinConfiguration:
+        nodeRegistration:
+          criSocket: /var/run/crio/crio.sock
+          kubeletExtraArgs:
+            - name: eviction-hard
+              value: nodefs.available<10%,memory.available<100Mi
+            - name: v
+              value: "4"
+            - name: node-ip
+              value: $NODE_IP
+      ntp:
+        enabled: true
+        servers:
+          - 172.28.197.80
+      files:
+        - content: |
+            -D
+            -b 16384
+            --backlog_wait_time 60000
+            -f 1
+
+            -a always,exit -F arch=b64 -S execve -F exe=/usr/sbin/sshd -F auid>=1000 -F auid!=-1 -k ssh_exec
+
+            -a always,exit -F arch=b64 -S execve -F exe=/usr/bin/sudo -F euid=0 -k sudo_exec
+            -a always,exit -F arch=b64 -S execve -F exe=/usr/bin/su -F euid=0 -k su_exec
+
+            -a always,exit -F arch=b64 -S open -F perm=wa -F path=/etc/passwd -k passwd_changes
+            -a always,exit -F arch=b64 -S open -F perm=wa -F path=/etc/shadow -k shadow_changes
+            -a always,exit -F arch=b64 -S open -F perm=wa -F path=/etc/group -k group_changes
+
+            -a always,exit -F arch=b64 -S setuid,setgid,setresuid,setresgid,setfsuid,setfsgid -F auid>=1000 -F auid!=-1 -k priv_change
+
+            -a always,exit -F arch=b64 -S execve -F euid=0 -F auid>=1000 -F auid!=-1 -k root_cmd
+
+            -a always,exit -F arch=b64 -S open -F perm=wa -F path=/etc/sudoers -k sudo
+            -a always,exit -F arch=b64 -S open -F perm=wa -F path=/etc/sudoers.d -k sudo
+
+            -a always,exit -F arch=b64 -S init_module,delete_module -k kernel_module 
+
+            -a never,exclude -F msgtype=AVC
+            -a never,exclude -F msgtype=USER_AVC
+          owner: root:root
+          path: /etc/audit/rules.d/custom-audit.rules
+        - content: |
+            -----BEGIN CERTIFICATE-----
+            MIIFGzCCAwOgAwIBAgIUMhUx95XoEo1kANp1wCPoRFs8REgwDQYJKoZIhvcNAQEL
+            BQAwHTEbMBkGA1UEAwwSaGFyYm9yLXRlbmFudC0xLWNhMB4XDTI2MDQwMjA1MzU0
+            NVoXDTM2MDMzMDA1MzU0NVowHTEbMBkGA1UEAwwSaGFyYm9yLXRlbmFudC0xLWNh
+            MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEAnmIqYk2UzE5yqhm28CW7
+            uI3MUdoV/DdoQ0n+Hkpery188j8B787cO3kStT+QA9YqM0exK08MZLW973hyUfwv
+            GPS6plXwDK8UUP0IiXThmLW1s7hCoMceO7c/aXifkoOsh/nRiQ5XzCmnQ/IKS+dw
+            A+muBx+5jOaExQ81j/Brk2zS6L1hsEwTX73PThzIDlKK3PFZCmq9HrbiDcFDW8Iv
+            l5E+7uqHMMA9CosxzplV+o9sjEusbTNLQBimiERWS8OY7H0UwrmHvYerK4Zc1JLm
+            Lj/4fgGNIMN4JvJQ5GG4thZlXfYKaqt6iblKBCHlfMA43S9F5QaaEnOUDkhXFiJw
+            s470T3mivJuUqAKyKB7loGXDl7LXRBZ/rAA2Dcls5e2KgGumqGKgMkUyS+SLNg6j
+            cIkAYCbxj/So1so4KPw/++VppYzAtjVvPyx7OGSmFEoDeQrchrsMBR0dtxE1H/c2
+            xW01rAQVMhzkLveZCFdpPc28VgQikr9PQXYc7xp1oNkmLeGGPe/h6CijgLuhys3d
+            BzjSLaYhCwNLZz2uGXEx1BwXRIVKuBjE5yFw7Md4Wbp/P4C3jJHFjSa5hsV06ot+
+            4jlDq58J1gxLJCGeyaXCjmqNYMUF19lR8avXuovcoTa2TXgWdLGiiD4+Pap332hq
+            /tsP/5hQo+AcL6mNB3g/x+MCAwEAAaNTMFEwHQYDVR0OBBYEFETz4tb/+Id8W03A
+            gkMLeJKHMq4RMB8GA1UdIwQYMBaAFETz4tb/+Id8W03AgkMLeJKHMq4RMA8GA1Ud
+            EwEB/wQFMAMBAf8wDQYJKoZIhvcNAQELBQADggIBACHMAboRqM4eQEHumWEYeTRF
+            IdhnFPofHneXdD4IJJMc9iEw4vTeVsB8/wB6dwfDIT+1t3jzJa6okp6+rC7bFxeV
+            PWIFhb8/jma5pZkF9v2TcPWscq+LqfNqHpemvJ9JJu0aBo9HHlTkyRe9BY0AIfW2
+            D9mGzoAiB6BiB5ukZQ0MUf6liHlCGKFVkkyZZn9BV6eluti5p9ZXDYpyoGTOGhAx
+            7gj7xWZL5SvYOKMBgye+0yTM72kDsnTvImILqGASxqnlIuSIsBMlqr06Oh9EEEGL
+            OM5QFJUDw7Rk0Rj9e+VvK/jG6j2Ost3oQ2ZU2UzjypWISyKT6unV47jzLAq3VNOl
+            0NTeF56JK3MSHSYkWlSXxpfdrlK/np77719iUo23J1wifDSvbXTu8DppJ9CSpJHN
+            unX3/BOhLSLB8X/HtI+qFrIo91o7jMHX+8nvGEx8NXmdYyArhdBFtKofXOqMvDX+
+            sOmF7dNA0vb4Y/08DjZ4gq3B2xDVyo9KE+sQ/kWM0wLPvIXWDvTvMLoshLBef5fz
+            CfNtxWp6OpsAOx3UaY/0TgI5qkC5j2ZiTdUciPZGiS08GyfhYwefdskeTc8injbE
+            AmaDDNf5UcQqq5D5gMcQXAEOun41EZ4MUvw7EJl9Dok6tcFR4mr6bDYBREiKO2Pu
+            0UWVwmX+rbZlqdr3C+Ay
+            -----END CERTIFICATE-----
+          path: /etc/pki/ca-trust/source/anchors/harbor-root-ca.crt
+          permissions: "0644"
+        - content: |
+            #!/usr/bin/env bash
+            PODS_CIDR="10.245.0.0/16"
+            MANAGER_CIDR="172.28.193.0/24"
+            HOST_CIDR="172.28.162.0/24"
+            CNI_CIDR="172.28.165.0/24"
+            TENANT_OPERATOR_CIDR="172.28.197.0/24"
+            BASTION_IP="192.168.10.102"
+            # zone
+            firewall-cmd --permanent --new-zone=k8s-node
+            firewall-cmd --permanent --zone=k8s-node --add-forward
+            firewall-cmd --permanent --zone=k8s-node --add-source=${MANAGER_CIDR}
+            firewall-cmd --permanent --zone=k8s-node --add-source=${HOST_CIDR}
+            firewall-cmd --permanent --zone=k8s-node --add-source=${CNI_CIDR}
+            firewall-cmd --permanent --new-zone=k8s-pod
+            firewall-cmd --permanent --zone=k8s-pod --add-forward
+            firewall-cmd --permanent --zone=k8s-pod --add-source=${PODS_CIDR}
+            # ssh
+            firewall-cmd --permanent --zone=k8s-node --add-rich-rule="rule family=ipv4 source address=${MANAGER_CIDR} port port=22 protocol=tcp accept"
+            firewall-cmd --permanent --zone=k8s-node --add-rich-rule="rule family=ipv4 source address=${HOST_CIDR} port port=22 protocol=tcp accept"
+            # kubelet API
+            firewall-cmd --permanent --zone=k8s-node --add-rich-rule="rule family=ipv4 source address=${CNI_CIDR} port port=10250 protocol=tcp accept"
+            firewall-cmd --permanent --zone=k8s-pod --add-rich-rule="rule family=ipv4 source address=${PODS_CIDR} port port=10250 protocol=tcp accept"
+            # kube-proxy
+            firewall-cmd --permanent --zone=k8s-node --add-rich-rule="rule family=ipv4 source address=${CNI_CIDR} port port=10256 protocol=tcp accept"
+            firewall-cmd --permanent --zone=k8s-pod --add-rich-rule="rule family=ipv4 source address=${PODS_CIDR} port port=10256 protocol=tcp accept"
+            firewall-cmd --permanent --zone=k8s-node --add-rich-rule="rule family=ipv4 source address=${CNI_CIDR} port port=10249 protocol=tcp accept"
+            firewall-cmd --permanent --zone=k8s-pod --add-rich-rule="rule family=ipv4 source address=${PODS_CIDR} port port=10249 protocol=tcp accept"
+            # node-exporter
+            firewall-cmd --permanent --zone=k8s-node --add-rich-rule="rule family=ipv4 source address=${CNI_CIDR} port port=9100 protocol=tcp accept"
+            firewall-cmd --permanent --zone=k8s-pod --add-rich-rule="rule family=ipv4 source address=${PODS_CIDR} port port=9100 protocol=tcp accept"
+            # calico IPIP
+            firewall-cmd --permanent --zone=k8s-node --add-rich-rule="rule family=ipv4 source address=${CNI_CIDR} protocol value=4 accept"
+            firewall-cmd --permanent --zone=k8s-pod --add-rich-rule="rule family=ipv4 source address=${PODS_CIDR} protocol value=4 accept"
+            # calico BGP
+            firewall-cmd --permanent --zone=k8s-node --add-rich-rule="rule family=ipv4 source address=${CNI_CIDR} port port=179 protocol=tcp accept"
+            firewall-cmd --permanent --zone=k8s-pod --add-rich-rule="rule family=ipv4 source address=${PODS_CIDR} port port=179 protocol=tcp accept"
+            # calico Typha
+            firewall-cmd --permanent --zone=k8s-node --add-rich-rule="rule family=ipv4 source address=${CNI_CIDR} port port=5473 protocol=tcp accept"
+            firewall-cmd --permanent --zone=k8s-pod --add-rich-rule="rule family=ipv4 source address=${PODS_CIDR} port port=5473 protocol=tcp accept"
+            
+            # pod forward egress
+            firewall-cmd --permanent --new-policy pod-fwd-egress
+            firewall-cmd --permanent --policy pod-fwd-egress --set-target=ACCEPT
+            firewall-cmd --permanent --policy pod-fwd-egress --add-ingress-zone=k8s-pod
+            firewall-cmd --permanent --policy pod-fwd-egress --add-egress-zone=ANY
+            
+            firewall-cmd --permanent --new-policy k8s-node-to-pod
+            firewall-cmd --permanent --policy k8s-node-to-pod --set-target=ACCEPT
+            firewall-cmd --permanent --policy k8s-node-to-pod --add-ingress-zone=k8s-node
+            firewall-cmd --permanent --policy k8s-node-to-pod --add-egress-zone=k8s-pod
+            
+            firewall-cmd --permanent --new-policy k8s-pod-to-node
+            firewall-cmd --permanent --policy k8s-pod-to-node --set-target=ACCEPT
+            firewall-cmd --permanent --policy k8s-pod-to-node --add-ingress-zone=k8s-pod
+            firewall-cmd --permanent --policy k8s-pod-to-node --add-egress-zone=k8s-node
+            
+            firewall-cmd --permanent --new-policy k8s-pod-to-pod
+            firewall-cmd --permanent --policy k8s-pod-to-pod --set-target=ACCEPT
+            firewall-cmd --permanent --policy k8s-pod-to-pod --add-ingress-zone=k8s-pod
+            firewall-cmd --permanent --policy k8s-pod-to-pod --add-egress-zone=k8s-pod
+            
+            firewall-cmd --permanent --new-policy k8s-node-to-node
+            firewall-cmd --permanent --policy k8s-node-to-node --set-target=ACCEPT
+            firewall-cmd --permanent --policy k8s-node-to-node --add-ingress-zone=k8s-node
+            firewall-cmd --permanent --policy k8s-node-to-node --add-egress-zone=k8s-node
+            # public disabled
+            for i in interfaces sources services ports protocols; do
+              for v in $(firewall-cmd --zone=public --list-$i); do
+                firewall-cmd --permanent --zone=public --remove-${i/%?/}="$v"
+              done
+            done
+            # reload
+            firewall-cmd --reload
+          owner: root:root
+          path: /tmp/firewall_tenant-worker.sh
+          permissions: "0755"
+      preKubeadmCommands:
+      - update-ca-trust extract
+      -  echo -e "nameserver 8.8.8.8 8.8.4.4\nsearch maas" > /etc/resolv.conf
+      - sed -i '/^proxy=/d' /etc/yum.conf
+      - sed -i '/^proxy=/d' /etc/dnf/dnf.conf
+      - |
+        until nmcli -t -f RUNNING general | grep -q running; do sleep 2; done
+        nmcli conn reload
+        CURRENT=$(nmcli -t -f NAME,DEVICE connection show --active | grep :$(ip route show default | awk '{print $5}')$ | cut -d: -f1)
+        nmcli connection modify "$CURRENT" ipv4.gateway ""
+        nmcli connection up "$CURRENT"
+        CNI_GW=172.28.165.251
+        CNI_CIDR=172.28.165.0/24
+        HOST_GW=172.28.162.251
+        HOST_CIDR=172.28.162.0/24
+        APPDATA_CIDR=172.28.168.0/24
+        POD_CIDR=10.245.0.0/16
+        SVC_CIDR=10.96.0.0/12
+        NIC=$(ip route get "$HOST_GW" | sed -n 's/.* dev \([^ ]*\).*/\1/p')
+        CONN=$(nmcli -t -f NAME,DEVICE connection show --active | grep ":$NIC$" | cut -d: -f1)
+        nmcli con mod "$CONN" ipv4.routing-rules "priority 32752 from $HOST_CIDR table 102"
+        nmcli con mod "$CONN" ipv4.routes "0.0.0.0/0 $HOST_GW table=102,$HOST_CIDR 0.0.0.0 table=102"
+        nmcli connection up "$CONN"
+        sleep 5
+        NIC=$(ip route get "$CNI_GW" | sed -n 's/.* dev \([^ ]*\).*/\1/p')
+        export NODE_IP=$(ip route get "$CNI_GW" | sed -n 's/.* src \([^ ]*\).*/\1/p')
+        CONN=$(nmcli -t -f NAME,DEVICE connection show --active | grep ":$NIC$" | cut -d: -f1)
+        nmcli connection modify "$CONN" ipv4.method manual ipv4.gateway $CNI_GW ipv4.never-default no
+        nmcli connection up "$CONN"
+        sleep 5
+        nmcli con mod "$CONN" ipv4.routing-rules "priority 32753 from $CNI_CIDR table 103, priority 1000 to $POD_CIDR table main, priority 1001 to $SVC_CIDR table main, priority 1100 from $POD_CIDR table 103"
+        nmcli con mod "$CONN" ipv4.routes "0.0.0.0/0 $CNI_GW table=103,$CNI_CIDR 0.0.0.0 table=103"
+        nmcli connection up "$CONN"
+        sleep 5
+        NET_PREFIX=$(echo "$APPDATA_CIDR" | cut -d/ -f1 | cut -d. -f1-3)
+        NIC=$(ip -o -4 addr show | awk -v p="^${NET_PREFIX}[.]" '$4 ~ p {print $2; exit}')
+        if [ -n "$NIC" ]; then
+            echo "found interface: $NIC"
+            CONN=$(nmcli -t -f NAME,DEVICE connection show --active | grep ":$NIC$" | cut -d: -f1)
+            nmcli con mod "$CONN" ipv4.routing-rules "priority 1090 from $POD_CIDR to $APPDATA_CIDR table main"
+            nmcli connection up "$CONN"
+        else
+            echo "No application data interface found."
+        fi
+      - |
+        for i in $(seq 1 10); do
+          if rhc connect --activation-key=xxxx --organization=12345678; then
+            echo "rhc connect succeeded on attempt $i"
+            break
+          fi
+
+          if [ "$i" -eq 10 ]; then
+            echo "rhc connect failed after 10 attempts"
+            exit 1
+          fi
+
+          echo "rhc connect failed on attempt $i, retrying in 5 seconds..."
+          sleep 5
+        done
+      - dnf install -y wget
+      - wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq && chmod +x /usr/bin/yq
+      - swapoff -a
+      - sed -i '/swap/ s/^/#/' /etc/fstab
+      - dnf install -y git
+      - dnf install -y containers-common
+      - export KUBERNETES_VERSION=v1.36
+      - echo [kubernetes] >> /etc/yum.repos.d/kubernetes.repo
+      - echo name=Kubernetes >> /etc/yum.repos.d/kubernetes.repo
+      - echo baseurl=https://pkgs.k8s.io/core:/stable:/$KUBERNETES_VERSION/rpm/ >> /etc/yum.repos.d/kubernetes.repo
+      - echo enabled=1 >> /etc/yum.repos.d/kubernetes.repo
+      - echo gpgcheck=1 >> /etc/yum.repos.d/kubernetes.repo
+      - echo gpgkey=https://pkgs.k8s.io/core:/stable:/$KUBERNETES_VERSION/rpm/repodata/repomd.xml.key >> /etc/yum.repos.d/kubernetes.repo
+      - dnf install -y kubelet-1.36.3-150500.1.1.x86_64 kubeadm-1.36.3-150500.1.1.x86_64 kubectl-1.36.3-150500.1.1.x86_64
+      - |
+        for i in $(seq 1 30); do
+          [ -f /run/kubeadm/kubeadm-join-config.yaml ] && break
+          sleep 1
+        done
+        if [ -f /run/kubeadm/kubeadm-join-config.yaml ]; then
+          envsubst < /run/kubeadm/kubeadm-join-config.yaml > /run/kubeadm/kubeadm-join-config.yaml.tmp
+          mv /run/kubeadm/kubeadm-join-config.yaml.tmp /run/kubeadm/kubeadm-join-config.yaml
+        else
+          echo "kubeadm-join-config.yaml not found; skipping"
+        fi
+      - modprobe overlay
+      - modprobe br_netfilter
+      - echo Overlay >> /etc/modules-load.d/kubernetes.conf
+      - echo br_netfilter >> /etc/modules-load.d/kubernetes.conf
+      - rmmod irdma
+      - echo "blacklist irdma" >> /etc/modprobe.d/blacklist.conf
+      - echo net.bridge.bridge-nf-call-iptables = 1 >> /etc/sysctl.d/99-kubernetes-cri.conf
+      - echo net.ipv4.ip_forward = 1 >> /etc/sysctl.d/99-kubernetes-cri.conf
+      - echo net.bridge.bridge-nf-call-ip6tables = 1 >> /etc/sysctl.d/99-kubernetes-cri.conf
+      - sysctl --system
+      - export CRIO_VERSION=v1.36
+      - echo [cri-o] >> /etc/yum.repos.d/cri-o.repo
+      - echo name=CRI-O >> /etc/yum.repos.d/cri-o.repo
+      - echo baseurl=https://download.opensuse.org/repositories/isv:/cri-o:/stable:/$CRIO_VERSION/rpm/ >> /etc/yum.repos.d/cri-o.repo
+      - echo enabled=1 >> /etc/yum.repos.d/cri-o.repo
+      - echo gpgcheck=1 >> /etc/yum.repos.d/cri-o.repo
+      - echo gpgkey=https://download.opensuse.org/repositories/isv:/cri-o:/stable:/$CRIO_VERSION/rpm/repodata/repomd.xml.key >> /etc/yum.repos.d/cri-o.repo
+      - dnf install -y cri-o-1.36.3-150500.1.1.x86_64
+      - mkdir /etc/crio/net.d
+      - mv /etc/cni/net.d/10-crio-bridge.conflist.disabled /etc/crio/net.d/
+      - rm -rf /etc/cni/net.d/
+      - systemctl enable crio
+      - systemctl start  crio
+      - /bin/bash /tmp/firewall_tenant-worker.sh
+      - setenforce 0
+      - sed -i 's/enforcing/permissive/g' /etc/selinux/config
+      - systemctl enable kubelet
+      - systemctl stop kubelet
+      postKubeadmCommands:
+      - sed -i 's/(KUBELET_KUBEADM_ARGS=".*)"/\1 --feature-gates=DRADeviceTaints=true,DRADeviceTaintRules=true"/g' /var/lib/kubelet/kubeadm-flags.env -r
+      - systemctl restart kubelet
+      - auditctl -R /etc/audit/rules.d/custom-audit.rules
+      - dnf install -y nfs-utils-2.5.4-34.el9.x86_64
+      - echo "K8s Node setup done!"
+---
+apiVersion: controlplane.cluster.x-k8s.io/v1beta2
+kind: KubeadmControlPlane
+metadata:
+  name: controlplane
+  namespace: tenant-1
+spec:
+  replicas: 3
+  version: v1.36.3
+  machineTemplate:
+    spec:
+      infrastructureRef:
+        apiGroup: infrastructure.cluster.x-k8s.io
+        kind: DCIMachineTemplate
+        name: controlplane
+      deletion:
+        nodeDrainTimeoutSeconds: 180
+  rollout:
+    before:
+      certificatesExpiryDays: 21
+  kubeadmConfigSpec:
+    verbosity: 7
+    ntp:
+      enabled: true
+      servers:
+        - 172.28.197.80
+    clusterConfiguration:
+      apiServer:
+        certSANs:
+        - localhost
+        - 127.0.0.1
+        - 0.0.0.0
+        extraArgs:
+          - name: audit-policy-file
+            value: /etc/kubernetes/audit-policy.yaml
+          - name: audit-log-path
+            value: /var/log/kubernetes/audit/audit.log
+          - name: encryption-provider-config
+            value: /etc/kubernetes/encryption-config.yaml
+          - name: audit-log-maxsize
+            value: "20"
+          - name: audit-log-maxbackup
+            value: "3"
+          - name: audit-log-maxage
+            value: "3"
+        extraVolumes:
+          - name: audit-policy
+            hostPath: /etc/kubernetes/audit-policy.yaml
+            mountPath: /etc/kubernetes/audit-policy.yaml
+            pathType: File
+            readOnly: true
+          - name: audit-log
+            hostPath: /var/log/kubernetes/audit/
+            mountPath: /var/log/kubernetes/audit/
+            pathType: DirectoryOrCreate
+            readOnly: false
+          - name: encryption-config
+            hostPath: /etc/kubernetes/encryption-config.yaml
+            mountPath: /etc/kubernetes/encryption-config.yaml
+            pathType: File
+            readOnly: true
+    files:
+    - content: |
+        apiVersion: audit.k8s.io/v1
+        kind: Policy
+        rules:
+          - level: Metadata
+            users:
+              - kubernetes-admin
+          - level: None
+            userGroups:
+              - system:serviceaccounts:kube-system
+              - system:serviceaccounts:harbor
+              - system:serviceaccounts:tigera-operator
+              - system:serviceaccounts:calico-system
+              - system:serviceaccounts:nfs-subdir-external-provisioner
+              - system:serviceaccounts:gateway-api
+              - system:serviceaccounts:nginx-gateway
+              - system:serviceaccounts:cert-manager
+              - system:serviceaccounts:gpu-operator
+              - system:serviceaccounts:dra-driver
+              - system:serviceaccounts:dra-driver-nvidia-gpu
+              - system:serviceaccounts:watch-gpu-status
+              - system:serviceaccounts:nvidia-network-operator
+              - system:serviceaccounts:sriov-device-settings
+              - system:serviceaccounts:prometheus
+              - system:serviceaccounts:loki
+              - system:serviceaccounts:vector
+              - system:serviceaccounts:npd
+              - system:serviceaccounts:kyverno
+              - system:serviceaccounts:policy-reporter
+              - system:serviceaccounts:velero
+              - system:serviceaccounts:scale-controller-system
+              - system:serviceaccounts:argo-events
+              - system:serviceaccounts:temporal
+          - level: None
+            users:
+              - system:serviceaccount:dci:prometheus-adapter
+              - system:serviceaccount:dci:app-conn-info-maker-dci-controller-manager
+              - system:serviceaccount:dci:app-conn-info-maker-dci-service-account
+          - level: Metadata
+            userGroups:
+              - system:serviceaccounts
+      owner: root:root
+      path: /etc/kubernetes/audit-policy.yaml
+    - content: |
+        -D
+        -b 16384
+        --backlog_wait_time 60000
+        -f 1
+
+        -a always,exit -F arch=b64 -S execve -F exe=/usr/sbin/sshd -F auid>=1000 -F auid!=-1 -k ssh_exec
+        
+        -a always,exit -F arch=b64 -S execve -F exe=/usr/bin/sudo -F euid=0 -k sudo_exec
+        -a always,exit -F arch=b64 -S execve -F exe=/usr/bin/su -F euid=0 -k su_exec
+
+        -a always,exit -F arch=b64 -S open -F perm=wa -F path=/etc/passwd -k passwd_changes
+        -a always,exit -F arch=b64 -S open -F perm=wa -F path=/etc/shadow -k shadow_changes
+        -a always,exit -F arch=b64 -S open -F perm=wa -F path=/etc/group -k group_changes
+
+        -a always,exit -F arch=b64 -S setuid,setgid,setresuid,setresgid,setfsuid,setfsgid -F auid>=1000 -F auid!=-1 -k priv_change
+
+        -a always,exit -F arch=b64 -S execve -F euid=0 -F auid>=1000 -F auid!=-1 -k root_cmd
+        
+        -a always,exit -F arch=b64 -S open -F perm=wa -F path=/etc/sudoers -k sudo
+        -a always,exit -F arch=b64 -S open -F perm=wa -F path=/etc/sudoers.d -k sudo
+
+        -a always,exit -F arch=b64 -S init_module,delete_module -k kernel_module 
+
+        -a never,exclude -F msgtype=AVC
+        -a never,exclude -F msgtype=USER_AVC
+      owner: root:root
+      path: /etc/audit/rules.d/custom-audit.rules
+    - content: |
+        apiVersion: v1
+        kind: Pod
+        metadata:
+          creationTimestamp: null
+          name: kube-vip
+          namespace: kube-system
+        spec:
+          containers:
+          - args:
+            - manager
+            env:
+            - name: cp_enable
+              value: "true"
+            - name: svc_enable
+              value: "true"
+            - name: vip_arp
+              value: "true"
+            - name: vip_leaderelection
+              value: "true"
+            - name: vip_address
+              value: 172.28.165.30
+            - name: vip_interface
+              value: $VIP_INTERFACE
+            - name: vip_leaseduration
+              value: "15"
+            - name: vip_renewdeadline
+              value: "10"
+            - name: vip_retryperiod
+              value: "2"
+            image: ghcr.io/kube-vip/kube-vip:v0.8.4
+            imagePullPolicy: IfNotPresent
+            name: kube-vip
+            resources: {}
+            securityContext:
+              capabilities:
+                add:
+                - NET_ADMIN
+                - NET_RAW
+            volumeMounts:
+            - mountPath: /etc/kubernetes/admin.conf
+              name: kubeconfig
+          hostNetwork: true
+          hostAliases:
+            - hostnames:
+                - kubernetes
+              ip: 127.0.0.1
+          volumes:
+          - hostPath:
+              path: /etc/kubernetes/admin.conf
+            name: kubeconfig
+        status: {}
+      owner: root:root
+      path: /etc/kubernetes/manifests/kube-vip.yaml
+    - content: |
+        apiVersion: apiserver.config.k8s.io/v1
+        kind: EncryptionConfiguration
+        resources:
+          - resources:
+              - secrets
+            providers:
+              - aescbc:
+                  keys:
+                    - name: key1
+                      secret: aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789+/ABCD=
+              - identity: {}
+      owner: root:root
+      path: /etc/kubernetes/encryption-config.yaml
+      permissions: "0600"
+    - contentFrom:
+        secret:
+          name: management-api-kubeconfig-for-tenant-1
+          key: kubeconfig
+      owner: root:root
+      path: /etc/kubernetes/bootstrap/management.kubeconfig
+      permissions: "0600"
+    - content: |
+        -----BEGIN CERTIFICATE-----
+        MIIFGzCCAwOgAwIBAgIUMhUx95XoEo1kANp1wCPoRFs8REgwDQYJKoZIhvcNAQEL
+        BQAwHTEbMBkGA1UEAwwSaGFyYm9yLXRlbmFudC0xLWNhMB4XDTI2MDQwMjA1MzU0
+        NVoXDTM2MDMzMDA1MzU0NVowHTEbMBkGA1UEAwwSaGFyYm9yLXRlbmFudC0xLWNh
+        MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEAnmIqYk2UzE5yqhm28CW7
+        uI3MUdoV/DdoQ0n+Hkpery188j8B787cO3kStT+QA9YqM0exK08MZLW973hyUfwv
+        GPS6plXwDK8UUP0IiXThmLW1s7hCoMceO7c/aXifkoOsh/nRiQ5XzCmnQ/IKS+dw
+        A+muBx+5jOaExQ81j/Brk2zS6L1hsEwTX73PThzIDlKK3PFZCmq9HrbiDcFDW8Iv
+        l5E+7uqHMMA9CosxzplV+o9sjEusbTNLQBimiERWS8OY7H0UwrmHvYerK4Zc1JLm
+        Lj/4fgGNIMN4JvJQ5GG4thZlXfYKaqt6iblKBCHlfMA43S9F5QaaEnOUDkhXFiJw
+        s470T3mivJuUqAKyKB7loGXDl7LXRBZ/rAA2Dcls5e2KgGumqGKgMkUyS+SLNg6j
+        cIkAYCbxj/So1so4KPw/++VppYzAtjVvPyx7OGSmFEoDeQrchrsMBR0dtxE1H/c2
+        xW01rAQVMhzkLveZCFdpPc28VgQikr9PQXYc7xp1oNkmLeGGPe/h6CijgLuhys3d
+        BzjSLaYhCwNLZz2uGXEx1BwXRIVKuBjE5yFw7Md4Wbp/P4C3jJHFjSa5hsV06ot+
+        4jlDq58J1gxLJCGeyaXCjmqNYMUF19lR8avXuovcoTa2TXgWdLGiiD4+Pap332hq
+        /tsP/5hQo+AcL6mNB3g/x+MCAwEAAaNTMFEwHQYDVR0OBBYEFETz4tb/+Id8W03A
+        gkMLeJKHMq4RMB8GA1UdIwQYMBaAFETz4tb/+Id8W03AgkMLeJKHMq4RMA8GA1Ud
+        EwEB/wQFMAMBAf8wDQYJKoZIhvcNAQELBQADggIBACHMAboRqM4eQEHumWEYeTRF
+        IdhnFPofHneXdD4IJJMc9iEw4vTeVsB8/wB6dwfDIT+1t3jzJa6okp6+rC7bFxeV
+        PWIFhb8/jma5pZkF9v2TcPWscq+LqfNqHpemvJ9JJu0aBo9HHlTkyRe9BY0AIfW2
+        D9mGzoAiB6BiB5ukZQ0MUf6liHlCGKFVkkyZZn9BV6eluti5p9ZXDYpyoGTOGhAx
+        7gj7xWZL5SvYOKMBgye+0yTM72kDsnTvImILqGASxqnlIuSIsBMlqr06Oh9EEEGL
+        OM5QFJUDw7Rk0Rj9e+VvK/jG6j2Ost3oQ2ZU2UzjypWISyKT6unV47jzLAq3VNOl
+        0NTeF56JK3MSHSYkWlSXxpfdrlK/np77719iUo23J1wifDSvbXTu8DppJ9CSpJHN
+        unX3/BOhLSLB8X/HtI+qFrIo91o7jMHX+8nvGEx8NXmdYyArhdBFtKofXOqMvDX+
+        sOmF7dNA0vb4Y/08DjZ4gq3B2xDVyo9KE+sQ/kWM0wLPvIXWDvTvMLoshLBef5fz
+        CfNtxWp6OpsAOx3UaY/0TgI5qkC5j2ZiTdUciPZGiS08GyfhYwefdskeTc8injbE
+        AmaDDNf5UcQqq5D5gMcQXAEOun41EZ4MUvw7EJl9Dok6tcFR4mr6bDYBREiKO2Pu
+        0UWVwmX+rbZlqdr3C+Ay
+        -----END CERTIFICATE-----
+      path: /etc/pki/ca-trust/source/anchors/harbor-root-ca.crt
+      permissions: "0644"
+    - content: |
+        #!/usr/bin/env bash
+        PODS_CIDR="10.245.0.0/16"
+        MANAGER_CIDR="172.28.193.0/24"
+        HOST_CIDR="172.28.162.0/24"
+        CNI_CIDR="172.28.165.0/24"
+        TENANT_OPERATOR_CIDR="172.28.197.0/24"
+        BASTION_IP="192.168.10.102"
+        LB_VIP="172.28.165.31"
+        
+        # zone
+        firewall-cmd --permanent --new-zone=k8s-node
+        firewall-cmd --permanent --zone=k8s-node --add-forward
+        firewall-cmd --permanent --zone=k8s-node --add-source=${MANAGER_CIDR}
+        firewall-cmd --permanent --zone=k8s-node --add-source=${HOST_CIDR}
+        firewall-cmd --permanent --zone=k8s-node --add-source=${CNI_CIDR}
+        firewall-cmd --permanent --zone=k8s-node --add-source=${TENANT_OPERATOR_CIDR}
+        firewall-cmd --permanent --new-zone=k8s-pod
+        firewall-cmd --permanent --zone=k8s-pod --add-forward
+        firewall-cmd --permanent --zone=k8s-pod --add-source=${PODS_CIDR}
+        # ssh
+        firewall-cmd --permanent --zone=k8s-node --add-rich-rule="rule family=ipv4 source address=${MANAGER_CIDR} port port=22 protocol=tcp accept"
+        firewall-cmd --permanent --zone=k8s-node --add-rich-rule="rule family=ipv4 source address=${HOST_CIDR} port port=22 protocol=tcp accept"
+        # kube-apiserver
+        firewall-cmd --permanent --zone=k8s-node --add-rich-rule="rule family=ipv4 source address=${MANAGER_CIDR} port port=6443 protocol=tcp accept"
+        firewall-cmd --permanent --zone=k8s-node --add-rich-rule="rule family=ipv4 source address=${CNI_CIDR} port port=6443 protocol=tcp accept"
+        firewall-cmd --permanent --zone=k8s-pod --add-rich-rule="rule family=ipv4 source address=${PODS_CIDR} port port=6443 protocol=tcp accept"
+        firewall-cmd --permanent --zone=k8s-node --add-rich-rule="rule family=ipv4 source address=${TENANT_OPERATOR_CIDR} port port=6443 protocol=tcp accept"
+        # kubelet API
+        firewall-cmd --permanent --zone=k8s-node --add-rich-rule="rule family=ipv4 source address=${CNI_CIDR} port port=10250 protocol=tcp accept"
+        firewall-cmd --permanent --zone=k8s-pod --add-rich-rule="rule family=ipv4 source address=${PODS_CIDR} port port=10250 protocol=tcp accept"
+        # kube-proxy
+        firewall-cmd --permanent --zone=k8s-node --add-rich-rule="rule family=ipv4 source address=${CNI_CIDR} port port=10256 protocol=tcp accept"
+        firewall-cmd --permanent --zone=k8s-pod --add-rich-rule="rule family=ipv4 source address=${PODS_CIDR} port port=10256 protocol=tcp accept"
+        firewall-cmd --permanent --zone=k8s-node --add-rich-rule="rule family=ipv4 source address=${CNI_CIDR} port port=10249 protocol=tcp accept"
+        firewall-cmd --permanent --zone=k8s-pod --add-rich-rule="rule family=ipv4 source address=${PODS_CIDR} port port=10249 protocol=tcp accept"
+        # kube-controller-manager
+        firewall-cmd --permanent --zone=k8s-node --add-rich-rule="rule family=ipv4 source address=${CNI_CIDR} port port=10257 protocol=tcp accept"
+        firewall-cmd --permanent --zone=k8s-pod --add-rich-rule="rule family=ipv4 source address=${PODS_CIDR} port port=10257 protocol=tcp accept"
+        # kube-scheduler
+        firewall-cmd --permanent --zone=k8s-node --add-rich-rule="rule family=ipv4 source address=${CNI_CIDR} port port=10259 protocol=tcp accept"
+        firewall-cmd --permanent --zone=k8s-pod --add-rich-rule="rule family=ipv4 source address=${PODS_CIDR} port port=10259 protocol=tcp accept"
+        # etcd
+        firewall-cmd --permanent --zone=k8s-node --add-rich-rule="rule family=ipv4 source address=${CNI_CIDR} port port=2379 protocol=tcp accept"
+        firewall-cmd --permanent --zone=k8s-pod --add-rich-rule="rule family=ipv4 source address=${PODS_CIDR} port port=2379 protocol=tcp accept"
+        firewall-cmd --permanent --zone=k8s-node --add-rich-rule="rule family=ipv4 source address=${CNI_CIDR} port port=2380 protocol=tcp accept"
+        firewall-cmd --permanent --zone=k8s-pod --add-rich-rule="rule family=ipv4 source address=${PODS_CIDR} port port=2380 protocol=tcp accept"
+        firewall-cmd --permanent --zone=k8s-node --add-rich-rule="rule family=ipv4 source address=${CNI_CIDR} port port=2381 protocol=tcp accept"
+        firewall-cmd --permanent --zone=k8s-pod --add-rich-rule="rule family=ipv4 source address=${PODS_CIDR} port port=2381 protocol=tcp accept"
+        # calico BGP
+        firewall-cmd --permanent --zone=k8s-node --add-rich-rule="rule family=ipv4 source address=${CNI_CIDR} port port=179 protocol=tcp accept"
+        firewall-cmd --permanent --zone=k8s-pod --add-rich-rule="rule family=ipv4 source address=${PODS_CIDR} port port=179 protocol=tcp accept"
+        # calico IPIP
+        firewall-cmd --permanent --zone=k8s-node --add-rich-rule="rule family=ipv4 source address=${CNI_CIDR} protocol value=4 accept"
+        firewall-cmd --permanent --zone=k8s-pod --add-rich-rule="rule family=ipv4 source address=${PODS_CIDR} protocol value=4 accept"
+        # calico Typha
+        firewall-cmd --permanent --zone=k8s-node --add-rich-rule="rule family=ipv4 source address=${CNI_CIDR} port port=5473 protocol=tcp accept"
+        firewall-cmd --permanent --zone=k8s-pod --add-rich-rule="rule family=ipv4 source address=${PODS_CIDR} port port=5473 protocol=tcp accept"
+        # node-exporter
+        firewall-cmd --permanent --zone=k8s-node --add-rich-rule="rule family=ipv4 source address=${CNI_CIDR} port port=9100 protocol=tcp accept"
+        firewall-cmd --permanent --zone=k8s-pod --add-rich-rule="rule family=ipv4 source address=${PODS_CIDR} port port=9100 protocol=tcp accept"
+        
+        # LoadBalancer type Service
+        firewall-cmd --permanent --direct --add-rule ipv4 raw PREROUTING 0 \
+          -p tcp -s ${CNI_CIDR} -d ${LB_VIP} \
+          -m multiport --dports 80,8443 -j ACCEPT
+        firewall-cmd --permanent --direct --add-rule ipv4 raw PREROUTING 0 \
+          -p tcp -s ${MANAGER_CIDR} -d ${LB_VIP} \
+          -m multiport --dports 80,8443 -j ACCEPT
+        firewall-cmd --permanent --direct --add-rule ipv4 raw PREROUTING 0 \
+          -p tcp -s ${PODS_CIDR} -d ${LB_VIP} \
+          -m multiport --dports 80,8443 -j ACCEPT
+        firewall-cmd --permanent --direct --add-rule ipv4 raw PREROUTING 0 \
+          -p tcp -s ${TENANT_OPERATOR_CIDR} -d ${LB_VIP} \
+          -m multiport --dports 80,8443 -j ACCEPT
+        firewall-cmd --permanent --direct --add-rule ipv4 raw PREROUTING 10 \
+          -p tcp -d ${LB_VIP} -j DROP
+        
+        # pod forward egress
+        firewall-cmd --permanent --new-policy pod-fwd-egress
+        firewall-cmd --permanent --policy pod-fwd-egress --set-target=ACCEPT
+        firewall-cmd --permanent --policy pod-fwd-egress --add-ingress-zone=k8s-pod
+        firewall-cmd --permanent --policy pod-fwd-egress --add-egress-zone=ANY
+        
+        firewall-cmd --permanent --new-policy k8s-node-to-pod
+        firewall-cmd --permanent --policy k8s-node-to-pod --set-target=ACCEPT
+        firewall-cmd --permanent --policy k8s-node-to-pod --add-ingress-zone=k8s-node
+        firewall-cmd --permanent --policy k8s-node-to-pod --add-egress-zone=k8s-pod
+        
+        firewall-cmd --permanent --new-policy k8s-pod-to-node
+        firewall-cmd --permanent --policy k8s-pod-to-node --set-target=ACCEPT
+        firewall-cmd --permanent --policy k8s-pod-to-node --add-ingress-zone=k8s-pod
+        firewall-cmd --permanent --policy k8s-pod-to-node --add-egress-zone=k8s-node
+        
+        firewall-cmd --permanent --new-policy k8s-pod-to-pod
+        firewall-cmd --permanent --policy k8s-pod-to-pod --set-target=ACCEPT
+        firewall-cmd --permanent --policy k8s-pod-to-pod --add-ingress-zone=k8s-pod
+        firewall-cmd --permanent --policy k8s-pod-to-pod --add-egress-zone=k8s-pod
+        
+        firewall-cmd --permanent --new-policy k8s-node-to-node
+        firewall-cmd --permanent --policy k8s-node-to-node --set-target=ACCEPT
+        firewall-cmd --permanent --policy k8s-node-to-node --add-ingress-zone=k8s-node
+        firewall-cmd --permanent --policy k8s-node-to-node --add-egress-zone=k8s-node
+        
+        # public disabled
+        for i in interfaces sources services ports protocols; do
+          for v in $(firewall-cmd --zone=public --list-$i); do
+            firewall-cmd --permanent --zone=public --remove-${i/%?/}="$v"
+          done
+        done
+        # reload
+        firewall-cmd --reload
+      owner: root:root
+      path: /tmp/firewall_tenant-controlplane.sh
+      permissions: "0755"
+    initConfiguration:
+      localAPIEndpoint:
+        advertiseAddress: $NODE_IP
+        bindPort: 6443
+      nodeRegistration:
+        criSocket: /var/run/crio/crio.sock
+        kubeletExtraArgs:
+          - name: eviction-hard
+            value: nodefs.available<10%,memory.available<100Mi
+          - name: v
+            value: "4"
+          - name: node-ip
+            value: $NODE_IP
+    joinConfiguration:
+      controlPlane:
+        localAPIEndpoint:
+          advertiseAddress: $NODE_IP
+          bindPort: 6443
+      nodeRegistration:
+        criSocket: /var/run/crio/crio.sock
+        kubeletExtraArgs:
+          - name: eviction-hard
+            value: nodefs.available<10%,memory.available<100Mi
+          - name: v
+            value: "4"
+          - name: node-ip
+            value: $NODE_IP
+    preKubeadmCommands:
+    - update-ca-trust extract
+    - echo -e "nameserver 8.8.8.8 8.8.4.4\nsearch maas" > /etc/resolv.conf
+    - sed -i '/^proxy=/d' /etc/yum.conf
+    - sed -i '/^proxy=/d' /etc/dnf/dnf.conf
+    - |
+      until nmcli -t -f RUNNING general | grep -q running; do sleep 2; done
+      nmcli conn reload
+      CURRENT=$(nmcli -t -f NAME,DEVICE connection show --active | grep :$(ip route show default | awk '{print $5}')$ | cut -d: -f1)
+      nmcli connection modify "$CURRENT" ipv4.gateway ""
+      nmcli connection up "$CURRENT"
+      CNI_GW=172.28.165.251
+      CNI_CIDR=172.28.165.0/24
+      HOST_GW=172.28.162.251
+      HOST_CIDR=172.28.162.0/24
+      POD_CIDR=10.245.0.0/16
+      SVC_CIDR=10.96.0.0/12
+      NIC=$(ip route get "$HOST_GW" | sed -n 's/.* dev \([^ ]*\).*/\1/p')
+      CONN=$(nmcli -t -f NAME,DEVICE connection show --active | grep ":$NIC$" | cut -d: -f1)
+      nmcli con mod "$CONN" ipv4.routing-rules "priority 32752 from $HOST_CIDR table 102"
+      nmcli con mod "$CONN" ipv4.routes "0.0.0.0/0 $HOST_GW table=102,$HOST_CIDR 0.0.0.0 table=102"
+      nmcli connection up "$CONN"
+      sleep 5
+      NIC=$(ip route get "$CNI_GW" | sed -n 's/.* dev \([^ ]*\).*/\1/p')
+      export NODE_IP=$(ip route get "$CNI_GW" | sed -n 's/.* src \([^ ]*\).*/\1/p')
+      CONN=$(nmcli -t -f NAME,DEVICE connection show --active | grep ":$NIC$" | cut -d: -f1)
+      nmcli connection modify "$CONN" ipv4.method manual ipv4.gateway $CNI_GW ipv4.never-default no
+      nmcli connection up "$CONN"
+      sleep 5
+      nmcli con mod "$CONN" ipv4.routing-rules "priority 32753 from $CNI_CIDR table 103, priority 1000 to $POD_CIDR table main, priority 1001 to $SVC_CIDR table main, priority 1100 from $POD_CIDR table 103"
+      nmcli con mod "$CONN" ipv4.routes "0.0.0.0/0 $CNI_GW table=103,$CNI_CIDR 0.0.0.0 table=103"
+      nmcli connection up "$CONN"
+    - |
+      for i in $(seq 1 10); do
+        if rhc connect --activation-key=xxxx --organization=12345678; then
+          echo "rhc connect succeeded on attempt $i"
+          break
+        fi
+
+        if [ "$i" -eq 10 ]; then
+          echo "rhc connect failed after 10 attempts"
+          exit 1
+        fi
+
+        echo "rhc connect failed on attempt $i, retrying in 5 seconds..."
+        sleep 5
+      done
+    - dnf install -y wget
+    - wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq && chmod +x /usr/bin/yq
+    - swapoff -a
+    - sed -i '/swap/ s/^/#/' /etc/fstab
+    - dnf install -y git
+    - dnf install -y containers-common
+    - export KUBERNETES_VERSION=v1.36
+    - echo [kubernetes] >> /etc/yum.repos.d/kubernetes.repo
+    - echo name=Kubernetes >> /etc/yum.repos.d/kubernetes.repo
+    - echo baseurl=https://pkgs.k8s.io/core:/stable:/$KUBERNETES_VERSION/rpm/ >> /etc/yum.repos.d/kubernetes.repo
+    - echo enabled=1 >> /etc/yum.repos.d/kubernetes.repo
+    - echo gpgcheck=1 >> /etc/yum.repos.d/kubernetes.repo
+    - echo gpgkey=https://pkgs.k8s.io/core:/stable:/$KUBERNETES_VERSION/rpm/repodata/repomd.xml.key >> /etc/yum.repos.d/kubernetes.repo
+    - dnf install -y kubelet-1.36.3-150500.1.1.x86_64 kubeadm-1.36.3-150500.1.1.x86_64 kubectl-1.36.3-150500.1.1.x86_64
+    - |
+      for i in $(seq 1 30); do
+        [ -f /run/kubeadm/kubeadm.yaml ] && break
+        sleep 1
+      done
+      if [ -f /run/kubeadm/kubeadm.yaml ]; then
+        envsubst < /run/kubeadm/kubeadm.yaml > /run/kubeadm/kubeadm.yaml.tmp
+        mv /run/kubeadm/kubeadm.yaml.tmp /run/kubeadm/kubeadm.yaml
+        HELM_VERSION="v4.2.4"
+        curl -fsSL "https://get.helm.sh/helm-${HELM_VERSION}-linux-amd64.tar.gz" -o /tmp/helm.tar.gz
+        tar -C /tmp -xzf /tmp/helm.tar.gz
+        install -m 0755 /tmp/linux-amd64/helm /usr/local/bin/helm
+      else
+        echo "kubeadm.yaml not found; skipping"
+      fi
+    - |
+      for i in $(seq 1 30); do
+        [ -f /run/kubeadm/kubeadm-join-config.yaml ] && break
+        sleep 1
+      done
+      if [ -f /run/kubeadm/kubeadm-join-config.yaml ]; then
+        envsubst < /run/kubeadm/kubeadm-join-config.yaml > /run/kubeadm/kubeadm-join-config.yaml.tmp
+        mv /run/kubeadm/kubeadm-join-config.yaml.tmp /run/kubeadm/kubeadm-join-config.yaml
+      else
+        echo "kubeadm-join-config.yaml not found; skipping"
+      fi
+    - export VIP_INTERFACE=$NIC
+    - |
+      for i in $(seq 1 30); do
+        [ -f /etc/kubernetes/manifests/kube-vip.yaml ] && break
+        sleep 1
+      done
+      if [ -f /etc/kubernetes/manifests/kube-vip.yaml ]; then
+        if [ -f /run/kubeadm/kubeadm.yaml ]; then
+          echo "kube-vip.yaml found; kubeadm.yaml found; patching admin.conf -> super-admin.conf"
+          sed -i 's#path: /etc/kubernetes/admin.conf#path: /etc/kubernetes/super-admin.conf#' /etc/kubernetes/manifests/kube-vip.yaml
+        fi
+        envsubst < /etc/kubernetes/manifests/kube-vip.yaml > /etc/kubernetes/manifests/kube-vip.yaml.tmp
+        mv /etc/kubernetes/manifests/kube-vip.yaml.tmp /etc/kubernetes/manifests/kube-vip.yaml
+      else
+        echo "kube-vip.yaml not found; skipping"
+      fi
+    - modprobe overlay
+    - modprobe br_netfilter
+    - echo Overlay >> /etc/modules-load.d/kubernetes.conf
+    - echo br_netfilter >> /etc/modules-load.d/kubernetes.conf
+    - rmmod irdma
+    - echo "blacklist irdma" >> /etc/modprobe.d/blacklist.conf
+    - echo net.bridge.bridge-nf-call-iptables = 1 >> /etc/sysctl.d/99-kubernetes-cri.conf
+    - echo net.ipv4.ip_forward = 1 >> /etc/sysctl.d/99-kubernetes-cri.conf
+    - echo net.bridge.bridge-nf-call-ip6tables = 1 >> /etc/sysctl.d/99-kubernetes-cri.conf
+    - sysctl --system
+    - export CRIO_VERSION=v1.36
+    - echo [cri-o] >> /etc/yum.repos.d/cri-o.repo
+    - echo name=CRI-O >> /etc/yum.repos.d/cri-o.repo
+    - echo baseurl=https://download.opensuse.org/repositories/isv:/cri-o:/stable:/$CRIO_VERSION/rpm/ >> /etc/yum.repos.d/cri-o.repo
+    - echo enabled=1 >> /etc/yum.repos.d/cri-o.repo
+    - echo gpgcheck=1 >> /etc/yum.repos.d/cri-o.repo
+    - echo gpgkey=https://download.opensuse.org/repositories/isv:/cri-o:/stable:/$CRIO_VERSION/rpm/repodata/repomd.xml.key >> /etc/yum.repos.d/cri-o.repo
+    - dnf install -y cri-o-1.36.3-150500.1.1.x86_64
+    - mkdir /etc/crio/net.d
+    - mv /etc/cni/net.d/10-crio-bridge.conflist.disabled /etc/crio/net.d/
+    - rm -rf /etc/cni/net.d/
+    - systemctl enable crio
+    - systemctl start  crio
+    - /bin/bash /tmp/firewall_tenant-controlplane.sh
+    - setenforce 0
+    - sed -i 's/enforcing/permissive/g' /etc/selinux/config
+    - systemctl enable kubelet
+    - systemctl stop kubelet
+    postKubeadmCommands:
+    - chmod a+r /etc/kubernetes/admin.conf
+    - echo KUBECONFIG=/etc/kubernetes/admin.conf >> /etc/environment
+    - source /etc/environment
+    - export KUBECONFIG=/etc/kubernetes/admin.conf
+    - sed -i 's/(KUBELET_KUBEADM_ARGS=".*)"/\1 --feature-gates=DRADeviceTaints=true,DRADeviceTaintRules=true"/g' /var/lib/kubelet/kubeadm-flags.env -r
+    - systemctl restart kubelet
+    - yq -i '.spec.containers[0].command += ["--feature-gates=DRADeviceTaints=true,DRADeviceTaintRules=true"]' /etc/kubernetes/manifests/kube-apiserver.yaml
+    - yq -i '.spec.containers[0].command += ["--runtime-config=resource.k8s.io/v1beta2=true"]'  /etc/kubernetes/manifests/kube-apiserver.yaml
+    - yq -i '.spec.containers[0].command += ["--feature-gates=DRADeviceTaints=true,DRADeviceTaintRules=true"]' /etc/kubernetes/manifests/kube-controller-manager.yaml
+    - yq -i '.spec.containers[0].command += ["--feature-gates=DRADeviceTaints=true,DRADeviceTaintRules=true"]' /etc/kubernetes/manifests/kube-scheduler.yaml
+    - auditctl -R /etc/audit/rules.d/custom-audit.rules
+    - dnf install -y nfs-utils-2.5.4-34.el9.x86_64
+    - |
+      if [ -f /run/kubeadm/kubeadm.yaml ]; then
+        echo "Waiting for Kubernetes API..."
+        until kubectl get --raw=/readyz >/dev/null 2>&1; do
+          sleep 5
+        done
+        echo "Installing Calico CRDs..."
+        helm repo add projectcalico https://docs.tigera.io/calico/charts
+        helm repo update
+        helm template calico-crds projectcalico/crd.projectcalico.org.v1 --version v3.32.1 | kubectl apply --server-side -f -
+      fi
+    - echo "K8s Control Plane Node setup done!"
+---
+apiVersion: cluster.x-k8s.io/v1beta2
+kind: MachineDeployment
+metadata:
+  name: worker-md-1
+  namespace: tenant-1
+spec:
+  clusterName: tenant-1
+  replicas: 1
+  selector:
+    matchLabels:
+      cluster.x-k8s.io/cluster-name: tenant-1
+  template:
+    spec:
+      version: v1.36.3
+      clusterName: tenant-1
+      bootstrap:
+        configRef:
+          apiGroup: bootstrap.cluster.x-k8s.io
+          kind: KubeadmConfigTemplate
+          name: worker
+      infrastructureRef:
+        apiGroup: infrastructure.cluster.x-k8s.io
+        kind: DCIMachineTemplate
+        name: worker-1
+      deletion:
+        nodeDrainTimeoutSeconds: 180

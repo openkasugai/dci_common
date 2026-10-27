@@ -1,0 +1,20 @@
+### 環境に合わせて設定変更 ##############################
+
+# テナント情報
+tenants:
+  - tenant_name: tenant-1                                                         # テナント用のクラスタ名
+    tenant_namespace: tenant-1                                                    # テナント用のネームスペース
+    kubeconfig_file: tenant-1.kubeconfig                                          # テナント用のkubeconfigファイル名
+    sa_config_for_tenant: "/home/{{ ansible_user }}/tenant-1_provided.kubeconfig" # テナント運用者に提供するkubeconfig配置パス
+    gateway_loadbalancer_vip: 192.168.100.31                                      # Gateway LoadBalancerタイプのService用VIP CNI用NWのサブネットの空いているIPアドレスを設定すること
+    tenant_cni_cidr: 192.168.20.0/24                                              # 構築したテナント論理インフラのCNI用CIDR
+    harbor_private_key_file: tenant-1.key                                         # テナント用Harbor証明書生成用秘密鍵ファイル名
+    harbor_ca_file: tenant-1.crt                                                  # テナント用Harbor自己署名証明書ファイル名
+    tenant_harbor_url: 192.168.1.1                                                # テナント用HarborサーバIPアドレス
+    tenant_harbor_port: 30003                                                     # テナント用Harborサーバポート
+    tenant_harbor_user: "{{ tenant_1_harbor_user }}"                              # テナント用Harborサーバ ユーザ名
+    tenant_harbor_password: "{{ tenant_1_harbor_password }}"                      # テナント用Harborサーバ パスワード
+    alert_email: "changeme@example.com"                                           # テナント用アラート送信先E-Mailアドレス
+
+### 以下は編集不要 #####################################
+# 設定項目なし

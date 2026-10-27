@@ -1,0 +1,442 @@
+### OSS バージョン #####################################
+
+# Helmバージョン
+helm_version_major: 4.0
+helm_version_minor: 4
+
+# GOバージョン
+go_version_major: 1.24
+go_version_minor: 2
+
+# nfs-utlsバージョン
+nfs_utils_version_major: 2.5
+nfs_utils_version_minor: 4
+
+# NFS Provisionerバージョン
+nfs_provisioner_version_major: 4.0
+nfs_provisioner_version_minor: 18
+
+# cert-managerバージョン
+cert_manager_version_major: 1.19
+cert_manager_version_minor: 2
+
+# gateway-apiバージョン
+gateway_api_version_major: 1.4
+gateway_api_version_minor: 1
+
+# gateway-fabricバージョン
+gateway_fabric_version_major: 2.3
+gateway_fabric_version_minor: 0
+
+# harborバージョン
+harbor_version_major: 1.18
+harbor_version_minor: 1
+
+# kubebuilderバージョン
+kubebuilder_version_major: 4.5
+kubebuilder_version_minor: 0
+
+# dcgm-exporterバージョン
+dcgm_exporter_git_tag: 4.4.2-4.7.0
+dcgm_exporter_version: "{{ dcgm_exporter_git_tag }}-corefix"
+
+# CloudNativePGバージョン
+cnpg_version_major: 0.27
+cnpg_version_minor: 0
+
+# CloudNativePGデータベースクラスタバージョン
+cnpg_database_cluster_version_major: 0.4
+cnpg_database_cluster_version_minor: 0
+
+# ClusterAPIバージョン
+clusterctl_version_major: 1.12
+clusterctl_version_minor: 1
+clusterctl_api_addon_version_major: 0.5
+clusterctl_api_addon_version_minor: 2
+
+# Prometheusバージョン
+prometheus_version_major: 81.2
+prometheus_version_minor: 0
+
+# Lokiバージョン
+loki_version_major: 6.29
+loki_version_minor: 0
+
+# vectorバージョン
+vector_version_major: 0.49
+vector_version_minor: 0
+
+# NodeProblemDetector(NPD)バージョン
+npd_version_major: 2.4
+npd_version_minor: 0
+
+# IPMI Exporterバージョン
+ipmi_exporter_major: 0.8
+ipmi_exporter_minor: 0
+
+# Veleroバージョン
+velero_major: 11.3
+velero_minor: 2
+
+# Velero CLIバージョン
+velero_cli_version_major: 1.17
+velero_cli_version_minor: 1
+
+# Temporalバージョン
+Temporal_major: 0.73
+Temporal_minor: 1
+
+# Kyvernoバージョン
+kyverno_major: 3.6
+kyverno_minor: 1
+
+### DHRC バージョン ####################################
+
+# dci_commonバージョン
+dci_common_version: v1.0.0  # dci_commonリポジトリのブランチ/タグ
+
+# dci_managerバージョン
+dci_manager_version: v1.0.0  # dci_managerリポジトリのブランチ/タグ
+
+# dci_physical_infrastructureバージョン
+dci_physical_infrastructure_version: v1.0.0  # dci_physical_infrastructureリポジトリのブランチ/タグ
+
+# dci_tenant_infrastructureバージョン
+dci_tenant_infrastructure_version: v1.0.0  # dci_tenant_infrastructureリポジトリのブランチ/タグ
+
+### DHRC 各コンポーネントのimage名・バージョン ######################
+# バージョン
+tag_manager_version: 1.0.0
+tag_physical_version: 1.0.0
+tag_tenant_version: 1.0.0
+
+# リソースプール管理
+# tag_manager_versionと同一バージョンを使用
+resource_pool_manager_image: resource-pool-manager
+rpm_alert_receiver_image: rpm-alert-receiver
+# 再ビルドフラグ
+#  true: 無条件で再ビルドを行う
+#  false(デフォルト):
+#   - 該当バージョンのimageが既に存在  : 再ビルドを行わない
+#   - 該当バージョンのimageが存在しない: 再ビルドを行う
+resource_pool_manager_rebuild: false
+rpm_alert_receiver_rebuild: false
+
+# 物理インフラ
+# tag_physical_versionと同一バージョンを使用
+physical_infrastructure_image: dci_physical_infrastructure 
+physical_infrastructure_chart: physical-infrastructure
+# 再ビルドフラグ
+#  true: 無条件で再ビルドを行う
+#  false(デフォルト):
+#   - 該当バージョンのimageが既に存在  : 再ビルドを行わない
+#   - 該当バージョンのimageが存在しない: 再ビルドを行う
+physical_infrastructure_rebuild: false
+
+# DCI独自プロバイダー
+# tag_manager_versionと同一バージョンを使用
+cluster_api_provider_dci_image: cluster-api-provider-dci
+# 再ビルドフラグ
+#  true: 無条件で再ビルドを行う
+#  false(デフォルト):
+#   - 該当バージョンのimageが既に存在  : 再ビルドを行わない
+#   - 該当バージョンのimageが存在しない: 再ビルドを行う
+cluster_api_provider_dci_rebuild: false
+
+# dcgm-exporter
+dcgm_exporter_image: dcgm-exporter
+# 再ビルドフラグ
+#  true: 無条件で再ビルドを行う
+#  false(デフォルト):
+#   - 該当バージョンのimageが既に存在  : 再ビルドを行わない
+#   - 該当バージョンのimageが存在しない: 再ビルドを行う
+dcgm_exporter_rebuild: false
+
+#  app-conn-info-maker-dci
+# tag_tenant_versionと同一バージョンを使用
+app_conn_info_maker_dci_image: app-conn-info-maker-dci
+# 再ビルドフラグ
+#  true: 無条件で再ビルドを行う
+#  false(デフォルト):
+#   - 該当バージョンのimageが既に存在  : 再ビルドを行わない
+#   - 該当バージョンのimageが存在しない: 再ビルドを行う
+app_conn_info_maker_dci_rebuild: false
+
+# scale-controller
+# tag_tenant_versionと同一バージョンを使用
+scale_controller_image: controller
+card_alert_receiver_image: card-alert-receiver
+# 再ビルドフラグ
+#  true: 無条件で再ビルドを行う
+#  false(デフォルト):
+#   - 該当バージョンのimageが既に存在  : 再ビルドを行わない
+#   - 該当バージョンのimageが存在しない: 再ビルドを行う
+scale_controller_rebuild: false 
+card_alert_receiver_rebuild: false
+
+# app-conn-control-info-manager-dci
+# tag_tenant_versionと同一バージョンを使用
+app_conn_control_info_manager_dci_image: app-conn-control-info-manager-dci
+# 再ビルドフラグ
+#  true: 無条件で再ビルドを行う
+#  false(デフォルト):
+#   - 該当バージョンのimageが既に存在  : 再ビルドを行わない
+#   - 該当バージョンのimageが存在しない: 再ビルドを行う
+app_conn_control_info_manager_dci_rebuild: false
+
+# Temporal
+# tag_tenant_versionと同一バージョンを使用
+temporal_workflow_image: temporal-workflow 
+temporal_gateway_image: temporal-gateway
+temporal_client_image: temporal-client
+# 再ビルドフラグ
+#  true: 無条件で再ビルドを行う
+#  false(デフォルト):
+#   - 該当バージョンのimageが既に存在  : 再ビルドを行わない
+#   - 該当バージョンのimageが存在しない: 再ビルドを行う
+temporal_rebuild: false
+
+### 環境に合わせて設定変更 ##############################
+
+# 構成管理DB登録用プログラム設定
+db_init_file: "{{ playbook_dir }}/../utility/db_init_main.go" # 管理DB登録用Goプログラムファイルパス(Ansibleコントローラ上)
+
+# 拠点
+locations:
+  - dc1
+
+# MAASサーバ
+maas_server_ip: "192.168.2.22"
+
+# 管理クラスタネットワーク設定
+kube_vip_address: 192.168.2.30          # kube-vipのIPアドレス
+gateway_loadbalancer_vip: 192.168.2.31  # Gateway LoadBalancerタイプのService用VIP（マネージャ用NWの空きIPを設定）
+pod_subnet: 10.244.10.0/24                # 管理クラスタのPodネットワークCIDR（manager_cluster_setup の pod_subnet と合わせること
+host_network_subnet: "192.168.2.0/24"    # 管理クラスタのホストNW CIDR
+cni_network_subnet: "192.168.20.0/24"     # 管理クラスタのCNI NW CIDR
+service_subnet: "10.96.20.0/24"           # Service CIDR（manager_cluster_setup の service_subnet と合わせること
+
+# proxy設定実施フラグ
+proxy_setup_enabled: false
+# プロキシ設定（外部通信にプロキシが必要な場合のみ設定）
+proxy_url: "http://192.168.1.1:8080/"   # プロキシURL（例: "http://192.168.1.1:8080/"）
+
+# Firewall設定
+dci_operator_subnet: "192.168.2.107/24"                 # DCI運用端末用CIDR設定
+bastion_ip: "192.168.2.102"                          # Harbor、GrafanaのGUIアクセスで経由する踏み台のIPアドレス
+
+# DNSサーバ
+nameservers:
+  - 8.8.8.8
+  - 1.1.1.1
+
+# NTPサーバ
+ntp_servers:
+  - ntp.example.com
+
+# NFSサーバ関連設定
+nfs_server_ip: "203.0.113.1"                              # NFSサーバIPアドレス(DCI管理クラスタ用)
+nfs_server_export_path: "/export/nfs"                   # NFSサーバエクスポートパス(DCI管理クラスタ用)
+
+# バックアップストレージ設定
+# - veleroバックアップ用(DCI管理クラスタ)
+velero_bucket: "minio/test-velero-bucket01"             # 使用するバケット名(DCI管理クラスタ用)
+velero_storage_ip: "192.168.200.102"                     # バックアップストレージのIPアドレス(DCI管理クラスタ用)
+velero_storage_port: "9000"                             # バックアップストレージのポート(DCI管理クラスタ用)
+velero_minio_user: "minio"                              # MINIOのルートユーザ(DCI管理クラスタ用)
+# - Loki storage用
+loki_storage_ip: "192.168.2.105"                       # バックアップストレージのIPアドレス(Loki DCI管理クラスタ用)
+loki_storage_port: "9000"                               # バックアップストレージのポート(Loki DCI管理クラスタ用)
+loki_storage_minio_user: "minio"                        # MINIOのルートユーザ(Loki DCI管理クラスタ用)
+
+# grafana GUI用ポートフォワード設定
+grafana_port_forward_enabled: true
+grafana_port_forwards:
+  - service: "svc/prometheus-grafana"
+    src_port: 3000
+    dest_port: 3000
+
+# rsyslog auditイベントルーティング設定
+# 監視対象機器のIPアドレスと種別のマッピング
+#   valueの候補: "maas"（MAASサーバ）/ "cdi"（CDI管理サーバ等）/ "network_sw"（SONiC等NW機器）
+# コメントアウトはエラーの原因となるため利用不可
+rsyslog_audit_machines:
+  - { index: "1.1.21.1", value: "maas" }
+  - { index: "2.1.11.1", value: "network_sw" }
+  - { index: "3.1.77.1", value: "cdi" }
+
+# 追加プロダクト情報設定（product-mappings-configmap.yamlにマージ）
+# 構成管理DBで登録したproduct_infoがconfigmapに含まれていない場合に追加定義
+# ※既存のmappings.jsonに定義済みのproduct情報は重複登録されません
+additional_nw_products: []
+  # 使用例:
+  # - vendor: "arista"
+  #   product_name: "DCS-7280SR-48C6"
+  #   os: "EOS"
+  #   type: "AristaEOS"
+
+additional_server_products: []
+  # 使用例:
+  # - vendor: "hpe"
+  #   product_name: "ProLiant DL380 Gen11"
+  #   type: "HPE"
+
+additional_cdi_products: []
+  # 使用例:
+  # - vendor: "fujitsu"
+  #   product_name: "PRIMERGY CDI"
+  #   version: "1.2"
+  #   type: "PG_CDI_1_2"
+
+additional_maas_products: []
+  # 使用例:
+  # - vendor: "canonical"
+  #   product_name: "MAAS"
+  #   version: "3.7.0"
+  #   type: "Canonical"
+
+### 以下は編集不要 #####################################
+# 作業ディレクトリ
+ansible_work_dir: "/home/{{ ansible_user }}/auto_script_work"
+
+# マネージャ用ネットワークCIDR（kube_vip_addressの/24サブネット）
+manager_subnet: "{{ kube_vip_address | regex_replace('(\\d+\\.\\d+\\.\\d+)\\.\\d+', '\\1.0') }}/24"
+
+# firewall設定実施フラグ
+firewall_setup_enabled: true
+
+# no_proxy/NO_PROXY リスト（proxy_setup_enabled: true の場合のみ参照）
+no_proxy_list: "localhost,127.0.0.1,{{ manager_subnet }},{{ host_network_subnet }},{{ cni_network_subnet }},{{ pod_subnet }},{{ service_subnet }},.cluster.local,.svc,kubernetes.default.svc,harbor-core,harbor-database,harbor-jobservice,harbor-nginx,harbor-portal,harbor-redis,harbor-registry,harbor-trivy,{{ kube_vip_address }}"
+
+# MAASサーバ関連変数
+maas_api_url: "http://{{ maas_server_ip }}:5240/MAAS/api/2.0"
+
+# Helm関連変数
+helm_version: "{{ helm_version_major }}.{{ helm_version_minor }}"
+helm_installer: helm-v{{ helm_version }}-linux-amd64.tar.gz  # helmのインストーラ
+helm_download_url: https://get.helm.sh/{{ helm_installer }}  # helmダウンロードURL
+
+# Go関連変数
+go_version: "{{ go_version_major }}.{{ go_version_minor }}"
+go_installer: go{{ go_version }}.linux-amd64.tar.gz         # Goのインストーラ
+go_download_url: https://go.dev/dl/{{ go_installer }}       # GoダウンロードURL
+
+# yq関連変数
+yq_download_url: https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+
+# DHRC Gitリポジトリ関連変数
+dci_common_repo: https://{{ github_username }}:{{ github_pat }}@github.com/openkasugai/dci_common.git # DCI共通リポジトリ
+dci_common_path: "/home/{{ ansible_user }}/dci_common"  # DCI共通リポジトリパス
+dci_manager_repo: https://{{ github_username }}:{{ github_pat }}@github.com/openkasugai/dci_manager.git # DCIマネージャリポジトリ
+dci_manager_path: "/home/{{ ansible_user }}/dci_manager"  # DCIマネージャリポジトリパス
+dci_physical_infrastructure_repo: https://{{ github_username }}:{{ github_pat }}@github.com/openkasugai/dci_physical_infrastructure.git # DCI物理インフラリポジトリ
+dci_physical_infrastructure_path: "/home/{{ ansible_user }}/dci_physical_infrastructure"  # DCI物理インフラリポジトリパス
+dci_tenant_infrastructure_repo: https://{{ github_username }}:{{ github_pat }}@github.com/openkasugai/dci_tenant_infrastructure.git # DCIテナント論理インフラリポジトリ
+dci_tenant_infrastructure_path: "/home/{{ ansible_user }}/dci_tenant_infrastructure"  # DCI論理インフラリポジトリパス
+
+# DHRC Gitリポジトリリスト（ループ処理用）
+dhrc_repositories:
+  - name: dci_common
+    version: "{{ dci_common_version }}"
+    repo: "{{ dci_common_repo }}"
+    path: "{{ dci_common_path }}"
+  - name: dci_manager
+    version: "{{ dci_manager_version }}"
+    repo: "{{ dci_manager_repo }}"
+    path: "{{ dci_manager_path }}"
+  - name: dci_physical_infrastructure
+    version: "{{ dci_physical_infrastructure_version }}"
+    repo: "{{ dci_physical_infrastructure_repo }}"
+    path: "{{ dci_physical_infrastructure_path }}"
+  - name: dci_tenant_infrastructure
+    version: "{{ dci_tenant_infrastructure_version }}"
+    repo: "{{ dci_tenant_infrastructure_repo }}"
+    path: "{{ dci_tenant_infrastructure_path }}"
+
+# 物理インフラモジュールリスト
+physical_infrastructure_modules:  # 物理インフラモジュールリスト
+  - cdi
+  - maas
+  - network
+  - exporter
+  - log
+
+# nfs-utils関連変数
+nfs_utils_version: "{{ nfs_utils_version_major }}.{{ nfs_utils_version_minor }}"
+nfs_utils_package: nfs-utils-{{ nfs_utils_version }}-34.el9.x86_64    # nfs-utilsパッケージ名
+nfs_provisioner_chart_repo: https://kubernetes-sigs.github.io/nfs-subdir-external-provisioner/ # nfs-subdir-external-provisionerチャートリポジトリ
+
+# NFS Subdir External Provisioner関連変数
+nfs_provisioner_chart_version: "{{ nfs_provisioner_version_major }}.{{ nfs_provisioner_version_minor }}" # nfs-subdir-external-provisionerチャートバージョン
+
+# cert-manager関連変数
+cert_manager_chart_url: oci://quay.io/jetstack/charts/cert-manager # cert-manager HelmチャートURL
+cert_manager_version: v{{ cert_manager_version_major }}.{{ cert_manager_version_minor }} # cert-managerバージョン
+
+# nginx Gateway関連変数
+gateway_api_version: v{{ gateway_api_version_major }}.{{ gateway_api_version_minor }} # Gateway APIバージョン
+gateway_api_url: https://github.com/kubernetes-sigs/gateway-api/releases/download/{{ gateway_api_version }}/standard-install.yaml # Gateway API CRDs URL
+gateway_fabric_version: "{{ gateway_fabric_version_major }}.{{ gateway_fabric_version_minor }}" # nginx-gateway-fabric Chartバージョン
+gateway_fabric_chart_url: oci://ghcr.io/nginx/charts/nginx-gateway-fabric # nginx-gateway-fabric HelmチャートURL
+
+# Harbor関連変数
+harbor_chart_repo: https://helm.goharbor.io  # Harborチャートリポジトリ
+harbor_chart_version: "{{ harbor_version_major }}.{{ harbor_version_minor }}"  # Harborチャートバージョン
+
+# kubebuilder関連変数
+kubebuilder_version: "{{ kubebuilder_version_major }}.{{ kubebuilder_version_minor }}"
+kubebuilder_download_url: "https://github.com/kubernetes-sigs/kubebuilder/releases/download/v{{ kubebuilder_version }}/kubebuilder_linux_amd64"
+kubebuilder_install_path: /usr/local/bin
+
+# dcgm-exporter関連変数
+dcgm_exporter_repo: https://github.com/NVIDIA/dcgm-exporter.git  # dcgm-exporterリポジトリ
+dcgm_exporter_golang_version: 1.24.5  # GOLANGビルド引数
+dcgm_exporter_app_version: 4.7.0  # VERSIONビルド引数
+dcgm_exporter_dcgm_version: 4.4.2  # DCGM_VERSIONビルド引数
+
+# CloudNativePG関連変数
+cnpg_version: "{{ cnpg_version_major }}.{{ cnpg_version_minor }}"
+cnpg_chart_name: cnpg/cloudnative-pg
+cnpg_helm_repo: https://cloudnative-pg.github.io/charts # CloudNativePG Helmチャートリポジトリ
+cnpg_database_cluster_version: "{{ cnpg_database_cluster_version_major }}.{{ cnpg_database_cluster_version_minor }}"
+cnpg_database_cluster_chart_name: cnpg/cluster
+
+# DCI独自プロバイダー関連変数
+capdci_image_repo: cluster-api-provider-dci  # capdciイメージリポジトリ名
+
+# ClusterAPI関連変数
+clusterctl_version: "{{ clusterctl_version_major }}.{{ clusterctl_version_minor }}" # Cluster APIバージョン
+clusterctl_download_url: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v{{ clusterctl_version }}/clusterctl-linux-amd64"  # clusterctlダウンロードURL
+cluster_api_addon_version: "{{ clusterctl_api_addon_version_major }}.{{ clusterctl_api_addon_version_minor }}" # Cluster API Add-on Providerバージョン（helm）
+
+# Promethes関連変数
+prometheus_chart_repo: https://prometheus-community.github.io/helm-charts  # Prometheusチャートリポジトリ
+prometheus_chart_version: "{{ prometheus_version_major }}.{{ prometheus_version_minor }}"  # Prometheusチャートバージョン
+
+# Vector・Loki関連変数
+vector_chart_repo: https://helm.vector.dev  # Vectorチャートリポジトリ
+vector_chart_version: "{{ vector_version_major }}.{{ vector_version_minor }}"  # Vectorチャートバージョン
+loki_chart_version: "{{ loki_version_major }}.{{ loki_version_minor }}"  # Lokiチャートバージョン
+
+# Grafana関連変数
+grafana_chart_repo: https://grafana.github.io/helm-charts  # Grafanaチャートリポジトリ
+
+# NodeProblemDetector(NPD)関連変数
+npd_chart_version: "{{ npd_version_major }}.{{ npd_version_minor }}"
+
+# IPMI Exporter関連変数
+ipmi_exporter_chart_version: "{{ ipmi_exporter_major }}.{{ ipmi_exporter_minor }}"
+
+# Velero関連変数
+mgr_velero_version: "{{ velero_major }}.{{ velero_minor }}"  # Velero Helmチャートバージョン
+mgr_velero_chart_repo: "https://vmware-tanzu.github.io/helm-charts"  # Velero Helmチャートリポジトリ
+velero_cli_version: "{{ velero_cli_version_major }}.{{ velero_cli_version_minor }}"  # Velero CLIバージョン
+velero_cli_installer: velero-v{{ velero_cli_version }}-linux-amd64.tar.gz  # Velero CLIのインストーラ
+velero_cli_download_url: https://github.com/vmware-tanzu/velero/releases/download/v{{ velero_cli_version }}/{{ velero_cli_installer }}  # Velero CLIダウンロードURL
+
+# Temporal関連変数
+temporal_chart_version: "{{ Temporal_major }}.{{ Temporal_minor }}" 
+
+# Kyverno関連変数
+kyverno_chart_repo: https://kyverno.github.io/kyverno/  # KyvernoチャートリポジトリURL
+kyverno_chart_version: "{{ kyverno_major }}.{{ kyverno_minor }}"  # Kyvernoチャートバージョン

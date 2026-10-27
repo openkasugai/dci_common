@@ -1,0 +1,54 @@
+apiVersion: example.com/v1
+kind: DCIAppConnection
+metadata:
+  name: dciappconn-nixlcomm03
+  namespace: dci
+spec:
+  connections:
+  - from:
+      deploymentRef:
+        name: dciapp-nixlcomm-conn-3x
+        namespace: dci
+    to:
+      deploymentRef:
+        name: dciapp-nixlcomm-proc-3a
+        namespace: dci
+  - from:
+      deploymentRef:
+        name: dciapp-nixlcomm-conn-3x
+        namespace: dci
+    to:
+      deploymentRef:
+        name: dciapp-nixlcomm-conn-3y
+        namespace: dci
+  - from:
+      deploymentRef:
+        name: dciapp-nixlcomm-conn-3y
+        namespace: dci
+    to:
+      deploymentRef:
+        name: dciapp-nixlcomm-proc-3b
+        namespace: dci
+  - from:
+      deploymentRef:
+        name: dciapp-nixlcomm-conn-3y
+        namespace: dci
+    to:
+      deploymentRef:
+        name: dciapp-nixlcomm-proc-3c
+        namespace: dci
+  inputEndpoints:
+  - internal:
+      deploymentRef:
+        name: dciapp-nixlcomm-conn-3x
+        namespace: dci
+    externalSubsets:
+    - rtsp://{rtsp-server0-ip-0}:{rtsp-server0-port-0}
+    - rtsp://{rtsp-server0-ip-1}:{rtsp-server0-port-1}
+  outputEndpoints:
+  - internal:
+      deploymentRef:
+        name: dciapp-nixlcomm-conn-3y
+        namespace: dci
+    externalSubsets:
+    - https://out1.abcdefg.com/hoge

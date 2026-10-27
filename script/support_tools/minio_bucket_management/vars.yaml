@@ -1,0 +1,17 @@
+### 環境に合わせて設定変更 ##############################
+
+# MinIOサーバのDocker設定
+minio_network: "kes-net"
+minio_image: "minio/mc:RELEASE.2024-08-17T11-33-50Z"
+minio_alias: "local"
+minio_endpoint: "http://minio:9000"
+
+# 作成/削除するバケット名のリスト
+buckets:
+  - "loki-tenant-c1"
+  - "loki-tenant-c1-ruler"
+  - "loki-tenant-c1-admin"
+
+# MinIO認証情報
+minio_user: "minio"          # MinIOアクセスキー（ユーザ名）
+minio_password: "*****"      # MinIOシークレットキー（パスワード）

@@ -1,0 +1,60 @@
+- name: DCIマネージャCPノードからfirewalldルールを削除
+  hosts: all
+  gather_facts: false
+  become: true
+  vars:
+    play_description: |
+      テナント削除後の手順
+      - テナントからDCI管理用クラスタのkube-apiserver等へのアクセスを許可するfirewalldのルールを削除
+  tasks:
+    - name: firewall-cmdの存在確認
+      ansible.builtin.stat:
+        path: /usr/bin/firewall-cmd
+      register: firewall_cmd_stat
+
+    - name: テナントCNIのソースアドレスをk8s-nodeゾーンから削除
+      ansible.builtin.command: >-
+        firewall-cmd --permanent --zone=k8s-node
+        --remove-source={{ item.tenant_cni_cidr }}
+      loop: "{{ tenants }}"
+      register: remove_source_result
+      changed_when: remove_source_result.rc == 0
+      failed_when: remove_source_result.rc != 0 and remove_source_result.rc != 31
+      when: firewall_cmd_stat.stat.exists
+
+    - name: テナントCNI→kube-apiserver(6443)のfirewalldリッチルールを削除
+      ansible.builtin.command: >
+        firewall-cmd --permanent --zone=k8s-node
+        --remove-rich-rule="rule family=ipv4 source address={{ item.tenant_cni_cidr }} port port=6443 protocol=tcp accept"
+      loop: "{{ tenants }}"
+      register: rich_rule_result
+      changed_when: rich_rule_result.rc == 0
+      failed_when: rich_rule_result.rc != 0 and rich_rule_result.rc != 31
+      when: firewall_cmd_stat.stat.exists
+
+    - name: テナントCNI→LoadBalancer VIP(8443)のfirewalldダイレクトルールを削除
+      ansible.builtin.command: >
+        firewall-cmd --permanent --direct --remove-rule ipv4 raw PREROUTING 0
+        -p tcp -s {{ item.tenant_cni_cidr }} -d {{ mgr_gateway_loadbalancer_vip }}
+        -m multiport --dports 8443 -j ACCEPT
+      loop: "{{ tenants }}"
+      register: direct_rule_result
+      changed_when: direct_rule_result.rc == 0
+      failed_when: direct_rule_result.rc != 0 and direct_rule_result.rc != 31
+      when: firewall_cmd_stat.stat.exists
+
+    - name: テナントCNI→LOCAL(30003)のfirewalldダイレクトルールを削除
+      ansible.builtin.command: >-
+        firewall-cmd --permanent --direct --remove-rule ipv4 raw PREROUTING 0
+        -p tcp -s {{ item.tenant_cni_cidr }} -m addrtype --dst-type LOCAL
+        -m multiport --dports 30003 -j ACCEPT
+      loop: "{{ tenants }}"
+      register: direct_rule_30003_result
+      changed_when: direct_rule_30003_result.rc == 0
+      failed_when: direct_rule_30003_result.rc != 0 and direct_rule_30003_result.rc != 31
+      when: firewall_cmd_stat.stat.exists
+
+    - name: firewalldをリロード
+      ansible.builtin.command: firewall-cmd --reload
+      changed_when: true
+      when: firewall_cmd_stat.stat.exists

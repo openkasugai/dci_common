@@ -1,0 +1,30 @@
+- name: cert-managerの配備
+  hosts: all
+  vars:
+    play_description: |
+      事前準備(システム構築) - cert-managerの配備
+    cert_manager_namespace: cert-manager
+  environment:
+    KUBECONFIG: "/home/{{ ansible_user }}/.kube/config"
+  tasks:
+    - name: cert-manager Helmデプロイ（新規インストールまたはアップグレード）
+      ansible.builtin.shell:
+        cmd: |
+          /usr/local/bin/helm upgrade --install cert-manager {{ cert_manager_chart_url }} \
+            --version {{ cert_manager_version }} \
+            --namespace {{ cert_manager_namespace }} \
+            --create-namespace \
+            --set installCRDs=true \
+            --wait --timeout 5m
+        chdir: "{{ dci_manager_path }}/others/cert-manager"
+      register: helm_cert_manager
+      retries: 3
+      delay: 10
+      until: helm_cert_manager.rc == 0
+      changed_when: 
+        - helm_cert_manager.rc == 0
+        - '"has been upgraded" in helm_cert_manager.stdout or "has been installed" in helm_cert_manager.stdout'
+      failed_when:
+        - helm_cert_manager.rc != 0
+        - "'connection refused' not in helm_cert_manager.stderr | lower"
+        - "'timeout' not in helm_cert_manager.stderr | lower"

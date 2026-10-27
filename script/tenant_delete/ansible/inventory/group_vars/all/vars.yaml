@@ -1,0 +1,17 @@
+### 環境に合わせて設定変更 ##############################
+
+# マネージャHarbor設定
+#   manager_software_deployの変数と同一値にすること
+manager_harbor_url: 192.168.2.30 # マネージャ用HarborサーバIPアドレス
+manager_harbor_port: 30003        # マネージャ用Harborサーバポート
+
+# Gateway LoadBalancerタイプのService用VIP (マネージャ側)
+#   manager_software_deployの変数と同一値にすること
+mgr_gateway_loadbalancer_vip: 192.168.2.31
+
+### 以下は編集不要 #####################################
+# 作業ディレクトリ
+ansible_work_dir: "/home/{{ ansible_user }}/auto_script_work"
+
+# DHRC関連変数
+dci_manager_path: "/home/{{ ansible_user }}/dci_manager" # dci_managerリポジトリパス

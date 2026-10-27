@@ -1,0 +1,87 @@
+- name: NFS Subdir External Provisionerの配備
+  hosts: all
+  become: true
+  vars:
+    play_description: |
+      事前準備(システム構築) - NFS Subdir External Provisionerの配備
+       - NFS Subdir External Provisionerの配備(CP1台目を対象とする手順)
+    nfs_provisioner_values_file: "{{ dci_manager_path }}/others/nfs-subdir-external-provisioner/values.yaml" # values.yamlファイルパス
+    nfs_provisioner_namespace: nfs-provisioner # nfs-subdir-external-provisioner用namespace
+  environment:
+    KUBECONFIG: "/home/{{ ansible_user }}/.kube/config"
+  tasks:
+    - name: Helmリポジトリ追加（nfs-subdir-external-provisioner）
+      become: false
+      ansible.builtin.command:
+        cmd: /usr/local/bin/helm repo add nfs-subdir-external-provisioner {{ nfs_provisioner_chart_repo }}
+      register: helm_repo_nfs
+      retries: 3
+      delay: 10
+      until: helm_repo_nfs.rc == 0 or 'already exists' in helm_repo_nfs.stderr
+      changed_when: 
+        - helm_repo_nfs.rc == 0
+        - '"already exists" not in helm_repo_nfs.stdout'
+        - '"already exists" not in helm_repo_nfs.stderr'
+      failed_when:
+        - helm_repo_nfs.rc != 0
+        - '"already exists" not in helm_repo_nfs.stderr'
+        - "'connection refused' not in helm_repo_nfs.stderr | lower"
+        - "'timeout' not in helm_repo_nfs.stderr | lower"
+
+    - name: Helmリポジトリ更新
+      become: false
+      ansible.builtin.command:
+        cmd: /usr/local/bin/helm repo update
+      register: helm_repo_update
+      retries: 3
+      delay: 10
+      until: helm_repo_update.rc == 0
+      changed_when: false
+      failed_when:
+        - helm_repo_update.rc != 0
+        - "'connection refused' not in helm_repo_update.stderr | lower"
+        - "'timeout' not in helm_repo_update.stderr | lower"
+
+    - name: values.yamlの設定更新
+      ansible.builtin.lineinfile:
+        path: "{{ nfs_provisioner_values_file }}"
+        regexp: "{{ item.regexp }}"
+        line: "{{ item.line }}"
+        state: present
+        backup: no
+        insertafter: "{{ item.insertafter | default(omit) }}"
+      loop:
+        - { regexp: '^\s*server:\s*', line: '  server: "{{ nfs_server_ip }}"' }
+        - { regexp: '^\s*path:\s*', line: '  path: "{{ nfs_server_export_path }}"' }
+
+    - name: Namespace作成（nfs-provisioner）
+      become: false
+      ansible.builtin.command:
+        cmd: kubectl create namespace {{ nfs_provisioner_namespace }}
+      register: ns_create
+      changed_when: ns_create.rc == 0
+      failed_when: 
+        - ns_create.rc != 0
+        - '"already exists" not in ns_create.stderr'
+
+    - name: nfs-provisionerのデプロイ（新規インストールまたはアップグレード）
+      become: false
+      ansible.builtin.command:
+        cmd: >
+          /usr/local/bin/helm upgrade --install nfs-provisioner 
+          nfs-subdir-external-provisioner/nfs-subdir-external-provisioner 
+          --version {{ nfs_provisioner_chart_version }} 
+          -n {{ nfs_provisioner_namespace }} 
+          -f {{ nfs_provisioner_values_file }}
+          --wait --timeout 5m
+      register: helm_nfs_provisioner
+      retries: 3
+      delay: 10
+      until: helm_nfs_provisioner.rc == 0
+      changed_when: 
+        - helm_nfs_provisioner.rc == 0
+        - '"has been upgraded" in helm_nfs_provisioner.stdout or "has been installed" in helm_nfs_provisioner.stdout'
+      failed_when:
+        - helm_nfs_provisioner.rc != 0
+        - "'connection refused' not in helm_nfs_provisioner.stderr | lower"
+        - "'timeout' not in helm_nfs_provisioner.stderr | lower"

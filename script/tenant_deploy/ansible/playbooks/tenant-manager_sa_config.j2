@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Config
+clusters:
+- cluster:
+    certificate-authority-data: {{ ca_crt }}
+    server: https://{{ server_ip }}:{{ server_port }}
+  name: working-cluster
+contexts:
+- context:
+    cluster: working-cluster
+    user: sa-{{ tenant_name }}
+  name: working-cluster-context
+users:
+- name: sa-{{ tenant_name }}
+  user:
+    token: {{ token }}
+current-context: working-cluster-context
+preferences: {}

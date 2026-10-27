@@ -1,0 +1,35 @@
+- name: テナント削除後 全コントロールプレーンでの証明書・CRI-Oクリーンアップ
+  hosts: all
+  vars:
+    play_description: |
+      テナント削除後の手順 - 全コントロールプレーンノードで証明書を削除しCRI-Oを再起動
+  tasks:
+    - name: テナントHarborCA証明書を削除 (/etc/pki/ca-trust/source/anchors/)
+      ansible.builtin.file:
+        path: "/etc/pki/ca-trust/source/anchors/{{ item.harbor_ca_file }}"
+        state: absent
+      loop: "{{ tenants }}"
+      loop_control:
+        label: "{{ item.tenant_namespace }}"
+      become: true
+
+    - name: テナントHarbor秘密鍵を削除 (/etc/pki/CA/private/)
+      ansible.builtin.file:
+        path: "/etc/pki/CA/private/{{ item.harbor_private_key_file }}"
+        state: absent
+      loop: "{{ tenants }}"
+      loop_control:
+        label: "{{ item.tenant_namespace }}"
+      become: true
+
+    - name: CA信頼ストアを更新
+      ansible.builtin.command: >
+        update-ca-trust extract
+      become: true
+      changed_when: true
+
+    - name: CRI-Oを再起動
+      ansible.builtin.systemd:
+        name: crio
+        state: restarted
+      become: true

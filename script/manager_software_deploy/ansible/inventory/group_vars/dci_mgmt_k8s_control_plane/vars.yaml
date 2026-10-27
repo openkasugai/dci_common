@@ -1,0 +1,32 @@
+### 環境に合わせて設定変更 ##############################
+
+# マネージャ側Harbor関連設定
+harbor_manager_url: "{{ kube_vip_address }}"  # Harbor接続先IPアドレス(kube-vipと同値)
+harbor_manager_port: 30003         # ポート
+
+# postgrestDB API の接続先設定
+postgrest_db_api_hostname: db-api.local
+postgrest_db_api_port: 8443
+
+# 監視アラート設定
+monitoring_alert_email: "alert@example.com"  # アラート通知先メールアドレス（環境に応じて変更）
+grafana_smtp_enable: false
+grafana_smtp_host: "smtp.example.com"  # GrafanaのSMTPサーバホスト
+grafana_smtp_port: "25"  # GrafanaのSMTPサーバポート
+
+# IPMI Exporter設定
+ipmi_exporter_enabled: false
+
+### 以下は編集不要 #####################################
+
+# マネージャ側Harbor関連設定
+harbor_project_manager: dci_manager
+harbor_project_physical_infrastructure: dci_physical_infrastructure
+harbor_project_tenant_infrastructure: dci_tenant_infrastructure
+harbor_projects:
+  - "{{ harbor_project_manager }}"
+  - "{{ harbor_project_physical_infrastructure }}"
+  - "{{ harbor_project_tenant_infrastructure }}"
+
+# 物理インフラIFのTLS有無
+physical_infrastructure_tls: true

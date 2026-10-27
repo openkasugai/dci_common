@@ -1,0 +1,7 @@
+# Ansible Vault暗号化用ファイル
+# 機密情報（パスワード、APIキー、SSH鍵、組織ID等）を格納
+
+# Harbor認証情報
+#   manager_software_deployの変数と同一値にすること
+manager_harbor_user: admin  # マネージャ用Harborユーザ
+manager_harbor_password: "*****"  # マネージャ用Harborパスワード

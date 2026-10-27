@@ -1,0 +1,17 @@
+- name: テナント削除後K8sリソースおよびファイルのクリーンアップ
+  hosts: all
+  vars:
+    play_description: |
+      テナント削除後の手順 - 削除したテナントに関するK8sリソースとファイルを削除
+  environment:
+    KUBECONFIG: "/home/{{ ansible_user }}/.kube/config"
+  tasks:
+    - name: テナント数分ループ
+      ansible.builtin.include_role:
+        name: cleanup_k8s_resources_block
+      vars:
+        tenant_namespace: "{{ item.tenant_namespace }}"
+        kubeconfig_file: "{{ item.kubeconfig_file }}"
+        harbor_ca_file: "{{ item.harbor_ca_file }}"
+        harbor_private_key_file: "{{ item.harbor_private_key_file }}"
+      loop: "{{ tenants }}"

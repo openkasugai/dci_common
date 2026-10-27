@@ -1,0 +1,540 @@
+- name: 作業ディレクトリ作成
+  ansible.builtin.file:
+    path: "{{ tenant_work_dir }}"
+    state: directory
+    mode: '0755'
+
+# 構成品配備資材の準備(harborのセットアップ)
+## テナントのkubeconfigを取得
+- name: テナントkubeconfigをマネージャクラスタから取得
+  ansible.builtin.command: >
+    clusterctl get kubeconfig {{ tenant_name }} -n {{ tenant_namespace }}
+  register: kubeconfig_output
+  changed_when: false
+
+- name: テナントkubeconfigをファイルに保存
+  ansible.builtin.copy:
+    content: "{{ kubeconfig_output.stdout }}"
+    dest: "{{ tenant_work_dir }}/{{ kubeconfig_file }}"
+    mode: '0600'
+
+## 固定CAのSecret化
+- name: テナントクラスタにharbor namespaceを作成
+  ansible.builtin.command: >
+    kubectl --kubeconfig={{ tenant_work_dir }}/{{ kubeconfig_file }} create namespace harbor
+  register: create_ns_result
+  failed_when: 
+    - create_ns_result.rc != 0
+    - '"already exists" not in create_ns_result.stderr'
+  changed_when: create_ns_result.rc == 0
+
+- name: テナントクラスタにharbor-root-ca secretを作成
+  ansible.builtin.shell: |
+    kubectl --kubeconfig={{ tenant_work_dir }}/{{ kubeconfig_file }} \
+      create secret tls harbor-root-ca \
+      --cert={{ tenant_work_dir }}/{{ harbor_ca_file }} \
+      --key={{ tenant_work_dir }}/{{ harbor_private_key_file }} \
+      -n harbor
+  register: create_secret_result
+  failed_when:
+    - create_secret_result.rc != 0
+    - '"already exists" not in create_secret_result.stderr'
+  changed_when: create_secret_result.rc == 0
+
+## harborの配備
+- name: Harbor配備のためテナントクラスタにラベル付与
+  ansible.builtin.shell: |
+    current_label="$(kubectl get cluster {{ tenant_name }} -n {{ tenant_namespace }} -o jsonpath='{.metadata.labels.harbor}')"
+    if [ "$current_label" = "enabled" ]; then
+      echo "already enabled"
+    else
+      kubectl label cluster {{ tenant_name }} -n {{ tenant_namespace }} harbor=enabled --overwrite
+    fi
+  register: harbor_label_result
+  changed_when: "'already enabled' not in harbor_label_result.stdout"
+
+- name: Harbor主要Podプレフィックスリスト定義
+  ansible.builtin.set_fact:
+    harbor_pod_prefixes:
+      - harbor-core
+      - harbor-database
+      - harbor-jobservice
+      - harbor-nginx
+      - harbor-portal
+      - harbor-redis
+      - harbor-registry
+      - harbor-trivy
+
+- name: Harbor主要Pod Ready待機
+  ansible.builtin.include_role:
+    name: parallel_pod_wait
+  vars:
+    pod_wait_kubeconfig: "{{ tenant_work_dir }}/{{ kubeconfig_file }}"
+    pod_wait_namespace: harbor
+    pod_wait_prefixes: "{{ harbor_pod_prefixes }}"
+    pod_wait_timeout_ready: 600
+    pod_wait_component: Harbor
+
+# 資材コピー
+- name: no_proxy/NO_PROXYにテナントHarborを追加
+  ansible.builtin.shell: |
+    sed -i \
+      -e "/^no_proxy=/ s|$|,{{ tenant_harbor_url }}|" \
+      -e "/^NO_PROXY=/ s|$|,{{ tenant_harbor_url }}|" \
+      /etc/environment
+  changed_when: true
+  when: proxy_setup_enabled
+  become: true
+
+- name: プロキシ設定反映のため待機
+  ansible.builtin.pause:
+    seconds: 90
+  when: proxy_setup_enabled
+
+- name: マネージャharbor-coreのプロキシ設定を解除
+  ansible.builtin.command: >
+    kubectl set env deployment/harbor-core
+    HTTP_PROXY- HTTPS_PROXY- NO_PROXY-
+    http_proxy- https_proxy- no_proxy-
+    -n harbor
+  changed_when: true
+  when: proxy_setup_enabled
+
+- name: buildahでテナントharborにログイン
+  ansible.builtin.command: >
+    buildah login -u {{ tenant_harbor_user }} -p {{ tenant_harbor_password }} {{ tenant_harbor_url }}:{{ tenant_harbor_port }}
+  register: buildah_login_result
+  retries: 3
+  delay: 10
+  until: buildah_login_result.rc == 0
+  failed_when:
+    - buildah_login_result.rc != 0
+    - "'connection refused' not in buildah_login_result.stderr | lower"
+    - "'timeout' not in buildah_login_result.stderr | lower"
+  changed_when: true
+  become: true
+
+- name: テナントharborにofferingsプロジェクトを作成
+  ansible.builtin.uri:
+    url: "https://{{ tenant_harbor_url }}:{{ tenant_harbor_port }}/api/v2.0/projects"
+    method: POST
+    headers:
+      accept: "application/json"
+      Content-Type: "application/json"
+    url_username: "{{ tenant_harbor_user }}"
+    url_password: "{{ tenant_harbor_password }}"
+    force_basic_auth: true
+    body_format: json
+    body:
+      project_name: "offerings"
+      public: true
+      metadata:
+        auto_scan: "true"
+    validate_certs: false
+    status_code: [201, 409, 500, 502, 503, 504]
+  register: create_project
+  retries: 3
+  delay: 5
+  until: create_project.status in [201, 409]
+  failed_when:
+    - create_project.status not in [201, 409]
+    - create_project.status not in [500, 502, 503, 504]
+
+- name: マネージャharborにpushレジストリを作成
+  ansible.builtin.uri:
+    url: "https://{{ manager_harbor_url }}:{{ manager_harbor_port }}/api/v2.0/registries"
+    method: POST
+    headers:
+      Content-Type: "application/json"
+    url_username: "{{ manager_harbor_user }}"
+    url_password: "{{ manager_harbor_password }}"
+    force_basic_auth: true
+    body_format: json
+    body:
+      name: "replicate-harbor-push-{{ tenant_namespace }}"
+      description: "replicate-harbor-push"
+      type: "harbor"
+      url: "https://{{ tenant_harbor_url }}:{{ tenant_harbor_port }}"
+      insecure: true
+      credential:
+        access_key: "{{ tenant_harbor_user }}"
+        access_secret: "{{ tenant_harbor_password }}"
+        type: "basic"
+    validate_certs: false
+    status_code: [200, 201, 409, 500, 502, 503, 504]
+  register: create_registry
+  retries: 3
+  delay: 5
+  until: create_registry.status in [200, 201, 409]
+  failed_when:
+    - create_registry.status not in [200, 201, 409]
+    - create_registry.status not in [500, 502, 503, 504]
+
+- name: マネージャharborからpushレジストリIDを取得
+  ansible.builtin.uri:
+    url: "https://{{ manager_harbor_url }}:{{ manager_harbor_port }}/api/v2.0/registries"
+    method: GET
+    url_username: "{{ manager_harbor_user }}"
+    url_password: "{{ manager_harbor_password }}"
+    force_basic_auth: true
+    validate_certs: false
+    return_content: true
+    status_code: [200, 500, 502, 503, 504]
+  register: registries_list
+  retries: 3
+  delay: 5
+  until: registries_list.status == 200
+  failed_when:
+    - registries_list.status != 200
+    - registries_list.status not in [500, 502, 503, 504]
+
+- name: pushレジストリIDを抽出
+  ansible.builtin.set_fact:
+    push_registry_id: "{{ (registries_list.json | selectattr('name', 'equalto', 'replicate-harbor-push-' + tenant_namespace) | list | first).id }}"
+
+- name: pushレプリケーションポリシーのbody作成
+  ansible.builtin.set_fact:
+    push_policy_body: >-
+      {{
+        {
+          'name': 'replicate-harbor-push-' + tenant_namespace,
+          'description': 'replicate-harbor-push',
+          'dest_registry': {
+            'id': push_registry_id | int
+          },
+          'dest_namespace': 'offerings',
+          'dest_namespace_replace_count': 1,
+          'trigger': {
+            'type': 'event_based'
+          },
+          'filters': [
+            {
+              'type': 'name',
+              'value': 'dci_tenant_infrastructure/**'
+            }
+          ],
+          'deletion': true,
+          'override': true,
+          'enabled': true
+        }
+      }}
+
+- name: マネージャharborにpushレプリケーションポリシーを作成
+  ansible.builtin.uri:
+    url: "https://{{ manager_harbor_url }}:{{ manager_harbor_port }}/api/v2.0/replication/policies"
+    method: POST
+    headers:
+      Content-Type: "application/json"
+    url_username: "{{ manager_harbor_user }}"
+    url_password: "{{ manager_harbor_password }}"
+    force_basic_auth: true
+    body_format: json
+    body: "{{ push_policy_body }}"
+    validate_certs: false
+    status_code: [201, 409, 500, 502, 503, 504]
+  register: push_policy_result
+  retries: 3
+  delay: 5
+  until: push_policy_result.status in [201, 409]
+  failed_when:
+    - push_policy_result.status not in [201, 409]
+    - push_policy_result.status not in [500, 502, 503, 504]
+
+- name: テナントharborにpullレジストリを作成
+  ansible.builtin.uri:
+    url: "https://{{ tenant_harbor_url }}:{{ tenant_harbor_port }}/api/v2.0/registries"
+    method: POST
+    headers:
+      Content-Type: "application/json"
+    url_username: "{{ tenant_harbor_user }}"
+    url_password: "{{ tenant_harbor_password }}"
+    force_basic_auth: true
+    body_format: json
+    body:
+      name: "replicate-harbor-pull"
+      description: "replicate-harbor-pull"
+      type: "harbor"
+      url: "https://{{ manager_harbor_url }}:{{ manager_harbor_port }}"
+      insecure: true
+      credential:
+        access_key: "{{ manager_harbor_user }}"
+        access_secret: "{{ manager_harbor_password }}"
+        type: "basic"
+    validate_certs: false
+    status_code: [201, 409, 500, 502, 503, 504]
+  register: pull_registry
+  retries: 3
+  delay: 5
+  until: pull_registry.status in [201, 409]
+  failed_when:
+    - pull_registry.status not in [201, 409]
+    - pull_registry.status not in [500, 502, 503, 504]
+
+- name: テナントharborからpullレジストリIDを取得
+  ansible.builtin.uri:
+    url: "https://{{ tenant_harbor_url }}:{{ tenant_harbor_port }}/api/v2.0/registries"
+    method: GET
+    url_username: "{{ tenant_harbor_user }}"
+    url_password: "{{ tenant_harbor_password }}"
+    force_basic_auth: true
+    validate_certs: false
+    return_content: true
+    status_code: [200, 500, 502, 503, 504]
+  register: tenant_registries_list
+  retries: 3
+  delay: 5
+  until: tenant_registries_list.status == 200
+  failed_when:
+    - tenant_registries_list.status != 200
+    - tenant_registries_list.status not in [500, 502, 503, 504]
+
+- name: pullレジストリIDを抽出
+  ansible.builtin.set_fact:
+    pull_registry_id: "{{ (tenant_registries_list.json | selectattr('name', 'equalto', 'replicate-harbor-pull') | list | first).id }}"
+
+- name: pullレプリケーションポリシーのbody作成
+  ansible.builtin.set_fact:
+    pull_policy_body: >-
+      {{
+        {
+          'name': 'replicate-harbor-pull',
+          'description': 'replicate-harbor-pull',
+          'src_registry': {
+            'id': pull_registry_id | int
+          },
+          'dest_namespace': 'offerings',
+          'dest_namespace_replace_count': 1,
+          'trigger': {
+            'type': 'manual'
+          },
+          'filters': [
+            {
+              'type': 'name',
+              'value': 'dci_tenant_infrastructure/**'
+            }
+          ],
+          'deletion': true,
+          'override': true,
+          'enabled': true
+        }
+      }}
+
+- name: テナントharborにpullレプリケーションポリシーを作成
+  ansible.builtin.uri:
+    url: "https://{{ tenant_harbor_url }}:{{ tenant_harbor_port }}/api/v2.0/replication/policies"
+    method: POST
+    headers:
+      Content-Type: "application/json"
+    url_username: "{{ tenant_harbor_user }}"
+    url_password: "{{ tenant_harbor_password }}"
+    force_basic_auth: true
+    body_format: json
+    body: "{{ pull_policy_body }}"
+    validate_certs: false
+    status_code: [201, 409, 500, 502, 503, 504]
+  register: pull_policy_result
+  retries: 3
+  delay: 5
+  until: pull_policy_result.status in [201, 409]
+  failed_when:
+    - pull_policy_result.status not in [201, 409]
+    - pull_policy_result.status not in [500, 502, 503, 504]
+
+- name: pullポリシーIDを取得
+  ansible.builtin.uri:
+    url: "https://{{ tenant_harbor_url }}:{{ tenant_harbor_port }}/api/v2.0/replication/policies"
+    method: GET
+    url_username: "{{ tenant_harbor_user }}"
+    url_password: "{{ tenant_harbor_password }}"
+    force_basic_auth: true
+    validate_certs: false
+    return_content: true
+    status_code: [200, 500, 502, 503, 504]
+  register: policies_list
+  retries: 3
+  delay: 5
+  until: policies_list.status == 200
+  failed_when:
+    - policies_list.status != 200
+    - policies_list.status not in [500, 502, 503, 504]
+
+- name: pullポリシーIDを抽出
+  ansible.builtin.set_fact:
+    pull_policy_id: "{{ (policies_list.json | selectattr('name', 'equalto', 'replicate-harbor-pull') | list | first).id }}"
+
+- name: pullレプリケーション実行のbody作成
+  ansible.builtin.set_fact:
+    replication_exec_body: >-
+      {{
+        {
+          'policy_id': pull_policy_id | int
+        }
+      }}
+
+- name: pullレプリケーションを実行
+  ansible.builtin.uri:
+    url: "https://{{ tenant_harbor_url }}:{{ tenant_harbor_port }}/api/v2.0/replication/executions"
+    method: POST
+    headers:
+      accept: "application/json"
+      Content-Type: "application/json"
+    url_username: "{{ tenant_harbor_user }}"
+    url_password: "{{ tenant_harbor_password }}"
+    force_basic_auth: true
+    body_format: json
+    body: "{{ replication_exec_body }}"
+    validate_certs: false
+    status_code: [200, 201, 500, 502, 503, 504]
+  register: replication_execution
+  retries: 3
+  delay: 5
+  until: replication_execution.status in [200, 201]
+  failed_when:
+    - replication_execution.status not in [200, 201]
+    - replication_execution.status not in [500, 502, 503, 504]
+
+# NVIDIA Network Operator/Multus CNI/nv-ipam/SR-IOV CNIの配備/クラスタ固有のネットワーク設定
+- name: ネットワーク配備のためテナントクラスタにラベル付与
+  ansible.builtin.shell: |
+    current_label="$(kubectl get cluster {{ tenant_name }} -n {{ tenant_namespace }} -o jsonpath='{.metadata.labels.network}')"
+    if [ "$current_label" = "enabled" ]; then
+      echo "already enabled"
+    else
+      kubectl label cluster {{ tenant_name }} -n {{ tenant_namespace }} network=enabled --overwrite
+    fi
+  register: network_label_result
+  changed_when: "'already enabled' not in network_label_result.stdout"
+
+- name: Network Operator namespace存在確認
+  ansible.builtin.shell: |
+    kubectl --kubeconfig={{ tenant_work_dir }}/{{ kubeconfig_file }} get namespace nvidia-network-operator
+  register: network_ns_check
+  retries: 30
+  delay: 10
+  until: network_ns_check.rc == 0
+  failed_when: false
+
+- name: Network Operator主要Podプレフィックスリスト定義
+  ansible.builtin.set_fact:
+    network_pod_prefixes:
+      - kube-multus-ds
+      - kube-sriov-cni-ds
+      - mofed-
+      - network-operator-
+      - nv-ipam-controller
+      - nv-ipam-node
+      - sriov-device-plugin
+      - sriov-network-config-daemon
+
+- name: Network Operator主要Pod Ready待機
+  ansible.builtin.include_role:
+    name: parallel_pod_wait
+  vars:
+    pod_wait_kubeconfig: "{{ tenant_work_dir }}/{{ kubeconfig_file }}"
+    pod_wait_namespace: nvidia-network-operator
+    pod_wait_prefixes: "{{ network_pod_prefixes }}"
+    pod_wait_timeout_ready: 900
+    pod_wait_component: Network Operator
+  when: network_ns_check.rc == 0
+
+
+# GPU operator/DRAドライバの配備
+- name: GPU配備のためテナントクラスタにラベル付与
+  ansible.builtin.shell: |
+    current_label="$(kubectl get cluster {{ tenant_name }} -n {{ tenant_namespace }} -o jsonpath='{.metadata.labels.gpu}')"
+    if [ "$current_label" = "enabled" ]; then
+      echo "already enabled"
+    else
+      kubectl label cluster {{ tenant_name }} -n {{ tenant_namespace }} gpu=enabled --overwrite
+    fi
+  register: gpu_label_result
+  changed_when: "'already enabled' not in gpu_label_result.stdout"
+
+- name: GPU Operator namespace存在確認
+  ansible.builtin.shell: |
+    kubectl --kubeconfig={{ tenant_work_dir }}/{{ kubeconfig_file }} get namespace gpu-operator
+  register: gpu_ns_check
+  retries: 30
+  delay: 10
+  until: gpu_ns_check.rc == 0
+  failed_when: false
+
+- name: GPU Operator主要Podプレフィックスリスト定義
+  ansible.builtin.set_fact:
+    gpu_pod_prefixes:
+      - gpu-operator-
+      - nvidia-container-toolkit-daemonset
+      - nvidia-dcgm-exporter
+      - nvidia-driver-daemonset
+      - nvidia-operator-validator
+
+- name: GPU Operator主要Pod Ready待機
+  ansible.builtin.include_role:
+    name: parallel_pod_wait
+  vars:
+    pod_wait_kubeconfig: "{{ tenant_work_dir }}/{{ kubeconfig_file }}"
+    pod_wait_namespace: gpu-operator
+    pod_wait_prefixes: "{{ gpu_pod_prefixes }}"
+    pod_wait_timeout_ready: 900
+    pod_wait_component: GPU Operator
+  when: gpu_ns_check.rc == 0
+
+
+# 監視関連OSSの配備
+- name: マネージャクラスタにhelm-repo-ca secretを作成
+  ansible.builtin.shell: |
+    kubectl create secret generic helm-{{ tenant_namespace }}-repo-ca \
+      --from-file=ca.crt={{ tenant_work_dir }}/{{ harbor_ca_file }} \
+      -n {{ tenant_namespace }}
+  register: create_monitoring_ca_secret_result
+  failed_when:
+    - create_monitoring_ca_secret_result.rc != 0
+    - '"already exists" not in create_monitoring_ca_secret_result.stderr'
+  changed_when: create_monitoring_ca_secret_result.rc == 0
+
+- name: 監視配備のためテナントクラスタにラベル付与
+  ansible.builtin.shell: |
+    current_label="$(kubectl get cluster {{ tenant_name }} -n {{ tenant_namespace }} -o jsonpath='{.metadata.labels.monitoring}')"
+    if [ "$current_label" = "enabled" ]; then
+      echo "already enabled"
+    else
+      kubectl label cluster {{ tenant_name }} -n {{ tenant_namespace }} monitoring=enabled --overwrite
+    fi
+  register: monitoring_label_result
+  changed_when: "'already enabled' not in monitoring_label_result.stdout"
+
+# 独自コンポーネントの配備
+- name: 独自コンポーネントの配備のためテナントクラスタにラベル付与
+  ansible.builtin.shell: |
+    current_label="$(kubectl get cluster {{ tenant_name }} -n {{ tenant_namespace }} -o jsonpath='{.metadata.labels.proprietary}')"
+    if [ "$current_label" = "enabled" ]; then
+      echo "already enabled"
+    else
+      kubectl label cluster {{ tenant_name }} -n {{ tenant_namespace }} proprietary=enabled --overwrite
+    fi
+  register: proprietary_label_result
+  changed_when: "'already enabled' not in proprietary_label_result.stdout"
+
+# Cluster Autoscalerの配備
+- name: Cluster Autoscaler配備のためテナントクラスタにラベル付与
+  ansible.builtin.shell: |
+    current_label="$(kubectl get cluster {{ tenant_name }} -n {{ tenant_namespace }} -o jsonpath='{.metadata.labels.cluster-autoscaler}')"
+    if [ "$current_label" = "enabled" ]; then
+      echo "already enabled"
+    else
+      kubectl label cluster {{ tenant_name }} -n {{ tenant_namespace }} cluster-autoscaler=enabled --overwrite
+    fi
+  register: cluster_autoscaler_label_result
+  changed_when: "'already enabled' not in cluster_autoscaler_label_result.stdout"
+
+# DCIアプリ監視コンポーネントの配備
+- name: DCIアプリ監視コンポーネント配備のためテナントクラスタにラベル付与
+  ansible.builtin.shell: |
+    current_label="$(kubectl get cluster {{ tenant_name }} -n {{ tenant_namespace }} -o jsonpath='{.metadata.labels.dciapp}')"
+    if [ "$current_label" = "enabled" ]; then
+      echo "already enabled"
+    else
+      kubectl label cluster {{ tenant_name }} -n {{ tenant_namespace }} dciapp=enabled --overwrite
+    fi
+  register: dciapp_label_result
+  changed_when: "'already enabled' not in dciapp_label_result.stdout"

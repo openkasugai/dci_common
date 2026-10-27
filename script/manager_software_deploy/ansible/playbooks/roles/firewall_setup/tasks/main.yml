@@ -1,0 +1,41 @@
+---
+- name: firewalldインストール
+  ansible.builtin.package:
+    name: firewalld
+    state: present
+
+- name: firewalld有効化・起動
+  ansible.builtin.systemd:
+    name: firewalld
+    enabled: true
+    state: started
+
+- name: firewalldカスタムゾーン存在確認
+  ansible.builtin.command:
+    cmd: firewall-cmd --get-zones
+  register: existing_zones
+  changed_when: false
+
+- name: firewall設定スクリプト生成
+  ansible.builtin.template:
+    src: "{{ firewall_template }}"
+    dest: "{{ ansible_work_dir }}/firewall_setting.sh"
+    mode: '0700'
+  register: firewall_script_result
+
+# k8s-nodeゾーンが存在しない（初回）またはスクリプト内容が更新された場合にリセット＋再適用する。
+# スクリプト自体が--reset-to-defaultsの後に全ルールをcleanな状態から投入するため、
+# リセット後のreloadは不要（スクリプト末尾のfirewall-cmd --reloadが担う）。
+- name: firewalld初期化リセット（初回またはスクリプト更新時）
+  ansible.builtin.command:
+    cmd: firewall-cmd --reset-to-defaults
+  when: >-
+    'k8s-node' not in existing_zones.stdout.split()
+    or firewall_script_result.changed
+
+- name: firewall設定スクリプト適用
+  ansible.builtin.command:
+    cmd: bash {{ ansible_work_dir }}/firewall_setting.sh
+  when: >-
+    'k8s-node' not in existing_zones.stdout.split()
+    or firewall_script_result.changed

@@ -1,0 +1,105 @@
+- name: Workerノードのjoin
+  hosts: all
+  become: true
+  vars:
+    play_description: |
+      環境構築手順書 - 構築手順1：基本部分 マネージャ用k8sクラスタ構築
+       - k8sクラスタ構築 (Workerノードを対象とする手順)
+  tasks:
+    # ----------------------------------------------------------------
+    # kubeconfigセットアップ
+    # ----------------------------------------------------------------
+    - name: kubeconfigファイルの存在確認
+      ansible.builtin.stat:
+        path: "/home/{{ ansible_user }}/.kube/config"
+      register: kubeconfig_exists
+
+    - name: .kubeディレクトリ作成
+      become: false
+      ansible.builtin.file:
+        path: "/home/{{ ansible_user }}/.kube"
+        state: directory
+        mode: '0755'
+
+    - name: シングルノード環境判定（CP1台目とWKが同一ホスト）
+      ansible.builtin.set_fact:
+        is_same_host_as_cp: "{{ ansible_host == hostvars[groups['dci_mgmt_k8s_control_plane'][0]]['ansible_host'] }}"
+
+    - name: kubectl設定ファイルをコピー（シングルノード環境・CP1台目と同一ホスト）
+      ansible.builtin.copy:
+        src: /etc/kubernetes/admin.conf
+        dest: "/home/{{ ansible_user }}/.kube/config"
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: '0600'
+        remote_src: yes
+      when:
+        - is_same_host_as_cp
+        - not kubeconfig_exists.stat.exists or (kubeconfig_force_update | default(false))
+
+    - name: kubeconfigをCP1台目から取得（マルチノード環境）
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/kubeconfig_{{ groups['dci_mgmt_k8s_control_plane'][0] }}"
+        dest: "/home/{{ ansible_user }}/.kube/config"
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: '0600'
+      when:
+        - not is_same_host_as_cp
+        - not kubeconfig_exists.stat.exists or (kubeconfig_force_update | default(false))
+
+    # ----------------------------------------------------------------
+    # joinコマンド取得・実行
+    # ----------------------------------------------------------------
+    - name: ノードのクラスター参加状態を確認
+      ansible.builtin.stat:
+        path: /etc/kubernetes/kubelet.conf
+      register: kubelet_conf_exists
+
+    - name: ローカルファイルに保存したノード用joinコマンドを取得
+      ansible.builtin.slurp:
+        src: "{{ playbook_dir }}/kubeadm_worker_join_command_{{ inventory_hostname }}.txt"
+      register: join_command_file
+      delegate_to: localhost
+      become: false
+      ignore_errors: yes
+      failed_when: false
+      when: not kubelet_conf_exists.stat.exists
+
+    - name: joinコマンド内容の安全な取得
+      ansible.builtin.set_fact:
+        safe_join_command_raw: "{{ (join_command_file.content | b64decode | trim) if (join_command_file is defined and join_command_file.content is defined) else '' }}"
+      when: not kubelet_conf_exists.stat.exists
+
+    - name: joinコマンドにapiserver-advertise-address付与
+      ansible.builtin.set_fact:
+        safe_join_command: "{{ safe_join_command_raw }} --apiserver-advertise-address={{ cni_address }}"
+      when:
+        - not kubelet_conf_exists.stat.exists
+        - safe_join_command_raw is defined
+        - safe_join_command_raw != ''
+
+    - name: kubeadm joinの実行(ノード用)
+      ansible.builtin.shell: "{{ safe_join_command }}"
+      register: join_output
+      failed_when:
+        - join_output is defined
+        - join_output.rc is defined
+        - join_output.rc != 0
+      when:
+        - not kubelet_conf_exists.stat.exists
+        - join_command_file is defined
+        - not join_command_file.failed
+        - safe_join_command is defined
+        - safe_join_command != ''
+
+    - name: joinコマンドファイルの削除
+      ansible.builtin.file:
+        path: "{{ playbook_dir }}/kubeadm_worker_join_command_{{ inventory_hostname }}.txt"
+        state: absent
+      delegate_to: localhost
+      become: false
+      when:
+        - join_output is defined
+        - join_output.rc is defined
+        - join_output.rc == 0

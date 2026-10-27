@@ -1,0 +1,107 @@
+- name: テナント論理インフラコンポーネント準備
+  hosts: all
+  vars:
+    play_description: |
+      事前準備(テナント構築準備)
+      - テナント用のネームスペースの作成
+      - Cluster Autoscaler用kubeconfigの作成およびSecret化
+      - テナント構築用リソースの作成と適用
+      - Scale Controller用kubeconfigの作成およびSecret化
+      - テナント構築で使用するVMホスト・予備ノード用の設定
+      - 予備ノードの作成
+      - テナントのHarborインストールの事前準備
+    vmhost_spare_dir: "{{ dci_manager_path }}/resource-pool-manager/vmhost-spare"
+  environment:
+    KUBECONFIG: "/home/{{ ansible_user }}/.kube/config"
+  tasks:
+    - name: 作業ディレクトリ作成
+      ansible.builtin.file:
+        path: "{{ ansible_work_dir }}"
+        state: directory
+        mode: '0755'
+        
+    - name: テナント数分ループ
+      ansible.builtin.include_role:
+        name: tenant_setup_block
+      vars:
+        tenant_namespace: "{{ item.tenant_namespace }}"
+        tenant_name: "{{ item.tenant_name }}"
+        tenant_component_version: "{{ tag_tenant_version }}"
+        tenant_work_dir: "{{ ansible_work_dir }}/{{ item.tenant_namespace }}"
+        tenant_yaml_file: "{{ item.tenant_yaml_file }}"
+        tenant_yaml_path: "{{ item.tenant_yaml_path }}"
+        tenant_harbor_ip: "{{ item.tenant_harbor_url }}"
+        tenant_harbor_port: "{{ item.tenant_harbor_port }}"
+        harbor_private_key_file: "{{ item.harbor_private_key_file }}"
+        harbor_ca_file: "{{ item.harbor_ca_file }}"
+        harbor_ca_name: "{{ item.harbor_ca_name }}"
+        harbor_ca_expiration: "{{ item.harbor_ca_expiration }}"
+        tenant_components_script_dir: "{{ dci_manager_path }}/others/tenant-infrastructure-management/scripts"
+        tenant_components_deployments_dir: "{{ dci_manager_path }}/others/tenant-infrastructure-management/deployments"
+        tenant_components_resources_dir: "{{ dci_manager_path }}/others/tenant-infrastructure-management/resources"
+        cluster_autoscaler_dir: "{{ tenant_components_resources_dir }}/accounts/cluster-autoscaler"
+        scale_controller_dir: "{{ tenant_components_resources_dir }}/accounts/scale-controller"
+        nfs_server_ip: "{{ item.nfs_server_ip }}"
+        nfs_server_export_path: "{{ item.nfs_server_export_path }}"
+        velero_bucket: "{{ item.velero_bucket }}"
+        velero_storage_ip: "{{ item.velero_storage_ip }}"
+        velero_storage_port: "{{ item.velero_storage_port }}"
+        velero_minio_user: "{{ item.velero_minio_user }}"
+        velero_minio_password: "{{ item.velero_minio_password }}"
+        disable_machine_health_check: "{{ item.disable_machine_health_check }}"
+        disable_kyverno_proxy_settings: "{{ item.disable_kyverno_proxy_settings }}"
+        loki_storage_ip: "{{ item.loki_storage_ip }}"
+        loki_storage_port: "{{ item.loki_storage_port }}"
+        loki_storage_minio_user: "{{ item.loki_storage_minio_user }}"
+        loki_storage_minio_password: "{{ item.loki_storage_minio_password }}"
+        loki_storage_bucket_chunks: "{{ item.loki_storage_bucket_chunks }}"
+        loki_storage_bucket_ruler: "{{ item.loki_storage_bucket_ruler }}"
+        loki_storage_bucket_admin: "{{ item.loki_storage_bucket_admin }}"
+        temporal_cassandra_password: "{{ item.temporal_cassandra_password }}"
+        temporal_mysql_password: "{{ item.temporal_mysql_password }}"
+        prometheus_grafana_admin_password: "{{ item.prometheus_grafana_admin_password }}"
+      loop: "{{ tenants }}"
+
+  # テナント構築で使用するVMホスト・予備ノード用の設定
+    - name:  vmhost-spareディレクトリ作成
+      ansible.builtin.file:
+        path: "{{ vmhost_spare_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: vmhost-tli.yamlをテンプレートから生成
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/vmhost-tli.j2"
+        dest: "{{ vmhost_spare_dir }}/vmhost-tli.yaml"
+        mode: '0644'
+
+    - name: vmhost-tliマニフェストを適用
+      ansible.builtin.command: kubectl apply -f {{ vmhost_spare_dir }}/vmhost-tli.yaml
+      register: vmhost_tli_apply
+      changed_when: "'created' in vmhost_tli_apply.stdout or 'configured' in vmhost_tli_apply.stdout"
+
+    - name: spare-tli.yamlをテンプレートから生成
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/spare-tli.j2"
+        dest: "{{ vmhost_spare_dir }}/spare-tli.yaml"
+        mode: '0644'
+
+    - name: spare-tliマニフェストを適用
+      ansible.builtin.command: kubectl apply -f {{ vmhost_spare_dir }}/spare-tli.yaml
+      register: spare_tli_apply
+      changed_when: "'created' in spare_tli_apply.stdout or 'configured' in spare_tli_apply.stdout"
+
+    # 予備ノードの作成
+    - name: spare-node.yamlをテンプレートから生成
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/spare-node.j2"
+        dest: "{{ vmhost_spare_dir }}/{{ item.node_yaml_file }}"
+        mode: '0644'
+      loop: "{{ spare_nodes | default([]) }}"
+      
+    - name: spare-nodeマニフェストを適用
+      ansible.builtin.command: kubectl apply -f {{ vmhost_spare_dir }}/{{ item.node_yaml_file }}
+      register: spare_node_apply
+      changed_when: "'created' in spare_node_apply.stdout or 'configured' in spare_node_apply.stdout"
+      loop: "{{ spare_nodes | default([]) }}"
+    

@@ -1,0 +1,181 @@
+- name: PostgREST API配備（DB-API）
+  hosts: all
+  vars:
+    play_description: |
+      事前準備(システム構築) - リソースプール管理Pod、DCI物理インフラの配備
+      - DB-API（PostgREST）の配備
+    database_ns: database
+    db_name: app
+    postgrest_role_name: api_user
+    db_secret_name: database-cluster-app
+    postgrest_db_service: database-cluster-rw
+    postgrest_namespace: postgrest
+    postgrest_jwt_secret_name: postgrest-jwt
+    postgrest_jwt_secret_length: 32
+    postgrest_manifests_dir: "{{ dci_manager_path }}/others/configuration-management-database/postgrest"
+    nginx_gateway_namespace: nginx-gateway
+    postgrest_gateway_lb_service: gateway-lb
+  environment:
+    KUBECONFIG: "/home/{{ ansible_user }}/.kube/config"
+  tasks:
+    - name: databaseクラスタの全Pod名を取得
+      ansible.builtin.shell: |
+        kubectl get pods -n {{ database_ns }} -l cnpg.io/cluster=database-cluster -o jsonpath='{.items[*].metadata.name}' | tr ' ' '\n' | grep -E '^database-cluster-[0-9]+$'
+      register: db_pod_names
+      changed_when: false
+
+    - name: リーダーPodを特定
+      ansible.builtin.shell: |
+        leader_pod_found=""
+        
+        for pod in {{ db_pod_names.stdout_lines | join(' ') }}; do
+          if [ -z "$pod" ]; then
+            continue
+          fi
+          
+          psql_output=$(kubectl exec -n {{ database_ns }} "$pod" -- psql -U postgres -d {{ db_name }} -tAc "SELECT pg_is_in_recovery();" 2>/dev/null)
+          psql_exit_code=$?
+          if [ "$psql_exit_code" -ne 0 ]; then
+            continue
+          fi
+
+          if [ "$psql_output" = "f" ]; then
+            leader_pod_found="$pod"
+            break
+          fi
+        done
+        
+        if [ -n "$leader_pod_found" ]; then
+          echo "$leader_pod_found"
+        else
+          echo "Error: Leader Pod not found in namespace '{{ database_ns }}' for cluster 'database-cluster'." >&2
+          exit 1
+        fi
+      register: db_leader_pod
+      changed_when: false
+
+    - name: api_userロールの作成と権限付与（リーダーPodで実行）
+      ansible.builtin.shell: |
+        kubectl exec -n {{ database_ns }} {{ db_leader_pod.stdout }} -- psql -U postgres -d {{ db_name }} <<'EOSQL'
+        DO $$ 
+        BEGIN 
+          CREATE ROLE {{ postgrest_role_name }}; 
+        EXCEPTION WHEN duplicate_object THEN 
+          NULL; 
+        END $$;
+        GRANT USAGE ON SCHEMA public TO {{ postgrest_role_name }};
+        GRANT CONNECT ON DATABASE {{ db_name }} TO {{ postgrest_role_name }};
+        GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO {{ postgrest_role_name }};
+        EOSQL
+      register: role_setup
+      changed_when: role_setup.rc == 0
+
+    - name: database-cluster-appシークレットからパスワード取得
+      ansible.builtin.shell: |
+        kubectl -n {{ database_ns }} get secrets {{ db_secret_name }} \
+          -o jsonpath='{.data.password}' | base64 -d
+      register: db_password_result
+      changed_when: false
+
+    - name: DB_URIのbase64エンコード
+      ansible.builtin.shell: |
+        echo -n "postgres://postgres:{{ db_password_result.stdout }}@{{ postgrest_db_service }}.{{ database_ns }}.svc.cluster.local:5432/{{ db_name }}?sslmode=require" | base64 -w 0
+      register: db_uri_base64
+      changed_when: false
+
+    - name: JWT_SECRETの生成
+      ansible.builtin.shell: |
+        < /dev/urandom tr -dc A-Za-z0-9 | head -c{{ postgrest_jwt_secret_length }}
+      register: jwt_secret_result
+      changed_when: false
+
+    - name: JWT_SECRET_BASE64の生成
+      ansible.builtin.shell: |
+        echo -n "{{ jwt_secret_result.stdout }}" | base64 -w 0
+      register: jwt_secret_base64
+      changed_when: false
+
+    - name: JWTトークンの生成
+      ansible.builtin.shell: ./gen_jwt.sh
+      environment:
+        JWT_SECRET: "{{ jwt_secret_result.stdout }}"
+      args:
+        chdir: "{{ postgrest_manifests_dir }}"
+      register: jwt_token_result
+      changed_when: false
+
+    - name: postgrest namespaceの作成
+      ansible.builtin.command: kubectl create namespace {{ postgrest_namespace }}
+      register: ns_create_result
+      changed_when: '"created" in ns_create_result.stdout'
+      failed_when: 
+        - ns_create_result.rc != 0
+        - '"already exists" not in ns_create_result.stderr'
+
+    - name: postgrest-jwtシークレットの作成
+      ansible.builtin.shell: |
+        kubectl -n {{ postgrest_namespace }} create secret generic {{ postgrest_jwt_secret_name }} \
+          --from-literal=jwt="{{ jwt_token_result.stdout | trim }}"
+      register: secret_create
+      changed_when: '"created" in secret_create.stdout'
+      failed_when:
+        - secret_create.rc != 0
+        - '"already exists" not in secret_create.stderr'
+
+    - name: PostgRESTデプロイメントの適用（envsubst）
+      ansible.builtin.shell: |
+        export DB_URI="{{ db_uri_base64.stdout }}"
+        export JWT_SECRET_BASE64="{{ jwt_secret_base64.stdout }}"
+        envsubst < {{ postgrest_manifests_dir }}/postgrest-dep.yaml | kubectl apply -f -
+      register: postgrest_deploy
+      changed_when: '"created" in postgrest_deploy.stdout or "configured" in postgrest_deploy.stdout'
+
+    - name: PostgREST HTTPRouteの適用
+      ansible.builtin.command: kubectl apply -f {{ postgrest_manifests_dir }}/httproute.yaml
+      register: httproute_apply
+      changed_when: '"created" in httproute_apply.stdout or "configured" in httproute_apply.stdout'
+
+    - name: PostgRESTデプロイメントの起動待機
+      ansible.builtin.command: |
+        kubectl -n {{ postgrest_namespace }} rollout status deployment/postgrest-deployment --timeout=300s
+      register: rollout_result
+      changed_when: false
+
+    - name: ファイル更新用のスクリプトをターゲットにコピー
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/update_corefile_hosts.sh"
+        dest: "{{ ansible_work_dir }}/update_corefile_hosts.sh"
+        mode: '0755'
+
+    - name: CoreDNS Corefile抽出
+      ansible.builtin.command: >
+        kubectl get configmap coredns -n kube-system -o jsonpath={.data.Corefile}
+      register: corefile_raw
+      changed_when: false
+
+    - name: CoreDNSにPrometheus静的エントリを追加
+      ansible.builtin.shell: >
+        echo "{{ corefile_raw.stdout }}" |
+        {{ ansible_work_dir }}/update_corefile_hosts.sh {{ postgrest_db_api_hostname }} {{ gateway_loadbalancer_vip }}
+      register: updated_corefile
+      changed_when: updated_corefile.rc == 0
+      failed_when: updated_corefile.rc > 1
+
+    - name: 更新済みCorefileをConfigMapに適用
+      ansible.builtin.shell: |
+        kubectl patch configmap coredns -n kube-system \
+          --type merge \
+          -p "{\"data\":{\"Corefile\":$(echo '{{ updated_corefile.stdout | tojson }}')}}"
+      when: updated_corefile.changed
+      changed_when: true
+
+    - name: CoreDNSデプロイメントの再起動
+      ansible.builtin.command: kubectl -n kube-system rollout restart deployment coredns
+      when: updated_corefile.changed
+      register: coredns_restart
+      changed_when: coredns_restart.rc == 0
+
+    - name: CoreDNSの起動完了待機
+      ansible.builtin.command: kubectl -n kube-system rollout status deployment/coredns --timeout=300s
+      when: updated_corefile.changed
+      changed_when: false

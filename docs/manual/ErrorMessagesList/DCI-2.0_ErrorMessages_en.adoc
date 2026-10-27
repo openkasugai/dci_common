@@ -1,0 +1,1115 @@
+= DCI-2.0 Error Messages List
+:toc: macro
+:toclevels: 4
+:sectnums:
+:sectnumlevels: 4
+:figure-caption: Figure
+:table-caption: Table
+:docinfo: shared
+:source-highlighter: highlight.js
+:highlightjs-theme: vs2015
+
+Version 1.0
+
+November 5, 2026
+
+NTT, Inc.
+
+.Table of Contents
+toc::[]
+
+
+== Introduction
+
+This document lists the error messages output by each component of the DCI-2.0 Controller (DCI Physical Infrastructure, DCI Manager, and DCI Tenant Logical Infrastructure).
+Error messages output by OSS (Open Source Software) used within the system are out of scope.
+
+
+== Error Messages Output by DCI Physical Infrastructure (dci_physical_infrastructure)
+DCI Physical Infrastructure consists of five components (cdi, exporter, log, maas, network). The error messages output by each component are listed below.
+
+=== Error Messages Output by the cdi Component
+[cols="1,4,3,2",options="header"]
+|===
+| # | Error Message / Pattern | Summary | Notes
+
+| 1 | `CDI_SERVER_PORT is required` | `InitializeConfig` failed. A required environment variable is not set or has an invalid value. | 
+| 2 | `LOG_LEVEL is required` | `InitializeConfig` failed. A required environment variable is not set or has an invalid value. | 
+| 3 | `SSH_KEY is required` | `InitializeConfig` failed. A required environment variable is not set or has an invalid value. | 
+| 4 | `TLS_ENABLE is required` | `InitializeConfig` failed. A required environment variable is not set or has an invalid value. | 
+| 5 | `TLS_CERT_PATH is required` | `InitializeConfig` failed. A required environment variable is not set or has an invalid value. | 
+| 6 | `invalid serverPort of configuration: value must be integer and between 1 ～ 65535, inclusive` | `InitializeConfig` failed. A required environment variable is not set or has an invalid value. | 
+| 7 | `invalid logLevel of configuration: value must be integer string and between 0 ～ 9, inclusive` | `InitializeConfig` failed. A required environment variable is not set or has an invalid value. | 
+| 8 | `invalid tlsEnable of configuration: value must be boolean (true or false)` | `InitializeConfig` failed. A required environment variable is not set or has an invalid value. | 
+| 9 | `listen tcp :<PORT>: bind: address already in use` | Failed to start TCP port listening for the gRPC server (`net.Listen` standard error). | 
+| 10 | `Failed to load TLS certificates` | Failed to load TLS certificates (`tls.crt` / `tls.key`). | 
+| 11 | `Failed to load CA certificate` | Failed to load CA certificate (`ca.crt`). | 
+| 12 | `Failed to append CA certificate to pool` | Failed to append CA certificate to the certificate pool. | 
+| 13 | `accept tcp :<PORT>: use of closed network connection` | Failed to execute Serve (request acceptance) for the gRPC server (gRPC/net standard error). | 
+| 14 | `json: unsupported type: <type>` | Failed to marshal ErrorMessage to JSON (`json.Marshal` standard error). | 
+|===
+
+'''
+
+
+=== Error Messages Output by the exporter Component
+[cols="1,4,3,2",options="header"]
+|===
+| # | Error Message / Pattern | Summary | Notes
+
+| 1 | `LOG_LEVEL is required` | `InitializeConfig` failed. A required environment variable is not set or has an invalid value. | 
+| 2 | `INTERVAL is required` | `InitializeConfig` failed. A required environment variable is not set or has an invalid value. | 
+| 3 | `P2P_ENABLE is required` | `InitializeConfig` failed. A required environment variable is not set or has an invalid value. | 
+| 4 | `P2P_INTERVAL is required` | `InitializeConfig` failed. A required environment variable is not set or has an invalid value. | 
+| 5 | `SSH_KEY is required` | `InitializeConfig` failed. A required environment variable is not set or has an invalid value. | 
+| 6 | `METRICS_PORT is required` | `InitializeConfig` failed. A required environment variable is not set or has an invalid value. | 
+| 7 | `METRICS_ENDPOINT is required` | `InitializeConfig` failed. A required environment variable is not set or has an invalid value. | 
+| 8 | `DB_URL is required` | `InitializeConfig` failed. A required environment variable is not set or has an invalid value. | 
+| 9 | `invalid logLevel of configuration: value must be integer string and between 0 ～ 9, inclusive` | `InitializeConfig` failed. A required environment variable is not set or has an invalid value. | 
+| 10 | `invalid interval of configuration: value must be integer and between 1 ～ 3600, inclusive` | `InitializeConfig` failed. A required environment variable is not set or has an invalid value. | 
+| 11 | `invalid p2pInterval of configuration: value must be integer and between 1 ～ 3600, inclusive` | `InitializeConfig` failed. A required environment variable is not set or has an invalid value. | 
+| 12 | `invalid P2P_ENABLE of configuration: value must be boolean` | `InitializeConfig` failed. A required environment variable is not set or has an invalid value. | 
+| 13 | `invalid metrics.port of configuration: value must be integer  and between 0 ～ 65535,  inclusive` | `InitializeConfig` failed. A required environment variable is not set or has an invalid value. | 
+| 14 | `failed to retrieve JWT: failed to get in-cluster config: <err>` | `database.Init` failed. Unable to retrieve JWT from Kubernetes Secret. | 
+| 15 | `failed to retrieve JWT: failed to create kubernetes client: <err>` | `database.Init` failed. Unable to retrieve JWT from Kubernetes Secret. | 
+| 16 | `failed to retrieve JWT: failed to get secret postgrest/postgrest-jwt: <err>` | `database.Init` failed. Unable to retrieve JWT from Kubernetes Secret. | 
+| 17 | `failed to retrieve JWT: key 'jwt' not found in secret postgrest/postgrest-jwt` | `database.Init` failed. Unable to retrieve JWT from Kubernetes Secret. | 
+| 18 | `<prometheus registration error>` | `server.Init` failed. Prometheus metrics registration failed. | 
+| 19 | `<prometheus registration error>` | `network.Init` failed. Prometheus metrics registration failed. | 
+| 20 | `listen tcp :<PORT>: bind: address already in use` | Failed to start the HTTP server for metrics (`ListenAndServe`) (net standard error). | 
+| 21 | `<HTTP/API error>` | Failed to retrieve network switch information from the DB (`SelectNwSwitchTable`). PostgREST API call or response parse error. | 
+| 22 | `<HTTP/API error>` | Failed to retrieve server information from the DB (`SelectServerTable`) (normal monitoring loop). PostgREST API call or response parse error. | 
+| 23 | `<HTTP/API error>` | Failed to retrieve server information from the DB (`SelectServerTable`) (additional monitoring loop). PostgREST API call or response parse error. | 
+|===
+
+'''
+
+
+=== Error Messages Output by the log Component
+[cols="1,4,3,2",options="header"]
+|===
+| # | Error Message / Pattern | Summary | Notes
+
+| 1 | `LOG_LEVEL is required` | `InitializeConfig` failed. A required environment variable is not set or has an invalid value. | 
+| 2 | `INTERVAL is required` | `InitializeConfig` failed. A required environment variable is not set or has an invalid value. | 
+| 3 | `IPMI_LOGFILE is required` | `InitializeConfig` failed. A required environment variable is not set or has an invalid value. | 
+| 4 | `IPMI_LOGPATH is required` | `InitializeConfig` failed. A required environment variable is not set or has an invalid value. | 
+| 5 | `IPMI_MAXSIZE is required` | `InitializeConfig` failed. A required environment variable is not set or has an invalid value. | 
+| 6 | `IPMI_MAXBACKUPS is required` | `InitializeConfig` failed. A required environment variable is not set or has an invalid value. | 
+| 7 | `IPMI_MAXAGE is required` | `InitializeConfig` failed. A required environment variable is not set or has an invalid value. | 
+| 8 | `CDI_LOGFILE is required` | `InitializeConfig` failed. A required environment variable is not set or has an invalid value. | 
+| 9 | `CDI_LOGPATH is required` | `InitializeConfig` failed. A required environment variable is not set or has an invalid value. | 
+| 10 | `CDI_MAXSIZE is required` | `InitializeConfig` failed. A required environment variable is not set or has an invalid value. | 
+| 11 | `CDI_MAXBACKUPS is required` | `InitializeConfig` failed. A required environment variable is not set or has an invalid value. | 
+| 12 | `CDI_MAXAGE is required` | `InitializeConfig` failed. A required environment variable is not set or has an invalid value. | 
+| 13 | `DB_URL is required` | `InitializeConfig` failed. A required environment variable is not set or has an invalid value. | 
+| 14 | `invalid logLevel of configuration: value must be integer string and between 0 ～ 9, inclusive` | `InitializeConfig` failed. A required environment variable is not set or has an invalid value. | 
+| 15 | `invalid interval of configuration: value must be integer and between 1 ～ 3600, inclusive` | `InitializeConfig` failed. A required environment variable is not set or has an invalid value. | 
+| 16 | `invalid ipmi.maxSize of configuration: value must be integer and between 1 ～ 10240, inclusive` | `InitializeConfig` failed. A required environment variable is not set or has an invalid value. | 
+| 17 | `invalid ipmi.maxBackups of configuration: value must be integer and between 1 ～ 31, inclusive` | `InitializeConfig` failed. A required environment variable is not set or has an invalid value. | 
+| 18 | `invalid ipmi.maxAge of configuration: value must be integer and between 1 ～ 31, inclusive` | `InitializeConfig` failed. A required environment variable is not set or has an invalid value. | 
+| 19 | `invalid cdi.maxSize of configuration: value must be integer and between 1 ～ 10240, inclusive` | `InitializeConfig` failed. A required environment variable is not set or has an invalid value. | 
+| 20 | `invalid cdi.maxBackups of configuration: value must be integer and between 1 ～ 31, inclusive` | `InitializeConfig` failed. A required environment variable is not set or has an invalid value. | 
+| 21 | `invalid cdi.maxAge of configuration: value must be integer and between 1 ～ 31, inclusive` | `InitializeConfig` failed. A required environment variable is not set or has an invalid value. | 
+| 22 | `failed to retrieve JWT: failed to get in-cluster config: <err>` | `database.Init` failed. Unable to retrieve JWT from Kubernetes Secret. | 
+| 23 | `failed to retrieve JWT: failed to create kubernetes client: <err>` | `database.Init` failed. Unable to retrieve JWT from Kubernetes Secret. | 
+| 24 | `failed to retrieve JWT: failed to get secret postgrest/postgrest-jwt: <err>` | `database.Init` failed. Unable to retrieve JWT from Kubernetes Secret. | 
+| 25 | `failed to retrieve JWT: key 'jwt' not found in secret postgrest/postgrest-jwt` | `database.Init` failed. Unable to retrieve JWT from Kubernetes Secret. | 
+| 26 | `<logging init error>` | `ipmi.Init` failed. Logging (lumberjack) initialization error. | 
+| 27 | `<logging init error>` | `cdi.Init` failed. Logging (lumberjack) initialization error. | 
+| 28 | `<logging init error>` | `cdiSoft.Init` failed. Logging (lumberjack) initialization error. | 
+| 29 | `<logging init error>` | `maasServer.Init` failed. Logging (lumberjack) initialization error. | 
+| 30 | `<HTTP/API error>` | Failed to retrieve CDI targets from the DB (`SelectCDITable`). PostgREST API call or response parse error. | 
+| 31 | `<HTTP/API error>` | Failed to retrieve server (IPMI) targets from the DB (`SelectServerTable`). PostgREST API call or response parse error. | 
+| 32 | `<HTTP/API error>` | Failed to retrieve MaaS server targets from the DB (`SelectMaasTable`). PostgREST API call or response parse error. | 
+| 33 | `invalid Guest IP response format` | Failed to extract Guest IP from the Ansible execution result during CDI log collection (PG-CDI v2.0). Invalid response format. | 
+| 34 | `GUEST_IP not found in ansible result` | Guest IP not found in the Ansible execution result during CDI log collection (PG-CDI v2.0). | 
+| 35 | `invalid type for system_id` | Failed to convert the type of the `system_id` column in the LogicalServer table during DB scan processing. | 
+|===
+
+'''
+
+=== Error Messages Output by the maas Component
+[cols="1,4,3,2",options="header"]
+|===
+| # | Error Message / Pattern | Summary | Notes
+
+| 1 | `LOG_LEVEL is required` | `InitializeConfig` failed. A required environment variable is not set or has an invalid value. | 
+| 2 | `MAAS_SERVER_PORT is required` | `InitializeConfig` failed. A required environment variable is not set or has an invalid value. | 
+| 3 | `VM_HOST_DISK is required` | `InitializeConfig` failed. A required environment variable is not set or has an invalid value. | 
+| 4 | `LXD_PORT is required` | `InitializeConfig` failed. A required environment variable is not set or has an invalid value. | 
+| 5 | `SSH_KEY is required` | `InitializeConfig` failed. A required environment variable is not set or has an invalid value. | 
+| 6 | `TLS_ENABLE is required` | `InitializeConfig` failed. A required environment variable is not set or has an invalid value. | 
+| 7 | `TLS_CERT_PATH is required` | `InitializeConfig` failed. A required environment variable is not set or has an invalid value. | 
+| 8 | `invalid logLevel of configuration: value must be integer string and between 0 ～ 9, inclusive` | `InitializeConfig` failed. A required environment variable is not set or has an invalid value. | 
+| 9 | `invalid serverPort of configuration: value must be integer  and between 0 ～ 65535,  inclusive` | `InitializeConfig` failed. A required environment variable is not set or has an invalid value. | 
+| 10 | `invalid vmHostDisk of configuration: value must be integer and 5 (GiB) or greater` | `InitializeConfig` failed. A required environment variable is not set or has an invalid value. | 
+| 11 | `invalid lxdListenPort of configuration: value must be integer  and between 0 ～ 65535,  inclusive` | `InitializeConfig` failed. A required environment variable is not set or has an invalid value. | 
+| 12 | `invalid tlsEnable of configuration: value must be boolean (true or false)` | `InitializeConfig` failed. A required environment variable is not set or has an invalid value. | 
+| 13 | `listen tcp :<PORT>: bind: address already in use` | Failed to start TCP port listening for the gRPC server (`net.Listen` standard error). | 
+| 14 | `Failed to load TLS certificates` | Failed to load TLS certificates (`tls.crt` / `tls.key`). | 
+| 15 | `Failed to load CA certificate` | Failed to load CA certificate (`ca.crt`). | 
+| 16 | `Failed to append CA certificate to pool` | Failed to append CA certificate to the certificate pool. | 
+| 17 | `accept tcp :<PORT>: use of closed network connection` | Failed to execute Serve (request acceptance) for the gRPC server (gRPC/net standard error). | 
+| 18 | `<extracted ansible error>` | Ansible command execution (`CmdExecute`) failed. Extracted error message from Ansible output and logged. | 
+| 19 | `<err.Error()>` | Ansible command execution (`CmdExecute`) failed. Extracted error message from Ansible output and logged. | When the error cannot be extracted from the Ansible output.
+| 20 | `Failed to create HTTP request` | Failed to create an HTTP request to the MaaS API. | 
+| 21 | `HTTP request execution failed` | Failed to send an HTTP request to the MaaS API. | 
+| 22 | `Failed to read response body` | Failed to read the MaaS API response body. | 
+| 23 | `K8S_JOB_WORKER_IMAGE is required` | `InitializeConfig` failed. A required environment variable is not set or has an invalid value. | 
+| 24 | `K8S_JOB_SERVICE_ACCOUNT is required` | `InitializeConfig` failed. A required environment variable is not set or has an invalid value. | 
+| 25 | `K8S_JOB_SSH_SECRET_NAME is required` | `InitializeConfig` failed. A required environment variable is not set or has an invalid value. | 
+| 26 | `K8S_JOB_BACKOFF_LIMIT is required` | `InitializeConfig` failed. A required environment variable is not set or has an invalid value. | 
+| 27 | `K8S_JOB_TTL_SECONDS is required` | `InitializeConfig` failed. A required environment variable is not set or has an invalid value. | 
+| 28 | `K8S_JOB_ACTIVE_DEADLINE_SECONDS is required` | `InitializeConfig` failed. A required environment variable is not set or has an invalid value. | 
+| 29 | `MAAS_API_RETRY_COUNT is required` | `InitializeConfig` failed. A required environment variable is not set or has an invalid value. | 
+| 30 | `MAAS_API_RETRY_INTERVAL_SECONDS is required` | `InitializeConfig` failed. A required environment variable is not set or has an invalid value. | 
+| 31 | `invalid K8S_JOB_BACKOFF_LIMIT: must be integer` | `InitializeConfig` failed. A required environment variable has an invalid value (not an integer). | 
+| 32 | `invalid K8S_JOB_TTL_SECONDS: must be integer` | `InitializeConfig` failed. A required environment variable has an invalid value (not an integer). | 
+| 33 | `invalid K8S_JOB_ACTIVE_DEADLINE_SECONDS: must be integer` | `InitializeConfig` failed. A required environment variable has an invalid value (not an integer). | 
+| 34 | `invalid MAAS_API_RETRY_COUNT: must be integer` | `InitializeConfig` failed. A required environment variable has an invalid value (not an integer). | 
+| 35 | `invalid MAAS_API_RETRY_INTERVAL_SECONDS: must be integer` | `InitializeConfig` failed. A required environment variable has an invalid value (not an integer). | 
+| 36 | `MAAS_JOB_TYPE is required in worker mode` | At startup in worker mode (`MAAS_RUN_MODE=worker`), the required environment variable `MAAS_JOB_TYPE` is not set. | 
+| 37 | `MAAS_JOB_PAYLOAD is required in worker mode` | At startup in worker mode (`MAAS_RUN_MODE=worker`), the required environment variable `MAAS_JOB_PAYLOAD` is not set. | 
+| 38 | `unsupported MAAS_JOB_TYPE: <type>` | Async job execution in worker mode failed. An unsupported `MAAS_JOB_TYPE` was specified. | 
+| 39 | `failed to decode MachineRegister payload: <err>` | Failed to decode the payload for the async job (MachineRegister). | 
+| 40 | `failed to create MaaS controller for MachineRegister` | Failed to create the MaaS controller for the async job (MachineRegister). | 
+| 41 | `failed to decode VmCompose payload: <err>` | Failed to decode the payload for the async job (VMCompose). | 
+| 42 | `failed to create MaaS controller for VMCompose` | Failed to create the MaaS controller for the async job (VMCompose). | 
+| 43 | `failed to decode KubeadmJoin payload: <err>` | Failed to decode the payload for the async job (KubeadmJoin). | 
+| 44 | `failed to create MaaS controller for KubeadmJoin` | Failed to create the MaaS controller for the async job (KubeadmJoin). | 
+| 45 | `k8s worker image is empty` | K8s Job creation failed. The worker container image is not set. | 
+| 46 | `failed to create in-cluster config: <err>` | Failed to retrieve the In-Cluster configuration during K8s Job creation. | 
+| 47 | `failed to create kubernetes clientset: <err>` | Failed to create the Kubernetes clientset during K8s Job creation. | 
+| 48 | `failed to create k8s job: <err>` | Failed to create a K8s Job. | 
+| 49 | `failed to list jobs for cancel: <err>` | Failed to retrieve the job list during K8s Job cancellation. | 
+| 50 | `failed to list jobs for duplication check: <err>` | Failed to retrieve the job list during K8s Job duplication check. | 
+| 51 | `failed to list jobs for request-id duplication check: <err>` | Failed to retrieve the job list during K8s Job request ID duplication check. | 
+| 52 | `failed to delete active job <name>: <err>` | Failed to delete an active job during K8s Job cancellation. | 
+| 53 | `ssh is not reachable consecutively for 3 checks` | SSH connectivity check failed three consecutive times during MachineRegister processing. | 
+|===
+
+'''
+
+=== Error Messages Output by the network Component
+[cols="1,4,3,2",options="header"]
+|===
+| # | Error Message / Pattern | Summary | Notes
+
+| 1 | `NW_SERVER_PORT is required` | `InitializeConfig` failed. A required environment variable is not set or has an invalid value. | 
+| 2 | `LOG_LEVEL is required` | `InitializeConfig` failed. A required environment variable is not set or has an invalid value. | 
+| 3 | `SSH_KEY is required` | `InitializeConfig` failed. A required environment variable is not set or has an invalid value. | 
+| 4 | `TLS_ENABLE is required` | `InitializeConfig` failed. A required environment variable is not set or has an invalid value. | 
+| 5 | `TLS_CERT_PATH is required` | `InitializeConfig` failed. A required environment variable is not set or has an invalid value. | 
+| 6 | `invalid serverPort of configuration: value must be integer and between 1 ～ 65535, inclusive` | `InitializeConfig` failed. A required environment variable is not set or has an invalid value. | 
+| 7 | `invalid logLevel of configuration: value must be integer string and between 0 ～ 9, inclusive` | `InitializeConfig` failed. A required environment variable is not set or has an invalid value. | 
+| 8 | `invalid tlsEnable of configuration: value must be boolean (true or false)` | `InitializeConfig` failed. A required environment variable is not set or has an invalid value. | 
+| 9 | `listen tcp :<PORT>: bind: address already in use` | Failed to start TCP port listening for the gRPC server (`net.Listen` standard error). | 
+| 10 | `Failed to load TLS certificates` | Failed to load TLS certificates (`tls.crt` / `tls.key`). | 
+| 11 | `Failed to load CA certificate` | Failed to load CA certificate (`ca.crt`). | 
+| 12 | `Failed to append CA certificate to pool` | Failed to append CA certificate to the certificate pool. | 
+| 13 | `accept tcp :<PORT>: use of closed network connection` | Failed to execute Serve (request acceptance) for the gRPC server (gRPC/net standard error). | 
+| 14 | `<extracted ansible error>` | Ansible command execution (`CmdExecute`) failed. Extracted error message from Ansible output and logged. | 
+| 15 | `<err.Error()>` | Ansible command execution (`CmdExecute`) failed. Extracted error message from Ansible output and logged. | When the error cannot be extracted from the Ansible output.
+| 16 | `json: unsupported type: <type>` | Failed to marshal ErrorMessage to JSON (`json.Marshal` standard error). | 
+|===
+
+
+
+== Error Messages Output by DCI Manager (dci_manager)
+DCI Manager consists of three components (resource-pool-manager, cluster-api-provider-dci, others). The error messages output by each component are listed below.
+
+=== Error Messages Output by resource-pool-manager
+[cols="1,4,3,2",options="header"]
+|===
+| # | Error Message / Pattern | Summary | Notes
+
+| 1 | `failed to initialize webhook certificate watcher` | Failed to initialize the Webhook certificate watcher. | 
+| 2 | `to initialize metrics certificate watcher` | Failed to initialize the metrics certificate watcher. | 
+| 3 | `unable to start manager` | Failed to start the controller manager. | 
+| 4 | `unable to parse config` | Failed to parse the configuration file. | 
+| 5 | `failed to set up database` | Failed to set up the database. | 
+| 6 | `failed to get sql.DB` | Failed to retrieve the sql.DB object. | 
+| 7 | `failed to close database connection` | Failed to close the database connection. | 
+| 8 | `failed to connect to MAAS` | Failed to connect to the MAAS client. | 
+| 9 | `failed to close MAAS client` | Failed to close the MAAS client. | 
+| 10 | `failed to connect to network` | Failed to connect to the network client. | 
+| 11 | `failed to close Network client` | Failed to close the Network client. | 
+| 12 | `failed to connect to CDI` | Failed to connect to the CDI client. | 
+| 13 | `failed to close CDI client` | Failed to close the CDI client. | 
+| 14 | `failed to find physical infra by name` | Failed to find Physical Infrastructure by name. | 
+| 15 | `unable to create controller` (controller: `LogicalServer`) | Failed to create the LogicalServer controller. | 
+| 16 | `unable to create controller` (controller: `TenantLogicalInfra`) | Failed to create the TenantLogicalInfra controller. | 
+| 17 | `unable to create controller` (controller: `DeviceAlert`) | Failed to create the DeviceAlert controller. | 
+| 18 | `unable to create controller` (controller: `MachineAlert`) | Failed to create the MachineAlert controller. | 
+| 19 | `unable to create webhook` (webhook: `LogicalServer`) | Failed to create the LogicalServer Webhook. | 
+| 20 | `unable to add metrics certificate watcher to manager` | Failed to add the metrics certificate watcher to the manager. | 
+| 21 | `unable to add webhook certificate watcher to manager` | Failed to add the Webhook certificate watcher to the manager. | 
+| 22 | `unable to set up health check` | Failed to set up health check. | 
+| 23 | `unable to set up ready check` | Failed to set up ready check. | 
+| 24 | `problem running manager` | Problem occurred while running the controller manager. | 
+| 25 | `Failed to setup alert receiver` | Failed to set up the alert receiver. | 
+| 26 | `Stopped alert receiver` | Alert receiver stopped unexpectedly. | 
+| 27 | `failed to encode messages for GET response` | Failed to encode messages for GET response. | 
+| 28 | `failed to decode message` | Failed to decode the request message. | 
+| 29 | `failed to create RPMAlert resource` | Failed to create RPMAlert resource. | 
+| 30 | `expected labels are missing in alert` | Required labels (hostname, server ID) are missing in the alert. | 
+| 31 | `expected labels are missing in alert` | Required labels (GPU model, GPU UUID) are missing in the alert. | 
+| 32 | `error encoding messages for getHandler` | Message encoding error in dump getHandler. | 
+| 33 | `failed to decode message` | Failed to decode the request message for dump HTTP method. | 
+| 34 | `error encoding messages for getHandler` | Message encoding error in health check HTTP method. | 
+| 35 | `Server stopped` | Alert receiver server stopped unexpectedly. | 
+| 36 | `no available CDI resource found` | No available CDI resource found. | 
+| 37 | `another logical server is securing CDI resource` | Another LogicalServer is securing the CDI resource. | 
+| 38 | `VM host is being provisioned` | VM host is being provisioned. | 
+| 39 | `failed to get logical server: <req>: <err>` | Failed to retrieve LogicalServer resource. | 
+| 40 | `failed to init patch helper: <err>` | Failed to initialize patch helper. | 
+| 41 | `failed to patch logical server: <err>` | Failed to apply patch to LogicalServer. | 
+| 42 | `unhandled LogicalServer state: <state>` | Unhandled LogicalServer state. | 
+| 43 | `invalid server type` | Invalid server type. | 
+| 44 | `failed to register COTS server: <err>` | Failed to register COTS Server. | 
+| 45 | `failed to register VM server: <err>` | Failed to register VM server. | 
+| 46 | `failed to create composed server: <err>` | Failed to create Composed Server. | 
+| 47 | `invalid server spec in status: <spec>` | Invalid server spec in status. | 
+| 48 | `failed to retrieve machine info: <err>` | Failed to retrieve machine information. | 
+| 49 | `failed to request OS deployment: <err>` | Failed to request OS deployment. | 
+| 50 | `failed to set IP addresses in status: <err>` | Failed to set IP addresses in status. | 
+| 51 | `failed to update logical server network: <err>` | Failed to update LogicalServer network. | 
+| 52 | `failed to retrieve cdi machine information: <err>` | Failed to retrieve CDI machine information. | 
+| 53 | `failed to register composed server: <err>` | Failed to register Composed Server. | 
+| 54 | `failed to power off maas machine: <err>` | Failed to power off MAAS machine. | 
+| 55 | `only worker role can detach from tenant logical infra` | Only the Worker role can detach from Tenant Logical Infrastructure. | 
+| 56 | `only composed server can detach from tenant logical infra` | Only a Composed Server can detach from Tenant Logical Infrastructure. | 
+| 57 | `failed to kubeadm reset: <err>` | Failed to reset kubeadm. | 
+| 58 | `failed to get applied GPU spec: <err>` | Failed to retrieve the applied GPU spec. | 
+| 59 | `failed to check for existing securing CDI resource: <err>` | Failed to check for existing CDI resource securing. | 
+| 60 | `failed to reconfigure GPUs: <err>` | Failed to reconfigure GPUs. | 
+| 61 | `unsupported GPU spec change: <type>, old=<old>, new=<new>` | Unsupported GPU spec change type. | 
+| 62 | `failed to power on maas machine: <err>` | Failed to power on MAAS machine. | 
+| 63 | `tenant logical infra ref must not be nil` | TenantLogicalInfra reference must not be nil. | 
+| 64 | `failed to power on server: <err>` | Failed to power on server. | 
+| 65 | `failed to find CDI management: <err>` | Failed to find CDI management entry. | 
+| 66 | `.status.requestedSpec is nil` | .status.requestedSpec is nil. | 
+| 67 | `.status.appliedSpec is nil` | .status.appliedSpec is nil. | 
+| 68 | `failed to build GPU commit parameter: old=<old>, new=<new>: <err>` | Failed to build GPU commit parameter. | 
+| 69 | `failed to scale GPU cards: <params>: <err>` | Failed to scale GPU Cards. | 
+| 70 | `GPU resource not found for name: <name>` | GPU resource not found for the specified name. | 
+| 71 | `.status.requestedSpec or .status.requestedSpec.TenantLogicalInfraRef is nil` | requestedSpec or TenantLogicalInfraRef is nil. | 
+| 72 | `failed to build NWInterfaces after spare join: <err>` | Failed to build NWInterfaces after spare join. | 
+| 73 | `failed to request VLAN addition: <err>` | Failed to request VLAN addition. | 
+| 74 | `failed to request network update: <err>` | Failed to request network update. | 
+| 75 | `TenantLogicalInfraRefs do not match: requested=<req>, previous=<prev>` | TenantLogicalInfraRefs do not match. | 
+| 76 | `failed to request kubeadm join: <err>` | Failed to request kubeadm join. | 
+| 77 | `current tenant logical infra ref is nil` | Current TenantLogicalInfra reference is nil. | 
+| 78 | `failed to delete logical server record: <err>` | Failed to delete LogicalServer record. | 
+| 79 | `failed to update logical server status: <err>` | Failed to update LogicalServer status. | 
+| 80 | `appliedSpec is nil, cannot proceed with deletion` | appliedSpec is nil; cannot proceed with deletion. | 
+| 81 | `invalid server type in status: <type>` | Invalid server type in status. | 
+| 82 | `failed to cancel machine request: <err>` | Failed to cancel machine request. | 
+| 83 | `cannot delete machine in status: <status>` | Machine is in a status that cannot be deleted. | 
+| 84 | `failed to request OS release: <err>` | Failed to request OS release. | 
+| 85 | `failed to check if this is the last VM on the host: <err>` | Failed to check if this is the last VM on the host. | 
+| 86 | `cannot delete host for VM while there are still VMs` | Cannot delete host for VM while there are still VMs. | 
+| 87 | `failed to request machine destroy: <err>` | Failed to request machine destroy. | 
+| 88 | `failed to find CDI NIC record: <err>` | Failed to find CDI NIC record. | 
+| 89 | `failed to find CDI NIC by ResUUID: <err>` | Failed to find CDI NIC by ResUUID. | 
+| 90 | `failed to find CDI GPU by ResUUID: <err>` | Failed to find CDI GPU by ResUUID. | 
+| 91 | `failed to find CDI record` | Failed to find CDI record. | 
+| 92 | `failed to find CDI compute pool: <err>` | Failed to find CDI compute pool. | 
+| 93 | `failed to find cdi compute pool: <err>` | Failed to find CDI compute pool (alternate path). | 
+| 94 | `failed to find cdi client for physical infra ID <id>` | CDI client not found for the specified Physical Infrastructure ID. | 
+| 95 | `failed to find CDI box by ID: <err>` | Failed to find CDI box by ID. | 
+| 96 | `failed to find COTS server record: <err>` | Failed to find COTS Server record. | 
+| 97 | `failed to find COTS server: <err>` | Failed to find COTS Server. | 
+| 98 | `failed to find VLAN record: <err>` | Failed to find VLAN record. | 
+| 99 | `failed to find host logical server for VM: <err>` | Failed to find host LogicalServer for VM. | 
+| 100 | `failed to find machine for logical server: <err>` | Failed to find machine for LogicalServer. | 
+| 101 | `failed to get maas machine: <err>` | Failed to get MAAS machine. | 
+| 102 | `failed to get machine for LogicalServer: <err>` | Failed to get machine for LogicalServer. | 
+| 103 | `failed to get machine record: <err>` | Failed to get machine record. | 
+| 104 | `failed to get tenant logical infra: <err>` | Failed to get TenantLogicalInfra. | 
+| 105 | `failed to get IP address of: <err>` | Failed to get IP address. | 
+| 106 | `failed to get lease: <err>` | Failed to get lease information. | 
+| 107 | `failed to get cloud-config ConfigMap for role: <err>` | Failed to get cloud-config ConfigMap for role. | 
+| 108 | `failed to get cloud-config Secret for role: <err>` | Failed to get cloud-config Secret for role. | 
+| 109 | `failed to list CDI managements: <err>` | Failed to list CDI management entries. | 
+| 110 | `failed to list logical servers: <err>` | Failed to list LogicalServers. | 
+| 111 | `failed to list VM LogicalServers: <err>` | Failed to list VM LogicalServers. | 
+| 112 | `failed to create record for logical server: <err>` | Failed to create LogicalServer record. | 
+| 113 | `failed to create VLAN record: <err>` | Failed to create VLAN record. | 
+| 114 | `failed to create host LogicalServer: <err>` | Failed to create host LogicalServer. | 
+| 115 | `failed to create logical server for host for VM: <err>` | Failed to create LogicalServer for VM host. | 
+| 116 | `failed to create patch helper: <err>` | Failed to create patch helper. | 
+| 117 | `failed to delete VLAN record: <err>` | Failed to delete VLAN record. | 
+| 118 | `failed to delete host LogicalServer: <err>` | Failed to delete host LogicalServer. | 
+| 119 | `failed to update cdi machine name for logical server: <err>` | Failed to update CDI machine name for LogicalServer. | 
+| 120 | `failed to update logical server system ID: <err>` | Failed to update LogicalServer system ID. | 
+| 121 | `failed to decode existing vms annotation: <err>` | Failed to decode existing VMs annotation. | 
+| 122 | `failed to encode vms annotation: <err>` | Failed to encode VMs annotation. | 
+| 123 | `failed to add VM annotation to host: <err>` | Failed to add VM annotation to host. | 
+| 124 | `failed to extract namespace and name from logical server name: <err>` | Failed to extract namespace and name from LogicalServer name. | 
+| 125 | `failed to apply common fields to cdi request: <err>` | Failed to apply common fields to CDI request. | 
+| 126 | `failed to apply common fields to maas request: <err>` | Failed to apply common fields to MAAS request. | 
+| 127 | `failed to apply common fields to network request: <err>` | Failed to apply common fields to network request. | 
+| 128 | `failed to build MAAS network information list: <err>` | Failed to build MAAS network information list. | 
+| 129 | `failed to build NWInterfaces for composed server: <err>` | Failed to build NWInterfaces for Composed Server. | 
+| 130 | `failed to build NWInterfaces for COTS: <err>` | Failed to build NWInterfaces for COTS. | 
+| 131 | `failed to build NWInterfaces for VM server: <err>` | Failed to build NWInterfaces for VM server. | 
+| 132 | `failed to request CDI compose: <err>` | Failed to request CDI compose. | 
+| 133 | `failed to request CDI NIC modification: <err>` | Failed to request CDI NIC modification. | 
+| 134 | `failed to request machine registration: <err>` | Failed to request machine registration. | 
+| 135 | `failed to request VLAN delete: <err>` | Failed to request VLAN deletion. | 
+| 136 | `failed to request VM Compose: <err>` | Failed to request VM Compose. | 
+| 137 | `failed to request VM delete: <err>` | Failed to request VM deletion. | 
+| 138 | `failed to request vSW-VLAN addition: <err>` | Failed to request vSW-VLAN addition. | 
+| 139 | `failed to request Vsw VLAN addition: <err>` | Failed to request Vsw VLAN addition. | 
+| 140 | `failed to request vSW-VLAN delete: <err>` | Failed to request vSW-VLAN deletion. | 
+| 141 | `failed to request Vsw VLAN delete: <err>` | Failed to request Vsw VLAN deletion. | 
+| 142 | `failed to decide on COTS server: <err>` | Failed to decide on COTS Server. | 
+| 143 | `failed to decide on composed server: <err>` | Failed to decide on Composed Server. | 
+| 144 | `failed to decide on VM server: <err>` | Failed to decide on VM server. | 
+| 145 | `failed to search CDI devices: <err>` | Failed to search CDI devices. | 
+| 146 | `failed to search CDI resources: <err>` | Failed to search CDI resources. | 
+| 147 | `failed to select best COTS server: <err>` | Failed to select the best COTS Server. | 
+| 148 | `failed to select CDI resource for adding GPUs: model=<model>, num=<num>: <err>` | Failed to select CDI resource for adding GPUs. | 
+| 149 | `failed to select closest COTS server: <err>` | Failed to select the closest COTS Server. | 
+| 150 | `failed to sort CDI compute servers by closest: <err>` | Failed to sort CDI Compute Servers by proximity. | 
+| 151 | `failed to retrieve resource information: <err>` | Failed to retrieve resource information. | 
+| 152 | `failed to check CDI box status: <err>` | Failed to check CDI box status. | 
+| 153 | `failed to check if host is capable for VM: <err>` | Failed to check if host is capable for VM. | 
+| 154 | `failed to check if host logical server status is normal: <err>` | Failed to check if host LogicalServer status is normal. | 
+| 155 | `failed to unmarshal cloud-configs: <err>` | Failed to deserialize cloud-configs from JSON. | 
+| 156 | `failed to unmarshal ProductInfo from JSON: <err>` | Failed to deserialize ProductInfo from JSON. | 
+| 157 | `no CDI compute server found matching the specifications: exclude-NIC=<nics>: <err>` | No CDI Compute Server found matching the specifications. | 
+| 158 | `no control plane logical server found in the TenantLogicalInfra: <infra>` | No Control Plane LogicalServer found in TenantLogicalInfra. | 
+| 159 | `no COTS servers found matching the specifications` | No COTS Servers found matching the specifications. | 
+| 160 | `no IP address found in machine interface <iface> that matches CIDR <cidr>` | No IP address matching the CIDR found in the NIC. | 
+| 161 | `no MaasMachineID found in control planes in TenantLogicalInfra: <infra>` | No MaasMachineID found in control planes of TenantLogicalInfra. | 
+| 162 | `no sufficient CDI resources found: <err>` | Insufficient CDI resources found. | 
+| 163 | `not enough CDI resources: required=<req>, storages=<s>, GPUs=<g>, NICs=<n>: <err>` | Insufficient CDI resources. | 
+| 164 | `not found cloud-config for the specified location and role: location=<loc>, role=<role>` | cloud-config not found for the specified location and role. | 
+| 165 | `not found manager interface in joining cluster <cluster>` | Manager interface not found in the joining cluster. | 
+| 166 | `required host network interfaces not found: ifaces=<ifaces>` | Required host network interfaces not found. | 
+| 167 | `selected GPU count mismatch: expected=<exp>, got=<got>` | Selected GPU count mismatch. | 
+| 168 | `cdiID is nil` | CDI ID is nil. | 
+| 169 | `logical server reference is nil` | LogicalServer reference is nil. | 
+| 170 | `tenant logical infra reference is nil` | TenantLogicalInfra reference is nil. | 
+| 171 | `AppliedSpec is nil for VM LogicalServer: <name>` | AppliedSpec is nil for VM LogicalServer. | 
+| 172 | `CPU, Memory, Storage specs must be specified for VM LogicalServer: <name>` | CPU, Memory, and Storage specs must be specified for VM LogicalServer. | 
+| 173 | `COTS server does not have NIC for application data: tCots=<cots>` | COTS Server does not have a NIC for Application Data Network. | 
+| 174 | `apldata NIC info not found in CDI compute server: tCdiComp=<cdi>` | Application Data NIC information not found in CDI Compute Server. | 
+| 175 | `MAC address <mac> not found in machine interfaces` | MAC address not found in machine interfaces. | 
+| 176 | `CIDR is nil for network type <type> in tenant <tenant>` | CIDR is nil for the network type in tenant. | 
+| 177 | `CNI CIDR is nil in tenant <tenant>` | CNI CIDR is nil in tenant. | 
+| 178 | `CNI CIDR or VLAN ID is nil in tenant <tenant>` | CNI CIDR or VLAN ID is nil in tenant. | 
+| 179 | `host CIDR is nil in tenant <tenant>` | Host CIDR is nil in tenant. | 
+| 180 | `host CIDR or VLAN ID is nil in tenant <tenant>` | Host CIDR or VLAN ID is nil in tenant. | 
+| 181 | `manager CIDR is nil in tenant <tenant>` | Manager CIDR is nil in tenant. | 
+| 182 | `VLAN ID is nil for network type <type> in tenant <tenant>` | VLAN ID is nil for the network type in tenant. | 
+| 183 | `application data CIDR is nil in tenant <tenant>` | Application Data CIDR is nil in tenant. | 
+| 184 | `invalid logical server name format: <name>` | Invalid LogicalServer name format. | 
+| 185 | `invalid role for cloud-config retrieval: role=<role>` | Invalid role for cloud-config retrieval. | 
+| 186 | `invalid role for cloud-init user data retrieval: role=<role>` | Invalid role for cloud-init user data retrieval. | 
+| 187 | `invalid role for COTS server: <role>` | Invalid role for COTS Server. | 
+| 188 | `invalid role type for composed server: <type>` | Invalid role type for Composed Server. | 
+| 189 | `invalid role type for VM server: <type>` | Invalid role type for VM server. | 
+| 190 | `invalid role type: <type>` | Invalid role type. | 
+| 191 | `invalid server type for COTS server: <type>` | Invalid server type for COTS Server. | 
+| 192 | `invalid server type in status: <type>` | Invalid server type in status (deletion flow). | 
+| 193 | `unsupported applied server type: <type>` | Unsupported applied server type. | 
+| 194 | `unsupported applied server type for spare join: <type>` | Unsupported applied server type for spare join. | 
+| 195 | `unsupported CDI request type` | Unsupported CDI request type. | 
+| 196 | `unsupported MAAS request type` | Unsupported MAAS request type. | 
+| 197 | `unsupported Network request type` | Unsupported network request type. | 
+| 198 | `location must be specified for cloud-config retrieval` | Location must be specified for cloud-config retrieval. | 
+| 199 | `consumerRef must be specified when bootstrap.dataSecretName is set` | consumerRef must be specified when bootstrap.dataSecretName is set. | 
+| 200 | `'cloud-configs' key does not exist in ConfigMap: <cm>` | The 'cloud-configs' key does not exist in ConfigMap. | 
+| 201 | `'value' key does not exist in Secret: <secret>` | The 'value' key does not exist in Secret. | 
+| 202 | `unable to get ConfigMap of cloud-init user data: <err>` | Failed to get ConfigMap for cloud-init user data. | 
+| 203 | `unable to get Secret of cloud-init user data: <err>` | Failed to get Secret for cloud-init user data. | 
+| 204 | `capable host for VM is not found, but undecided host <host> exists: <err>` | No capable host for VM found, but an undecided host exists. | 
+| 205 | `capable host for VM is not found, create new LogicalServer <name>: <err>` | No capable host for VM found; creating a new LogicalServer. | 
+| 206 | `capable host <host> is not provisioned: <err>` | Capable host is not provisioned. | 
+| 207 | `expected mgr is not nil, but got nil` | mgr must not be nil (initialization check). | 
+| 208 | `expected query is set, but may not be set correctly` | Query may not be set correctly. | 
+| 209 | `expected TenantLogicalInfra spec to match a found Tenant records, but mismatch occurred` | TenantLogicalInfra spec does not match the found Tenant records. | 
+| 210 | `expected TenantLogicalInfra spec to match inserted record, but mismatch occurred` | TenantLogicalInfra spec does not match the inserted record. | 
+| 211 | `failed to add finalizer: <err>` | Failed to add finalizer. | 
+| 212 | `failed to count LogicalServer records: <err>` | Failed to count LogicalServer records. | 
+| 213 | `failed to create TenantLogicalInfra: <err>` | Failed to create TenantLogicalInfra. | 
+| 214 | `failed to delete the Tenant records: <err>` | Failed to delete Tenant records. | 
+| 215 | `failed to fetch TenantLogicalInfra: <err>` | Failed to fetch TenantLogicalInfra. | 
+| 216 | `failed to fetch the Tenant records: <err>` | Failed to fetch Tenant records. | 
+| 217 | `failed to finalize TenantLogicalInfra: <err>` | Failed to finalize TenantLogicalInfra. | 
+| 218 | `failed to initialize TenantLogicalInfra: <err>` | Failed to initialize TenantLogicalInfra. | 
+| 219 | `failed to insert for TenantLogicalInfra: <err>` | Failed to insert TenantLogicalInfra record. | 
+| 220 | `failed to patch TenantLogicalInfra status.state: <err>` | Failed to patch TenantLogicalInfra status.state. | 
+| 221 | `failed to patch TenantLogicalInfra status: <err>` | Failed to patch TenantLogicalInfra status. | 
+| 222 | `failed to patch TenantLogicalInfra to add finalizer: <err>` | Failed to patch TenantLogicalInfra to add finalizer. | 
+| 223 | `failed to patch TenantLogicalInfra to remove Finalizer: <err>` | Failed to patch TenantLogicalInfra to remove finalizer. | 
+| 224 | `invalid state(<state>) for TenantLogicalInfra` | Invalid state for TenantLogicalInfra. | 
+| 225 | `expected CompletedTime is not nil in completed, but got nil` | CompletedTime must not be nil in completed state. | 
+| 226 | `expected mgr is not nil, but got nil` | mgr must not be nil. | 
+| 227 | `expected query is set, but may not be set correctly` | Query may not be set correctly. | 
+| 228 | `failed to delete expired DeviceAlert: <err>` | Failed to delete expired DeviceAlert. | 
+| 229 | `failed to execute Finalizer process for state '<state>': <err>` | Failed to execute Finalizer process for the specified state. | 
+| 230 | `failed to execute Reconcile process for state '<state>': <err>` | Failed to execute Reconcile process for the specified state. | 
+| 231 | `failed to fetch DeviceAlert: <err>` | Failed to fetch DeviceAlert. | 
+| 232 | `failed to finalize DeviceAlert: <err>` | Failed to finalize DeviceAlert. | 
+| 233 | `failed to find CDI GPU record by UUID(<uuid>): <err>` | Failed to find CDI GPU record by UUID. | 
+| 234 | `failed to find COTS server GPU record by UUID(<uuid>): <err>` | Failed to find COTS Server GPU record by UUID. | 
+| 235 | `failed to init patch helper: <err>` | Failed to initialize patch helper. | 
+| 236 | `failed to patch DeviceAlert for addFinalizer: <err>` | Failed to patch DeviceAlert to add finalizer. | 
+| 237 | `failed to patch DeviceAlert for removeFinalizer: <err>` | Failed to patch DeviceAlert to remove finalizer. | 
+| 238 | `failed to patch DeviceAlert resource: <err>` | Failed to patch DeviceAlert resource. | 
+| 239 | `failed to patch DeviceAlert status on Finalize: <err>` | Failed to patch DeviceAlert status during Finalize. | 
+| 240 | `failed to patch DeviceAlert status on Reconcile: <err>` | Failed to patch DeviceAlert status during Reconcile. | 
+| 241 | `failed to reconcile DeviceAlert: <err>` | Failed to reconcile DeviceAlert. | 
+| 242 | `failed to set fault flag for CDI GPU table: <err>` | Failed to set fault flag for CDI GPU table. | 
+| 243 | `failed to set fault flag for COTS GPU table: <err>` | Failed to set fault flag for COTS GPU table. | 
+| 244 | `failed to update status for CDI GPU: <err>` | Failed to update CDI GPU status. | 
+| 245 | `failed to update status for COTS server GPU: <err>` | Failed to update COTS Server GPU status. | 
+| 246 | `failed to update status in CDI GPU record by UUID(<uuid>): <err>` | Failed to update CDI GPU record status by UUID. | 
+| 247 | `failed to update status in COTS server GPU record by UUID(<uuid>): <err>` | Failed to update COTS Server GPU record status by UUID. | 
+| 248 | `unexpected state(<state>) is detected in doFinalize` | Unexpected state detected in doFinalize. | 
+| 249 | `unexpected state(<state>) is detected in doReconcile` | Unexpected state detected in doReconcile. | 
+| 250 | `expected CompletedTime is not nil in completed, but got nil` | CompletedTime must not be nil in completed state. | 
+| 251 | `expected mgr is not nil, but got nil` | mgr must not be nil. | 
+| 252 | `expected query is set, but may not be set correctly` | Query may not be set correctly. | 
+| 253 | `failed to delete expired MachineAlert: <err>` | Failed to delete expired MachineAlert. | 
+| 254 | `failed to execute Finalizer process for state '<state>': <err>` | Failed to execute Finalizer process for the specified state. | 
+| 255 | `failed to execute Reconcile process for state '<state>': <err>` | Failed to execute Reconcile process for the specified state. | 
+| 256 | `failed to fetch MachineAlert: <err>` | Failed to fetch MachineAlert. | 
+| 257 | `failed to finalize MachineAlert: <err>` | Failed to finalize MachineAlert. | 
+| 258 | `failed to get DCIMachine : <err>` | Failed to get DCIMachine. | 
+| 259 | `failed to get LogicalServer from serverRef: <err>` | Failed to get LogicalServer from serverRef. | 
+| 260 | `failed to get LogicalServer: <name>: <err>` | Failed to get LogicalServer. | 
+| 261 | `failed to get Machine from LogicalServer: <err>` | Failed to get Machine from LogicalServer. | 
+| 262 | `failed to get ownerMachine: <err>` | Failed to get owner Machine. | 
+| 263 | `failed to handle machine alert: <err>` | Failed to handle machine alert. | 
+| 264 | `failed to init patch helper: <err>` | Failed to initialize patch helper. | 
+| 265 | `failed to patch MachineAlert for addFinalizer: <err>` | Failed to patch MachineAlert to add finalizer. | 
+| 266 | `failed to patch MachineAlert for removeFinalizer: <err>` | Failed to patch MachineAlert to remove finalizer. | 
+| 267 | `failed to patch MachineAlert resource: <err>` | Failed to patch MachineAlert resource. | 
+| 268 | `failed to patch MachineAlert status on Finalize: <err>` | Failed to patch MachineAlert status during Finalize. | 
+| 269 | `failed to patch MachineAlert status on Reconcile: <err>` | Failed to patch MachineAlert status during Reconcile. | 
+| 270 | `failed to patch machine annotations: <err>` | Failed to patch machine annotations. | 
+| 271 | `failed to reconcile MachineAlert: <err>` | Failed to reconcile MachineAlert. | 
+| 272 | `failed to remediate Machine: <err>` | Failed to remediate Machine. | 
+| 273 | `failed to set fault flag for Machine to Database: <err>` | Failed to set fault flag for Machine in Database. | 
+| 274 | `failed to update status for CDI compute pool: <err>` | Failed to update CDI Compute Pool status. | 
+| 275 | `failed to update status for COTS server pool: <err>` | Failed to update COTS Server Pool status. | 
+| 276 | `failed to update status in CDI compute pool record by ServerID(<id>): <err>` | Failed to update CDI Compute Pool record status by ServerID. | 
+| 277 | `failed to update status in COTS server pool record by ServerID(<id>): <err>` | Failed to update COTS Server Pool record status by ServerID. | 
+| 278 | `got unexpected source(<source>)` | Received an alert from an unexpected source. | 
+| 279 | `unexpected LogicalServer type: <type>` | Unexpected LogicalServer type. | 
+| 280 | `unexpected nil AppliedSpec in LogicalServer status` | AppliedSpec is nil in LogicalServer status. | 
+| 281 | `unexpected nil ServerID in LogicalServer status` | ServerID is nil in LogicalServer status. | 
+| 282 | `unexpected state(<state>) is detected in doFinalize` | Unexpected state detected in doFinalize. | 
+| 283 | `unexpected state(<state>) is detected in doReconcile` | Unexpected state detected in doReconcile. | 
+| 284 | `failed to patch object: <err>` | Failed to patch object. | 
+| 285 | `failed to patch status of object: <err>` | Failed to patch object status. | 
+| 286 | `expected Alerts HTTP method handler to be not nil, but got nil` | Alerts HTTP method handler is nil. | 
+| 287 | `expected HTTP method handler to be not nil, but got nil` | HTTP method handler is nil. | 
+| 288 | `expected Logger has a non-nil sink, but got nil` | Logger sink is nil. | 
+| 289 | `expected Logger in options to be not nil, but got nil` | Logger in options is nil. | 
+| 290 | `expected Logger to be not nil, but got nil` | Logger is nil. | 
+| 291 | `expected options and Logger in options to be not nil, but got nil` | options and Logger are nil. | 
+| 292 | `failed to create alerts handler: <err>` | Failed to create alerts handler. | 
+| 293 | `failed to create handler for alert receiver: <err>` | Failed to create handler for alert receiver. | 
+| 294 | `failed to create healthz handler: <err>` | Failed to create healthz handler. | 
+| 295 | `failed to create Healthz HTTP method: <err>` | Failed to create Healthz HTTP method. | 
+| 296 | `no servers to select from` | No servers available to select from. | 
+| 297 | `server spec is smaller than target spec: <spec> vs <target>` | Server spec is smaller than the target spec. | 
+| 298 | `spec is nil` | Spec is nil. | 
+| 299 | `failed to select GPUs to reserve: old=<old>, new=<new>: <err>` | Failed to select GPUs to reserve. | 
+| 300 | `failed to get VMs annotation of <name>: <err>` | Failed to get VMs annotation of host LogicalServer. | 
+| 301 | `failed to remove VM annotation from host <name>: <err>` | Failed to remove VM annotation from host LogicalServer. | 
+| 302 | `failed to remove VM annotation from host: <err>` | Failed to remove VM annotation from host LogicalServer (no host name). | 
+| 303 | `CNI IP address is not set in logical server's status: <nwinterfaces>` | CNI IP address is not set in LogicalServer status. | 
+| 304 | `failed to remove VM annotation from host or delete host: <err>` | Failed to remove VM annotation from host LogicalServer or delete host LogicalServer. | 
+|===
+
+'''
+
+=== Error Messages Output by cluster-api-provider-dci
+[cols="1,4,3,2",options="header"]
+|===
+| # | Error Message / Pattern | Summary | Notes
+
+| 1 | `Failed to initialize webhook certificate watcher` | Failed to initialize Webhook certificate watcher. | 
+| 2 | `to initialize metrics certificate watcher` | Failed to initialize metrics certificate watcher. | 
+| 3 | `unable to start manager` | Failed to start the controller manager. | 
+| 4 | `Unable to create secret caching client` | Failed to create secret caching client. | 
+| 5 | `Unable to create ClusterCache` | Failed to create ClusterCache. | 
+| 6 | `unable to create controller` (controller: `DCICluster`) | Failed to create the DCICluster controller. | 
+| 7 | `unable to create controller` (controller: `DCIMachine`) | Failed to create the DCIMachine controller. | 
+| 8 | `unable to add metrics certificate watcher to manager` | Failed to add metrics certificate watcher to the manager. | 
+| 9 | `unable to add webhook certificate watcher to manager` | Failed to add Webhook certificate watcher to the manager. | 
+| 10 | `unable to set up health check` | Failed to set up health check. | 
+| 11 | `unable to set up ready check` | Failed to set up ready check. | 
+| 12 | `problem running manager` | Problem occurred while running the controller manager. | 
+| 13 | `existing resource is used by another DCICluster` | Existing resource is in use by another DCICluster. | 
+| 14 | `failed to clean up on finalize: <err>` | Failed to clean up during finalize. | 
+| 15 | `failed to CreateOrPatch TenantLogicalInfra: <err>` | Failed to CreateOrPatch TenantLogicalInfra. | 
+| 16 | `failed to create scope instance: <err>` | Failed to create scope instance. | 
+| 17 | `failed to delete expired TenantLogicalInfra: <err>` | Failed to delete expired TenantLogicalInfra. | 
+| 18 | `failed to do finalize: <err>` | Failed to execute finalize process. | 
+| 19 | `failed to fetch DCICluster: <err>` | Failed to fetch DCICluster. | 
+| 20 | `failed to generate ObjectReference using DCICluster: <err>` | Failed to generate ObjectReference using DCICluster. | 
+| 21 | `failed to generate ObjectReference using tenantLogicalInfra: <err>` | Failed to generate ObjectReference using TenantLogicalInfra. | 
+| 22 | `failed to get owner cluster: <err>` | Failed to get owner cluster. | 
+| 23 | `failed to get related TenantLogicalInfra: <err>` | Failed to get related TenantLogicalInfra. | 
+| 24 | `failed to get TenantLogicalInfra: <err>` | Failed to get TenantLogicalInfra. | 
+| 25 | `failed to match tenantLogicalInfra uid: <err>` | Failed to match TenantLogicalInfra UID. | 
+| 26 | `failed to patch DCICluster: <err>` | Failed to patch DCICluster. | 
+| 27 | `failed to remove finalizer: <err>` | Failed to remove finalizer. | 
+| 28 | `failed to setup finalizer: <err>` | Failed to set up finalizer. | 
+| 29 | `related TenantLogicalInfra not found` | Related TenantLogicalInfra not found. | 
+| 30 | `unexpected DCICluster state: <state>` | Unexpected DCICluster state. | 
+| 31 | `failed to get GVKs of object: <err>` | Failed to get GVKs of object. | 
+| 32 | `related LogicalServer not found` | Related LogicalServer not found. | 
+| 33 | `card scaling add failed: requested GPU num (<req>) must be greater than current (<cur>)` | Card scaling add failed: requested GPU count must be greater than current count. | 
+| 34 | `card scaling delete failed: specified UUID '<uuid>' does not exist in LogicalServer assignments` | Card scaling delete failed: specified UUID does not exist in LogicalServer assignments. | 
+| 35 | `card scaling delete failed: inconsistent GPU num after deletion (deleteNum=<d>, requested=<req>, current=<cur>)` | Card scaling delete failed: inconsistent GPU count after deletion. | 
+| 36 | `card scaling delete failed: requested GPU num (<req>) must be less than current (<cur>)` | Card scaling delete failed: requested GPU count must be less than current count. | 
+| 37 | `card scaling replace failed: UUID list must be specified` | Card scaling replace failed: UUID list must be specified. | 
+| 38 | `expected Name and IPAddress in NWInterfaces are not nil, but got Name:<name>, IPAddress:<ip>` | Name or IPAddress in NWInterfaces is nil. | 
+| 39 | `failed to clean up on finalize: <err>` | Failed to clean up during finalize. | 
+| 40 | `failed to Create LogicalServer: <err>` | Failed to create LogicalServer. | 
+| 41 | `failed to create machine scope: <err>` | Failed to create machine scope. | 
+| 42 | `failed to delete expired LogicalServer: <err>` | Failed to delete expired LogicalServer. | 
+| 43 | `failed to do finalize: <err>` | Failed to execute finalize process. | 
+| 44 | `failed to generate ObjectReference using DCIMachine: <err>` | Failed to generate ObjectReference using DCIMachine. | 
+| 45 | `failed to generate ObjectReference using LogicalServer: <err>` | Failed to generate ObjectReference using LogicalServer. | 
+| 46 | `failed to get ClusterCR: <err>` | Failed to get Cluster custom resource. | 
+| 47 | `failed to get DCIClusterCR: <err>` | Failed to get DCICluster custom resource. | 
+| 48 | `failed to get dciMachine: <err>` | Failed to get DCIMachine. | 
+| 49 | `failed to get LogicalServer: <err>` | Failed to get LogicalServer. | 
+| 50 | `failed to get Node's ProviderID: <err>` | Failed to get Node ProviderID. | 
+| 51 | `failed to get ownerMachine: <err>` | Failed to get owner Machine. | 
+| 52 | `failed to get related LogicalServer for checking provisioned: <err>` | Failed to get related LogicalServer for provisioning check. | 
+| 53 | `failed to get related LogicalServer: <err>` | Failed to get related LogicalServer. | 
+| 54 | `failed to list LogicalServers: <err>` | Failed to list LogicalServers. | 
+| 55 | `failed to match LogicalServer uid: <err>` | Failed to match LogicalServer UID. | 
+| 56 | `failed to patch card scaling to LogicalServer: <err>` | Failed to patch card scaling to LogicalServer. | 
+| 57 | `failed to patch dciMachine status: <err>` | Failed to patch DCIMachine status. | 
+| 58 | `failed to patch LogicalServer for card scaling: <err>` | Failed to patch LogicalServer for card scaling. | 
+| 59 | `failed to patch LogicalServer for spare pattern: <err>` | Failed to patch LogicalServer for spare pattern. | 
+| 60 | `failed to remove finalizer: <err>` | Failed to remove finalizer. | 
+| 61 | `failed to select closest LogicalServer: <err>` | Failed to select the closest LogicalServer. | 
+| 62 | `failed to set label to Machine resource: <err>` | Failed to set label to Machine resource. | 
+| 63 | `failed to set LogicalServer for card scaling: unexpected case` | Failed to set LogicalServer for card scaling: unexpected case. | 
+| 64 | `failed to set LogicalServer for card scaling: <err>` | Failed to set LogicalServer for card scaling. | 
+| 65 | `failed to set LogicalServer for spare node: unexpected case` | Failed to set LogicalServer for Spare Node: unexpected case. | 
+| 66 | `failed to set LogicalServer for spare node: <err>` | Failed to set LogicalServer for Spare Node. | 
+| 67 | `failed to set Node's ProviderID: <err>` | Failed to set Node ProviderID. | 
+| 68 | `failed to setup finalizer: <err>` | Failed to set up finalizer. | 
+| 69 | `invalid dcimachine.status.state(<state>)` | Invalid DCIMachine status.state. | 
+| 70 | `invalid operation in card scaling annotation: op=<op>` | Invalid operation in card scaling annotation. | 
+| 71 | `lack of DCIMachine ProviderID` | DCIMachine ProviderID is missing. | 
+| 72 | `lack of HostName in LogicalServer status` | Hostname is missing in LogicalServer status. | 
+| 73 | `lack of NW interface information in LogicalServer status` | NW interface information is missing in LogicalServer status. | 
+| 74 | `location is empty, cannot set label to Machine resource` | Location is empty; cannot set label to Machine resource. | 
+| 75 | `parsing card scaling annotation failed: <err>` | Failed to parse card scaling annotation. | 
+| 76 | `server-type is empty, cannot set label to Machine resource` | Server type is empty; cannot set label to Machine resource. | 
+| 77 | `unexpected ProviderID found in Node. expect <exp>, but got <got>` | Unexpected ProviderID found in Node. | 
+| 78 | `expected Hostname found in DCIMachine.Status.Addresses as Type, but got no valid data` | Hostname not found in DCIMachine.Status.Addresses. | 
+| 79 | `failed to patch Node for setting ProviderID: <err>` | Failed to patch Node for setting ProviderID. | 
+| 80 | `fail to generate new scope from nil Cluster` | Failed to generate new scope from nil Cluster. | 
+| 81 | `fail to generate new scope from nil Machine` | Failed to generate new scope from nil Machine. | 
+| 82 | `fail to init patch helper` | Failed to initialize patch helper. | 
+|===
+
+'''
+
+
+== Error Messages Output by DCI Tenant Infrastructure (dci_tenant_infrastructure)
+Among the components of DCI Tenant Infrastructure, the ones that output error messages are scale-controller, app-conn-control-info-manager-dci, app-conn-info-maker-dci, and app-monitor-dci.
+The error messages output by each component are listed below.
+
+=== Error Messages Output by scale-controller
+[cols="1,4,3,2",options="header"]
+|===
+| # | Error Message / Pattern | Summary | Notes
+
+| 1 | `Failed to initialize webhook certificate watcher` | Failed to initialize Webhook certificate watcher. | 
+| 2 | `Failed to initialize metrics certificate watcher` | Failed to initialize metrics certificate watcher. | 
+| 3 | `unable to start manager` | Failed to start the controller manager. | 
+| 4 | `unable to setup manager` | Failed to set up the controller manager. | 
+| 5 | `problem running manager` | Problem occurred while running the controller manager. | 
+| 6 | `Failed to setup alert receiver` | Failed to set up the alert receiver. | 
+| 7 | `Stopped alert receiver` | Alert receiver stopped unexpectedly. | 
+| 8 | `failed to encode messages for GET response` | Failed to encode messages for GET response. | 
+| 9 | `failed to decode message` | Failed to decode the request message. | 
+| 10 | `failed to create CardAlert resource` | Failed to create CardAlert resource. | 
+| 11 | `expected labels are missing in alert` | Required labels are missing in the alert. | 
+| 12 | `error encoding messages for healthzHTTPMethod` | Message encoding error in health check HTTP method. | 
+| 13 | `error encoding messages for getHandler` | Message encoding error in dump getHandler. | 
+| 14 | `failed to decode message` | Failed to decode request message for dump HTTP method. | 
+| 15 | `Server stopped` | Alert receiver server stopped unexpectedly. | 
+| 16 | `expected options or Logger in options is not nil, but got nil` | options or Logger is nil. | 
+| 17 | `expected CardAlertNamespace in options to be not empty, but got empty` | CardAlertNamespace is empty. | 
+| 18 | `failed to add scale-controller scheme: <err>` | Failed to add scale-controller scheme. | 
+| 19 | `failed to add corev1 scheme: <err>` | Failed to add corev1 scheme. | 
+| 20 | `failed to get in-cluster config: <err>` | Failed to get In-Cluster configuration. | 
+| 21 | `failed to create client for In-Cluster: <err>` | Failed to create In-Cluster client. | 
+| 22 | `failed to create CardAlert deviceInfo['<node>']='<info>': <err>` | Failed to create CardAlert resource (with device information). | 
+| 23 | `expected options or Logger is not nil, but got nil` | options or Logger is nil. | 
+| 24 | `failed to create AlertsHTTPMethod for CardAlert: <err>` | Failed to create AlertsHTTPMethod for CardAlert. | 
+| 25 | `failed to create AlertReceiver for CardAlert: <err>` | Failed to create AlertReceiver for CardAlert. | 
+| 26 | `failed to create namespace for CardAlert: <err>` | Failed to create Namespace for CardAlert. | 
+| 27 | `failed to get CardAlert: <err>` | Failed to get CardAlert. | 
+| 28 | `failed to finalize CardAlert: <err>` | Failed to finalize CardAlert. | 
+| 29 | `failed to reconcile CardAlert: <err>` | Failed to reconcile CardAlert. | 
+| 30 | `expected mgr is not nil, but got nil` | mgr must not be nil. | 
+| 31 | `expected true or false, but got <val> for <envvar>` | Environment variable value is not true or false. | 
+| 32 | `expected <envvar> to be set, but got empty value` | Required environment variable is empty. | 
+| 33 | `expected NoExecute or NoSchedule, but got <val> for <envvar>` | Taint policy environment variable has an invalid value. | 
+| 34 | `failed to get TTL configuration from environment variable: <err>` | Failed to get TTL configuration from environment variable. | 
+| 35 | `expected ClientHelper is not nil, but got nil` | ClientHelper is nil. | 
+| 36 | `unexpected state(<state>) is detected in doReconcile` | Unexpected state detected in doReconcile. | 
+| 37 | `failed to update CardAlert status: <err>` | Failed to update CardAlert status. | 
+| 38 | `failed to execute Reconcile process for state '<state>': <err>` | Failed to execute Reconcile process for the specified state. | 
+| 39 | `failed to patch CardAlert status: <err>` | Failed to patch CardAlert status. | 
+| 40 | `failed to synchronize cached resource version of CardAlert <ns>/<name>: <err>` | Failed to synchronize cached resource version of CardAlert. | 
+| 41 | `failed to list CardScalingRequests: <err>` | Failed to list CardScalingRequests. | 
+| 42 | `failed to add finalizer to CardAlert: <err>` | Failed to add finalizer to CardAlert. | 
+| 43 | `failed to get other running CardAlerts: <err>` | Failed to get other running CardAlerts. | 
+| 44 | `failed to list CardAlerts: <err>` | Failed to list CardAlerts. | 
+| 45 | `failed to get Node: <err>` | Failed to get Node. | 
+| 46 | `failed to get Cluster Namespace from Node: <err>` | Failed to get Cluster Namespace from Node. | 
+| 47 | `failed to get Machine from Node: <err>` | Failed to get Machine from Node. | 
+| 48 | `failed to get DCIMachine from Machine: <err>` | Failed to get DCIMachine from Machine. | 
+| 49 | `failed to get LogicalServer name and namespace from DCIMachine: <err>` | Failed to get LogicalServer name and namespace from DCIMachine. | 
+| 50 | `failed to get LogicalServer: <err>` | Failed to get LogicalServer. | 
+| 51 | `failed to create CardScalingRequest: <err>` | Failed to create CardScalingRequest. | 
+| 52 | `failed to create MachineAlert: <err>` | Failed to create MachineAlert. | 
+| 53 | `node created by VM is not supported for auto replacement` | Node created by VM is not supported for auto replacement. | 
+| 54 | `unexpected server type in LogicalServer: <type>` | Unexpected server type in LogicalServer. | 
+| 55 | `failed to set controller reference to CardScalingRequest: <err>` | Failed to set controller reference to CardScalingRequest. | 
+| 56 | `failed to list MachineAlerts: <err>` | Failed to list MachineAlerts. | 
+| 57 | `failed to get CardScalingRequest: <err>` | Failed to get CardScalingRequest. | 
+| 58 | `failed CardAlert because auto replacement by CardScalingRequest failed with phase: <phase>` | CardAlert failed because auto replacement by CardScalingRequest failed. | 
+| 59 | `failed to get MachineAlert: <err>` | Failed to get MachineAlert. | 
+| 60 | `failed to get MachineAlert for deletion: <err>` | Failed to get MachineAlert for deletion. | 
+| 61 | `failed to delete MachineAlert: <err>` | Failed to delete MachineAlert. | 
+| 62 | `failed to create DeviceTaintRule: <err>` | Failed to create DeviceTaintRule. | 
+| 63 | `failed to list DeviceTaintRules: <err>` | Failed to list DeviceTaintRules. | 
+| 64 | `expected .status.completedTime is set when state is Completed, but not set` | completedTime is not set in Completed state. | 
+| 65 | `failed to delete expired CardAlert: <err>` | Failed to delete expired CardAlert. | 
+| 66 | `unexpected state(<state>) is detected in doFinalize` | Unexpected state detected in doFinalize. | 
+| 67 | `failed to patch CardAlert status: <err>` | Failed to patch CardAlert status during Finalize. | 
+| 68 | `failed to execute Finalizer process for state '<state>': <err>` | Failed to execute Finalizer process for the specified state. | 
+| 69 | `failed to remove finalizer from CardAlert: <err>` | Failed to remove finalizer from CardAlert. | 
+| 70 | `failed to get CardScalingRequest: <req>: <err>` | Failed to get CardScalingRequest. | 
+| 71 | `failed to finalize CardScalingRequest: <err>` | Failed to finalize CardScalingRequest. | 
+| 72 | `failed to reconcile CardScalingRequest: <err>` | Failed to reconcile CardScalingRequest. | 
+| 73 | `expected mgr is not nil, but got nil` | mgr must not be nil. | 
+| 74 | `failed to get TTL configuration from environment variable: <err>` | Failed to get TTL configuration from environment variable. | 
+| 75 | `expected ClientHelper is not nil, but got nil` | ClientHelper is nil. | 
+| 76 | `unexpected phase(<phase>) is detected in doReconcile` | Unexpected phase detected in doReconcile. | 
+| 77 | `failed to update CardScalingRequest status: <err>` | Failed to update CardScalingRequest status. | 
+| 78 | `failed to execute Reconcile process for state '<state>': <err>` | Failed to execute Reconcile process for the specified state. | 
+| 79 | `failed to patch CardScalingRequest status: <err>` | Failed to patch CardScalingRequest status. | 
+| 80 | `failed to synchronize cached resource version of CardScalingRequest <ns>/<name>: <err>` | Failed to synchronize cached resource version of CardScalingRequest. | 
+| 81 | `failed to list CardScalingRequests: <err>` | Failed to list CardScalingRequests. | 
+| 82 | `failed to add finalizer to CardScalingRequest: <err>` | Failed to add finalizer to CardScalingRequest. | 
+| 83 | `failed to get other running CardScalingRequests: <err>` | Failed to get other running CardScalingRequests. | 
+| 84 | `failed to get Node resource: <err>` | Failed to get Node resource. | 
+| 85 | `failed to get Cluster info from Node resource: <err>` | Failed to get Cluster info from Node resource. | 
+| 86 | `failed to get Machine resource from Node resource: <err>` | Failed to get Machine resource from Node resource. | 
+| 87 | `failed to get MachineDeployment resource from Machine resource: <err>` | Failed to get MachineDeployment resource from Machine resource. | 
+| 88 | `failed to get DCIMachineTemplate resource from MachineDeployment resource: <err>` | Failed to get DCIMachineTemplate resource from MachineDeployment resource. | 
+| 89 | `failed to get DCIMachine resource from Machine resource: <err>` | Failed to get DCIMachine resource from Machine resource. | 
+| 90 | `failed to get LogicalServer resource from DCIMachine resource: <err>` | Failed to get LogicalServer resource from DCIMachine resource. | 
+| 91 | `expected DCIMachine is not annotated for card scaling, but already annotated` | DCIMachine is already annotated for card scaling. | 
+| 92 | `failed to generate expected DCIMachineSpec after scaling: <err>` | Failed to generate expected DCIMachineSpec after scaling. | 
+| 93 | `failed to get valid DCIMachineTemplate after scaling: <err>` | Failed to get valid DCIMachineTemplate after scaling. | 
+| 94 | `failed to get valid MachineDeployment after scaling: <err>` | Failed to get valid MachineDeployment after scaling. | 
+| 95 | `expected OldDCIMachineInfo and NewDCIMachineInfo are not nil, but got nil` | OldDCIMachineInfo or NewDCIMachineInfo is nil. | 
+| 96 | `failed to get old DCIMachineTemplate resource from management cluster: <err>` | Failed to get old DCIMachineTemplate resource from management cluster. | 
+| 97 | `failed to create new DCIMachineTemplate instance: <err>` | Failed to create new DCIMachineTemplate instance. | 
+| 98 | `failed to create DCIMachineTemplate resource in management cluster: <err>` | Failed to create DCIMachineTemplate resource in management cluster. | 
+| 99 | `failed to create unique name for DCIMachineTemplate: <err>` | Failed to create unique name for DCIMachineTemplate. | 
+| 100 | `retry to create a new DCIMachineTemplate with new name(<name>): <err>` | Retrying to create a new DCIMachineTemplate with new name. | 
+| 101 | `failed to get new MachineDeployment after scaled resource from management cluster: <err>` | Failed to get new MachineDeployment after scaled resource from management cluster. | 
+| 102 | `failed to add annotation to new MachineDeployment after scaled resource: <err>` | Failed to add annotation to new MachineDeployment after scaled resource. | 
+| 103 | `failed to get old MachineDeployment resource from management cluster: <err>` | Failed to get old MachineDeployment resource from management cluster. | 
+| 104 | `failed to create new MachineDeployment instance: <err>` | Failed to create new MachineDeployment instance. | 
+| 105 | `failed to create MachineDeployment resource in management cluster: <err>` | Failed to create MachineDeployment resource in management cluster. | 
+| 106 | `failed to get DCIMachineTemplate resource from management cluster: <err>` | Failed to get DCIMachineTemplate resource from management cluster. | 
+| 107 | `failed to get NodeScalingRequest: <req>: <err>` | Failed to get NodeScalingRequest. | 
+| 108 | `failed to finalize NodeScalingRequest: <err>` | Failed to finalize NodeScalingRequest. | 
+| 109 | `failed to initialize reconcile: <err>` | Failed to initialize reconcile. | 
+| 110 | `failed to scale up node: <err>` | Failed to scale up Node. | 
+| 111 | `failed to scale down node: <node>: <err>` | Failed to scale down Node. | 
+| 112 | `nodeRequestType is invalid: NodeRequestType is <type>` | NodeRequestType is invalid. | 
+| 113 | `failed to proceed scale up node: <err>` | Failed to proceed with Node scale up. | 
+| 114 | `failed to proceed scale down node: <node>: <err>` | Failed to proceed with Node scale down. | 
+| 115 | `failed to delete expired NodeScalingRequest: <err>` | Failed to delete expired NodeScalingRequest. | 
+| 116 | `phase is invalid: <phase>` | Phase is invalid. | 
+| 117 | `failed to patch NodeScalingRequest status: <err>` | Failed to patch NodeScalingRequest status. | 
+| 118 | `failed to synchronize cached resource version of NodeScalingRequest <ns>/<name>: <err>` | Failed to synchronize cached resource version of NodeScalingRequest. | 
+| 119 | `expected manager is not nil, but got nil` | Manager must not be nil. | 
+| 120 | `failed to get provider type from environment variable: <err>` | Failed to get provider type from environment variable. | 
+| 121 | `failed to get TTL configuration from environment variable: <err>` | Failed to get TTL configuration from environment variable. | 
+| 122 | `expected ManagementClusterClient is not nil, but got nil` | ManagementClusterClient is nil. | 
+| 123 | `failed to list NodeScalingRequests` | Failed to list NodeScalingRequests. | 
+| 124 | `failed to get other NodeScalingRequest is running: <err>` | Failed to check for other running NodeScalingRequests. | 
+| 125 | `failed to get cluster namespace: no node found with annotations <ann1> and <ann2>` | Failed to get Cluster Namespace: no node found with the required annotations. | 
+| 126 | `failed to add finalizer: <err>` | Failed to add finalizer. | 
+| 127 | `failed to list NodeScalingRequests: <err>` | Failed to list NodeScalingRequests. | 
+| 128 | `parameter is nil: .spec.location(<loc>) .spec.serverSpec(<spec>)` | location or serverSpec parameter is nil. | 
+| 129 | `failed to get valid MachineDeployment list to scale up: <err>` | Failed to get valid MachineDeployment list for scale up. | 
+| 130 | `MachineDeployment (<md>) is in progress by other NodeScalingRequest (UID=<uid>)` | MachineDeployment is being processed by another NodeScalingRequest. | 
+| 131 | `progress condition (<cond>) is invalid` | Progress condition is invalid. | 
+| 132 | `failed to patch pre-request status: <err>` | Failed to patch pre-request status. | 
+| 133 | `valid MachineDeployment(<md>) found, but failed to scale up: clusterName(<name>), clusterNamespace(<ns>): <err>` | Valid MachineDeployment found but failed to scale up. | 
+| 134 | `failed to request DCIMachineTemplate list in clusterNamespace(<ns>) through client: <err>` | Failed to request DCIMachineTemplate list in cluster namespace through client. | 
+| 135 | `failed to request DockerMachineTemplate list in clusterNamespace(<ns>) through client: <err>` | Failed to request DockerMachineTemplate list in cluster namespace through client. | 
+| 136 | `provider type(<type>) is invalid` | Provider type is invalid. | 
+| 137 | `parameter is nil: mdBase(<md>)` | mdBase parameter is nil. | 
+| 138 | `failed to create DCIMachineTemplate(<name>) in clusterNamespace(<ns>): <err>` | Failed to create DCIMachineTemplate in cluster namespace. | 
+| 139 | `failed to create DockerMachineTemplate(<name>) in clusterNamespace(<ns>): <err>` | Failed to create DockerMachineTemplate in cluster namespace. | 
+| 140 | `failed to create MachineDeployment(<name>) in clusterNamespace(<ns>): <err>` | Failed to create MachineDeployment in cluster namespace. | 
+| 141 | `failed to get Information to scale down: <err>` | Failed to get information for scale down. | 
+| 142 | `failed to check if valid MachineDeployment exist or not: <err>` | Failed to check if valid MachineDeployment exists. | 
+| 143 | `failed to scale down by deleting MachineDeployment(<md>) in Namespace(<ns>): <err>` | Failed to scale down by deleting MachineDeployment. | 
+| 144 | `parameter is nil: .spec.node(<node>)` | spec.node parameter is nil. | 
+| 145 | `failed to request Node list to WorkloadCluster: <err>` | Failed to request Node list to Workload Cluster. | 
+| 146 | `failed to request Machine resource in clusterNamespace(<ns>) through client: <err>` | Failed to request Machine resource in cluster namespace through client. | 
+| 147 | `failed to request MachineDeployment in clusterNamespace(<ns>) through client: <err>` | Failed to request MachineDeployment in cluster namespace through client. | 
+| 148 | `not found valid clusterName(<name>) for MachineDeployment(<md>)` | Valid cluster name not found for MachineDeployment. | 
+| 149 | `not found valid Replicas for MachineDeployment(<md>): Replicas is nil` | Valid Replicas not found for MachineDeployment: Replicas is nil. | 
+| 150 | `not found valid Replicas for MachineDeployment(<md>), Replicas=<n>` | Valid Replicas not found for MachineDeployment. | 
+| 151 | `failed to patch annotation(<ann>) to true through client: <err>` | Failed to patch annotation to true through client. | 
+| 152 | `failed to scale down MachineDeployment(<md>) in Namespace(<ns>): <err>` | Failed to scale down MachineDeployment. | 
+| 153 | `failed to delete Machine(<machine>) in Namespace(<ns>): <err>` | Failed to delete Machine. | 
+| 154 | `parameter is nil: .status.desiredReplicas(<replicas>)` | desiredReplicas parameter is nil. | 
+| 155 | `not found target MachineDeployment(<md>) in clusterNamespace(<ns>): <err>` | Target MachineDeployment not found in cluster namespace. | 
+| 156 | `failed to remove in-progress labels from MachineDeployment: <md>: <err>` | Failed to remove in-progress labels from MachineDeployment. | 
+| 157 | `spec.node is nil` | spec.node is nil. | 
+| 158 | `not match clusterName(<name1>) with clusterName(<name2>) in MachineDeployment(<md>)` | Cluster names do not match in MachineDeployment. | 
+| 159 | `failed to get Node(<node>) for reasons other than 'not found': <err>` | Failed to get Node for reasons other than 'not found'. | 
+| 160 | `failed to get valid MachineSet with MachineDeployment UID(<uid>) in namespace(<ns>): <err>` | Failed to get valid MachineSet for MachineDeployment UID. | 
+| 161 | `failed to remove paused annotation from MachineSet binding MachineDeployment UID(<uid>) in namespace(<ns>): <err>` | Failed to remove paused annotation from MachineSet. | 
+| 162 | `failed to remove in-progress labels from MachineDeployment: <md>: <err>` | Failed to remove in-progress labels from MachineDeployment. | 
+| 163 | `failed to delete <type>MachineTemplate for MachineDeployment(<md>) in Namespace(<ns>): <err>` | Failed to delete MachineTemplate for MachineDeployment. | 
+| 164 | `failed to delete MachineDeployment(<md>) in Namespace(<ns>): <err>` | Failed to delete MachineDeployment. | 
+| 165 | `invalid NodeScalingRequest: should contain Condition with 'Completed'` | Invalid NodeScalingRequest: must contain a Condition with 'Completed'. | 
+| 166 | `failed to delete expired NodeScalingRequest: <err>` | Failed to delete expired NodeScalingRequest. | 
+| 167 | `failed to clean up on finalize: <err>` | Failed to clean up during finalize. | 
+| 168 | `failed to remove finalizer: <err>` | Failed to remove finalizer. | 
+| 169 | `failed to clean up MachineSet: <err>` | Failed to clean up MachineSet. | 
+| 170 | `failed to clean up MachineDeployment: <err>` | Failed to clean up MachineDeployment. | 
+| 171 | `failed to get MachineDeployment (<md>) in namespace (<ns>): <err>` | Failed to get MachineDeployment. | 
+| 172 | `failed to patch MachineDeployment (<md>) in namespace (<ns>): <err>` | Failed to patch MachineDeployment. | 
+| 173 | `failed to get MachineSet binding MachineDeployment UID (<uid>) in namespace (<ns>): <err>` | Failed to get MachineSet bound to MachineDeployment UID. | 
+| 174 | `failed to patch MachineSet (<ms>) in namespace (<ns>): <err>` | Failed to patch MachineSet. | 
+| 175 | `expected object to be CardScalingRequest but got <type>` | Object is not a CardScalingRequest. | 
+| 176 | `expected CardScalingRequest not to be nil, but got nil` | CardScalingRequest is nil. | 
+| 177 | `expected a CardScalingRequest object for the newObj but got <type>` | newObj is not a CardScalingRequest. | 
+| 178 | `expected a CardScalingRequest object but got <type>` | Object is not a CardScalingRequest. | 
+| 179 | `failed to get Node(<node>): <err>` | Failed to get Node. | 
+| 180 | `failed to get cluster info from node(<node>): <err>` | Failed to get Cluster info from Node. | 
+| 181 | `failed to get Machine from node(<node>): <err>` | Failed to get Machine from Node. | 
+| 182 | `failed to get MachineDeployment from Machine(<ns>/<machine>): <err>` | Failed to get MachineDeployment from Machine. | 
+| 183 | `expected MachineDeployment(<ns>/<md>) has no annotations for ClusterAutoscaler, but it has them` | MachineDeployment has ClusterAutoscaler annotations unexpectedly. | 
+| 184 | `failed to get DCIMachine from Machine(<ns>/<machine>): <err>` | Failed to get DCIMachine from Machine. | 
+| 185 | `failed to get LogicalServer from DCIMachine(<ns>/<dci>): <err>` | Failed to get LogicalServer from DCIMachine. | 
+| 186 | `expected applied spec type of LogicalServer(<ns>/<ls>) to be '<type>', but got spec '<spec>'` | Applied spec type of LogicalServer does not match expected type. | 
+| 187 | `expected LogicalServer(<ns>/<ls>) status.state to be '<state>', but got '<got>'` | LogicalServer status.state does not match expected state. | 
+| 188 | `failed to generate expected serverSpec after scaling: <err>` | Failed to generate expected serverSpec after scaling. | 
+| 189 | `failed to validate GPU UUIDs in scaling parameters: <err>` | Failed to validate GPU UUIDs in scaling parameters. | 
+| 190 | `expected all UUIDs in CardScalingRequest to exist in LogicalServer(<ns>/<ls>), but some do not. GPUSpec: <spec>` | Not all UUIDs in CardScalingRequest exist in LogicalServer. | 
+| 191 | `expected a NodeScalingRequest object but got <type>` | Object is not a NodeScalingRequest. | 
+| 192 | `expected a NodeScalingRequest is not nil, but got nil` | NodeScalingRequest is nil. | 
+| 193 | `expected a NodeScalingRequest object for the newObj but got <type>` | newObj is not a NodeScalingRequest. | 
+| 194 | `expected a NodeScalingRequest object but got <type>` | Object is not a NodeScalingRequest. | 
+| 195 | `expected node name is not nil, but got nil` | Node name is nil. | 
+| 196 | `failed to get Node(<node>): <err>` | Failed to get Node. | 
+| 197 | `failed to get Cluster namespace from Node(<node>): <err>` | Failed to get Cluster namespace from Node. | 
+| 198 | `failed to get Machine from Node(<node>): <err>` | Failed to get Machine from Node. | 
+| 199 | `failed to get MachineDeployment from Machine(<ns>/<machine>): <err>` | Failed to get MachineDeployment from Machine. | 
+| 200 | `expected the MachineDeployment(<ns>/<md>) associated with the Node(<node>) has auto-scaling disabled, but it has auto-scaling enabled` | MachineDeployment associated with Node has auto-scaling enabled unexpectedly. | 
+| 201 | `failed to get management cluster client: <err>` | Failed to get management cluster client. | 
+| 202 | `environment variable <var> is not set` | Environment variable is not set. | 
+| 203 | `failed to build config from kubeconfig path: <path>: <err>` | Failed to build config from kubeconfig path. | 
+| 204 | `failed to add Cluster API scheme: <err>` | Failed to add Cluster API scheme. | 
+| 205 | `failed to add DCI provider scheme: <err>` | Failed to add DCI provider scheme. | 
+| 206 | `failed to add Resource Pool Manager scheme: <err>` | Failed to add Resource Pool Manager scheme. | 
+| 207 | `failed to add Docker provider scheme: <err>` | Failed to add Docker provider scheme. | 
+| 208 | `failed to create client for management cluster: <err>` | Failed to create client for management cluster. | 
+| 209 | `expected machine is not nil, but got nil` | Machine is nil. | 
+| 210 | `expected InfrastructureRef kind for Machine(<ns>/<machine>) is <expected>, but got <got>` | InfrastructureRef kind for Machine does not match expected kind. | 
+| 211 | `failed to get DCIMachine name from Machine: <err>` | Failed to get DCIMachine name from Machine. | 
+| 212 | `failed to get DCIMachine resource: <err>` | Failed to get DCIMachine resource. | 
+| 213 | `expected MachineDeployment is not nil, but got nil` | MachineDeployment is nil. | 
+| 214 | `failed to get DCIMachineTemplate name from MachineDeployment(<md>) spec` | Failed to get DCIMachineTemplate name from MachineDeployment spec. | 
+| 215 | `failed to get DCIMachineTemplate name from MachineDeployment: <err>` | Failed to get DCIMachineTemplate name from MachineDeployment. | 
+| 216 | `failed to get DCIMachineTemplate resource: <err>` | Failed to get DCIMachineTemplate resource. | 
+| 217 | `failed to list DCIMachineTemplate resources to get allocatable DCIMachineTemplates: <err>` | Failed to list DCIMachineTemplate resources for allocatable templates. | 
+| 218 | `failed to create name for DCIMachineTemplate: <err>` | Failed to create name for DCIMachineTemplate. | 
+| 219 | `failed to create DCIMachineTemplate spec from NodeScalingRequest: <err>` | Failed to create DCIMachineTemplate spec from NodeScalingRequest. | 
+| 220 | `failed to create DCIMachineTemplate(<name>) in clusterNamespace(<ns>): <err>` | Failed to create DCIMachineTemplate in cluster namespace. | 
+| 221 | `failed to get DCIMachineTemplate(<name>) in Namespace(<ns>): <err>` | Failed to get DCIMachineTemplate in namespace. | 
+| 222 | `failed to check whether the DCIMachineTemplate(<name>) is free or not: <err>` | Failed to check whether DCIMachineTemplate is free. | 
+| 223 | `failed to delete DCIMachineTemplate(<name>) in Namespace(<ns>): <err>` | Failed to delete DCIMachineTemplate in namespace. | 
+| 224 | `failed to get MachineDeployment List through client: <err>` | Failed to get MachineDeployment List through client. | 
+| 225 | `failed to list DeviceTaintRules: <err>` | Failed to list DeviceTaintRules. | 
+| 226 | `failed to create DeviceTaintRule: <err>` | Failed to create DeviceTaintRule. | 
+| 227 | `failed to list DockerMachineTemplate resources to get allocatable DockerMachineTemplates: <err>` | Failed to list DockerMachineTemplate resources for allocatable templates. | 
+| 228 | `failed to create DockerMachineTemplate spec from NodeScalingRequest: <err>` | Failed to create DockerMachineTemplate spec from NodeScalingRequest. | 
+| 229 | `failed to create DockerMachineTemplate(<name>) in clusterNamespace(<ns>): <err>` | Failed to create DockerMachineTemplate in cluster namespace. | 
+| 230 | `failed to get DockerMachineTemplate(<name>) in Namespace(<ns>): <err>` | Failed to get DockerMachineTemplate in namespace. | 
+| 231 | `failed to check whether DockerMachineTemplate(<name>) is referred by other MachineDeployment: <err>` | Failed to check whether DockerMachineTemplate is referenced by other MachineDeployment. | 
+| 232 | `failed to delete DockerMachineTemplate(<name>) in Namespace(<ns>): <err>` | Failed to delete DockerMachineTemplate in namespace. | 
+| 233 | `failed to request MachineDeployment List through client: <err>` | Failed to request MachineDeployment List through client. | 
+| 234 | `expected DCIMachine is not nil, but got nil` | DCIMachine is nil. | 
+| 235 | `failed to get name and namespace of LogicalServer from dciMachine: <err>` | Failed to get LogicalServer name and namespace from DCIMachine. | 
+| 236 | `failed to get LogicalServer resource: <err>` | Failed to get LogicalServer resource. | 
+| 237 | `expected machine is not nil, but got nil` | Machine is nil. | 
+| 238 | `expected Machine(<machine>) labels is not nil, but got nil` | Machine labels are nil. | 
+| 239 | `failed to get MachineDeployment name from Machine(<machine>) labels` | Failed to get MachineDeployment name from Machine labels. | 
+| 240 | `failed to get MachineDeployment name from Machine: <err>` | Failed to get MachineDeployment name from Machine. | 
+| 241 | `failed to get MachineDeployment resource from management cluster: <err>` | Failed to get MachineDeployment resource from management cluster. | 
+| 242 | `failed to list MachineDeployment resources to get allocatable MachineDeployments: <err>` | Failed to list MachineDeployment resources for allocatable deployments. | 
+| 243 | `expected at least one MachineDeployment in the target cluster(<ns>/<name>), but got none` | No MachineDeployment exists in the target cluster. | 
+| 244 | `failed to create name for MachineDeployment: <err>` | Failed to create name for MachineDeployment. | 
+| 245 | `failed to list MachineDeployment resources to get used MachineDeployments: <err>` | Failed to list MachineDeployment resources for used deployments. | 
+| 246 | `failed to create MachineDeployment spec from NodeScalingRequest: <err>` | Failed to create MachineDeployment spec from NodeScalingRequest. | 
+| 247 | `failed to create MachineDeployment(<md>): <err>` | Failed to create MachineDeployment. | 
+| 248 | `failed to list MachineDeployment resources to check last MachineDeployment: <err>` | Failed to list MachineDeployment resources to check last MachineDeployment. | 
+| 249 | `failed to find the target MachineDeployment in the List(<list>)` | Target MachineDeployment not found in the list. | 
+| 250 | `expected node is not nil, but got nil` | Node is nil. | 
+| 251 | `expected Node(<node>) annotations is not nil, but got nil` | Node annotations are nil. | 
+| 252 | `failed to get Machine name from Node(<node>) annotations` | Failed to get Machine name from Node annotations. | 
+| 253 | `failed to get Machine name from Node: <err>` | Failed to get Machine name from Node. | 
+| 254 | `failed to get Cluster info from Node: <err>` | Failed to get Cluster info from Node. | 
+| 255 | `failed to get Machine resource: <err>` | Failed to get Machine resource. | 
+| 256 | `failed to get MachineSet owned by MachineDeployment with UID <uid>: <err>` | Failed to get MachineSet owned by MachineDeployment UID. | 
+| 257 | `failed to get Node resource: <name>: <err>` | Failed to get Node resource. | 
+| 258 | `expected node is not nil, but got nil` | Node is nil. | 
+| 259 | `expected Node(<node>) annotations is not nil, but got nil` | Node annotations are nil. | 
+| 260 | `failed to get Cluster info from Node(<node>) annotations: Namespace(<ns>), Name(<name>)` | Failed to get Cluster info from Node annotations. | 
+| 261 | `failed to list Nodes: <err>` | Failed to list Nodes. | 
+| 262 | `failed to list Node resources to get Cluster info: <err>` | Failed to list Node resources for Cluster info. | 
+| 263 | `failed to get Cluster info from any Node annotations` | Failed to get Cluster info from any Node annotations. | 
+| 264 | `expected object to get resource is not nil, but got nil` | Object to get resource is nil. | 
+| 265 | `failed to get resource(<key>) of kind <kind>: <err>` | Failed to get resource of specified kind. | 
+| 266 | `expected object list to list resources is not nil, but got nil` | Object list to list resources is nil. | 
+| 267 | `failed to list resources of kind <kind> in namespace <ns>: <err>` | Failed to list resources of specified kind. | 
+| 268 | `expected object to create resource is not nil, but got nil` | Object to create resource is nil. | 
+| 269 | `failed to create resource(<ns>/<name>) of kind <kind>: <err>` | Failed to create resource of specified kind. | 
+| 270 | `expected object to delete resource is not nil, but got nil` | Object to delete resource is nil. | 
+| 271 | `failed to delete resource(<ns>/<name>) of kind <kind>: <err>` | Failed to delete resource of specified kind. | 
+| 272 | `expected object to patch resource is not nil, but got nil` | Object to patch resource is nil. | 
+| 273 | `failed to patch resource(<ns>/<name>) of kind <kind>: <err>` | Failed to patch resource of specified kind. | 
+| 274 | `failed to convert to valid type <type>` | Failed to convert to valid type. | 
+| 275 | `failed to create a valid name` | Failed to create a valid name. | 
+| 276 | `provider type is empty: available(<dci>,<docker>)` | Provider type is empty. | 
+| 277 | `provider type(<type>) is invalid: available(<dci>,<docker>)` | Provider type is invalid. | 
+| 278 | `argument for setting TTL seconds is empty` | Argument for setting TTL seconds is empty. | 
+| 279 | `argument for setting TTL seconds cannot convert into int32: <err>` | Argument for setting TTL seconds cannot be converted to int32. | 
+| 280 | `argument for setting TTL seconds is invalid(<val>)` | Argument for setting TTL seconds has an invalid value. | 
+| 281 | `failed to marshal annotation info: <err>` | Failed to marshal annotation information. | 
+| 282 | `expected CardScalingRequest and DCIMachineSpec are not nil, but got nil` | CardScalingRequest or DCIMachineSpec is nil. | 
+| 283 | `expected NodeScalingRequest and ServerSpec is not nil, but got nil` | NodeScalingRequest or ServerSpec is nil. | 
+| 284 | `expected NodeScalingRequest and Location is not nil, but got nil` | NodeScalingRequest or Location is nil. | 
+| 285 | `expected ServerSpec and ScalingParameter are not nil, but got nil` | ServerSpec or ScalingParameter is nil. | 
+| 286 | `expected scaling parameter model(<model>) is the same as ServerSpec GPU(<gpu>), but different` | Scaling parameter model does not match ServerSpec GPU. | 
+| 287 | `expected either Num or UUIDs is specified in scaling parameter, but both are not specified` | Either Num or UUIDs must be specified in the scaling parameter. | 
+| 288 | `expected the number of GPUs to replace(<n>) is less than or equal to the current number of GPUs(<cur>), but greater` | Number of GPUs to replace exceeds the current GPU count. | 
+| 289 | `unsupported scaling parameter operation(<op>)` | Unsupported scaling parameter operation. | 
+| 290 | `expected the number of GPUs after scaling is greater than or equal to 0, but got <n>` | GPU count after scaling is less than 0. | 
+| 291 | `expected DCIMachineSpec is not nil, but got nil` | DCIMachineSpec is nil. | 
+| 292 | `failed to generate ServerSpec after scaling: <err>` | Failed to generate ServerSpec after scaling. | 
+| 293 | `expected Logger in options to be not nil, but got nil` | Logger in options is nil. | 
+| 294 | `expected Alerts HTTP method handler to be not nil, but got nil` | Alerts HTTP method handler is nil. | 
+| 295 | `expected Logger in options to be not nil, but got nil` | Logger in options is nil. | 
+| 296 | `failed to create Healthz HTTP method: <err>` | Failed to create Healthz HTTP method. | 
+| 297 | `expected Logger has a non-nil sink, but got nil` | Logger sink is nil. | 
+| 298 | `expected HTTP method handler to be not nil, but got nil` | HTTP method handler is nil. | 
+| 299 | `expected options and Logger in options to be not nil, but got nil` | options and Logger are nil. | 
+| 300 | `failed to create handler for alert receiver: <err>` | Failed to create handler for alert receiver. | 
+| 301 | `failed to create alerts handler: <err>` | Failed to create alerts handler. | 
+| 302 | `failed to create healthz handler: <err>` | Failed to create healthz handler. | 
+| 303 | `failed to get provider type from environment variable: <err>` | Failed to get provider type from environment variable. | 
+| 304 | `provider type(<type>) is invalid` | Provider type is invalid. | 
+| 305 | `unable to create NodeScalingRequest controller: <err>` | Failed to create NodeScalingRequest controller. | 
+| 306 | `unable to create NodeScalingRequest webhook: <err>` | Failed to create NodeScalingRequest Webhook. | 
+| 307 | `unable to create CardScalingRequest controller: <err>` | Failed to create CardScalingRequest controller. | 
+| 308 | `unable to create CardScalingRequest webhook: <err>` | Failed to create CardScalingRequest Webhook. | 
+| 309 | `unable to create CardAlert controller: <err>` | Failed to create CardAlert controller. | 
+| 310 | `failed to get client helper option: <err>` | Failed to get client helper option. | 
+| 311 | `failed to create management cluster client helper: <err>` | Failed to create management cluster client helper. | 
+| 312 | `failed to setup NodeScalingRequest with manager: <err>` | Failed to set up NodeScalingRequest with manager. | 
+| 313 | `failed to setup CardScalingRequest with manager: <err>` | Failed to set up CardScalingRequest with manager. | 
+| 314 | `failed to setup CardAlert with manager: <err>` | Failed to set up CardAlert with manager. | 
+| 315 | `unable to add metrics certificate watcher to manager: <err>` | Failed to add metrics certificate watcher to manager. | 
+| 316 | `unable to add webhook certificate watcher to manager: <err>` | Failed to add Webhook certificate watcher to manager. | 
+| 317 | `unable to set up health check: <err>` | Failed to set up health check. | 
+| 318 | `unable to set up ready check: <err>` | Failed to set up ready check. | 
+| 319 | `failed to initialize <type> certificate watcher: <err>` | Failed to initialize certificate watcher. | 
+| 320 | `expected NodeScalingRequest is not nil, but got nil` | NodeScalingRequest must not be nil. | 
+| 321 | `expected CardScalingRequest and its NewDCIMachineInfo are not nil, but got nil: <err>` | CardScalingRequest or NewDCIMachineInfo is nil. | 
+| 322 | `expected MachineDeployment and its parameters are not nil, but got nil: <err>` | MachineDeployment or its parameters are nil. | 
+| 323 | `failed to deep copy MachineDeployment template` | Failed to deep copy MachineDeployment template. | 
+|===
+
+'''
+
+=== Error Messages Output by app-conn-control-info-manager-dci
+[cols="1,4,3,2",options="header"]
+|===
+| # | Error Message / Pattern | Summary | Notes
+
+| 1 | `Failed to start manager` | Failed to start the controller manager. | 
+| 2 | `Failed to create controller` (controller: `connectendpoint`) | Failed to create the ConnectEndpoint controller. | 
+| 3 | `Failed to create controller` (controller: `dciappstate`) | Failed to create the DCIAppState controller. | 
+| 4 | `Failed to set up health check` | Failed to set up health check. | 
+| 5 | `Failed to set up ready check` | Failed to set up ready check. | 
+| 6 | `Failed to run manager` | Problem occurred while running the controller manager. | 
+| 7 | `<func> could not find DCIAppStateCR, but it will not requeue.` | DCIAppStateCR not found (no requeue). | Not an error if the log does not contain "sendSignal" and does not contain "err=".
+| 8 | `<func> is unable to fetch the DCIAppStateCR.` | Failed to fetch DCIAppStateCR. | 
+| 9 | `<func> could not find ConnectEndpointCR and failed to retrieve it.` | ConnectEndpointCR not found and retrieval failed. | Not an error if the log does not contain "sendSignal" and does not contain "err=".
+| 10 | `<func> is unable to fetch ConnectEndpointCR.` | Failed to fetch ConnectEndpointCR. | 
+| 11 | `<func> failed to update the ConnectEndpointCR.` | Failed to update ConnectEndpointCR. | 
+| 12 | `<func> found a DeletionTimestamp on the DCIAppStateCR.` | DeletionTimestamp is set on DCIAppStateCR. | Not an error if the log does not contain "sendSignal" and does not contain "err=".
+| 13 | `<func> found that the DCIAppStateCR. labels did not match.` | DCIAppStateCR labels did not match. | Not an error if the log does not contain "sendSignal" and does not contain "err=".
+| 14 | `<func> failed to update the DCIAppStateCR.` | Failed to update DCIAppStateCR. | 
+| 15 | `<func> could not find ConnectEndpointCR, but it will not requeue.` | ConnectEndpointCR not found (no requeue). | Not an error if the log does not contain "sendSignal" and does not contain "err=".
+| 16 | `<func> is unable to fetch the ConnectEndpointCR.` | Failed to fetch ConnectEndpointCR. | 
+| 17 | `<func> failed to get my pod name from the environment variable, so it will not requeue.` | Failed to get Pod name from environment variable (no requeue). | Not an error if the log does not contain "sendSignal" and does not contain "err=".
+| 18 | `<func> failed to get my pod namespace from the environment variable, so it will not requeue.` | Failed to get Pod namespace from environment variable (no requeue). | Not an error if the log does not contain "sendSignal" and does not contain "err=".
+| 19 | `<func> could not find DCIAppStateCR.` | DCIAppStateCR not found. | Not an error if the log does not contain "sendSignal" and does not contain "err=".
+| 20 | `<func> is unable to fetch DCIAppStateCR.` | Failed to fetch DCIAppStateCR. | 
+| 21 | `<func> could not found <name>` | Target resource not found. | 
+| 22 | `<func> failed to json.Unmarshal the AppStatus.` | Failed to deserialize AppStatus from JSON. | 
+| 23 | `<func> failed to json.Marshal the fileData.` | Failed to serialize fileData to JSON. | 
+| 24 | `<func> is unable to write the file.` | Failed to write the file. | 
+| 25 | `<func> not found process name from the environment variable.` | Failed to get process name from environment variable. | 
+| 26 | `<func> detected an error in the findProcess.` | Error detected in findProcess. | 
+| 27 | `<func> detected that no process name was returned from the findProcess.` | No process name returned from findProcess. | 
+| 28 | `<func> failed to send SIGHUP.` | Failed to send SIGHUP. | 
+| 29 | `<func> failed to close the file.` | Failed to close the file. | 
+| 30 | `<func> failed to unlink the file.` | Failed to unlink the file. | 
+|===
+
+'''
+
+
+=== Error Messages Output by app-conn-info-maker-dci
+[cols="1,4,3,2",options="header"]
+|===
+| # | Error Message / Pattern | Summary | Notes
+
+| 1 | `Failed to start manager` | Failed to start the controller manager. | 
+| 2 | `Failed to create controller` (controller: `dciappconnection`) | Failed to create the DCIAppConnection controller. | 
+| 3 | `Failed to create controller` (controller: `Pod`) | Failed to create the Pod controller. | 
+| 4 | `Failed to set up health check` | Failed to set up health check. | 
+| 5 | `Failed to set up ready check` | Failed to set up ready check. | 
+| 6 | `Failed to run manager` | Problem occurred while running the controller manager. | 
+| 7 | `<func> failed to get DCIAppConnectionCR.` | Failed to get DCIAppConnectionCR. | 
+| 8 | `<func> failed to patch DCIAppConnectionCR.` | Failed to patch DCIAppConnectionCR. | 
+| 9 | `<func> failed to create Service resource.` | Failed to create Service resource. | 
+| 10 | `<func> failed to patch Service resource.` | Failed to patch Service resource. | 
+| 11 | `<func> failed to create EndpointSlice resource.` | Failed to create EndpointSlice resource. | 
+| 12 | `<func> failed to patch EndpointSlice resource.` | Failed to patch EndpointSlice resource. | 
+| 13 | `<func> failed to get ConnectEndpointCR.` | Failed to get ConnectEndpointCR. | 
+| 14 | `<func> failed to delete ConnectEndpointCR.` | Failed to delete ConnectEndpointCR. | 
+| 15 | `<func> failed to get Pod resource.` | Failed to get Pod resource. | 
+| 16 | `<func> failed to get Deployment resource.` | Failed to get Deployment resource. | 
+| 17 | `<func> failed to get EndpointSlice resource.` | Failed to get EndpointSlice resource. | 
+| 18 | `<func> failed to delete EndpointSlice resource.` | Failed to delete EndpointSlice resource. | 
+| 19 | `<func> failed to get Service resource.` | Failed to get Service resource. | 
+| 20 | `<func> failed to delete Service resource.` | Failed to delete Service resource. | 
+| 21 | `<func> detected that the dciappconnection label does not match DCIAppConnectionCR within Name/Namespace. It is not a call from the Pod controller, but a request for additional processing.` | The dciappconnection label does not match DCIAppConnectionCR. (Not a call from the Pod controller; a request for additional processing.) | Not an error if the log does not contain "err=".
+| 22 | `<func> detected that it does not match the value of the dciappconnection label in the Pod. It is not a call from the Pod controller, but a request for additional processing.` | The dciappconnection label value in Pod does not match. (Not a call from the Pod controller; a request for additional processing.) | Not an error if the log does not contain "err=".
+| 23 | `<func> failed to get ConnectEndpointCR.` | Failed to get ConnectEndpointCR. | 
+| 24 | `<func> failed to get Service resource.` | Failed to get Service resource. | 
+| 25 | `<func> failed to get EndpointSlice resource.` | Failed to get EndpointSlice resource. | 
+| 26 | `<func> detected that Pod resource Status.Conditions is not Ready. Not a call from the Pod controller. And is a request for additional processing.` | Pod resource Phase is not Running. (Not a call from the Pod controller; a request for additional processing.) | Not an error if the log does not contain "err=".
+| 27 | `<func> failed to get Deployment resource.` | Failed to get Deployment resource. | 
+| 28 | `<func> failed to list ReplicaSet resource.` | Failed to list ReplicaSet resource. | 
+| 29 | `<func> failed to list Pod resource.` | Failed to list Pod resource. | 
+| 30 | `<func> failed to fetch HostDeviceNetwork.` | Failed to fetch HostDeviceNetwork. | 
+| 31 | `<func> failed to json.unmarshal annotation.` | Failed to deserialize annotation from JSON. | 
+| 32 | `<func> failed to create ConnectEndpointCR.` | Failed to create ConnectEndpointCR. | 
+| 33 | `<func> failed to patch ConnectEndpointCR.` | Failed to patch ConnectEndpointCR. | 
+| 34 | `<func> failed to delete ConnectEndpointCR.` | Failed to delete ConnectEndpointCR. | 
+| 35 | `<func> failed to patch Pod resource.` | Failed to patch Pod resource. | 
+| 36 | `<func> failed to patch Deployment resource.` | Failed to patch Deployment resource. | 
+| 37 | `<func> failed to get Pod resource.` | Failed to get Pod resource. | 
+| 38 | `<func> failed to patch Pod resource.` | Failed to patch Pod resource. | 
+| 39 | `<func> failed to get ReplicaSet resource.` | Failed to get ReplicaSet resource. | 
+| 40 | `<func> failed to get Deployment resource.` | Failed to get Deployment resource. | 
+| 41 | `<func> failed to get DCIAppConnectionCR.` | Failed to get DCIAppConnectionCR. | 
+| 42 | `<func> failed to get ConnectEndpointCR.` | Failed to get ConnectEndpointCR. | 
+| 43 | `<func> will requeue because ConnectEndpointCR has a DeletionTimestamp set. And it is a request for additional processing.` | Requeuing because ConnectEndpointCR has a DeletionTimestamp set. (A request for additional processing.) | Not an error if the log does not contain "err=".
+| 44 | `<func> failed to patch EndpointSlice resource.` | Failed to patch EndpointSlice resource. | 
+| 45 | `<func> failed to set ConnectEndpointCR OwnerReference.` | Failed to set ConnectEndpointCR OwnerReference. | 
+| 46 | `<func> failed to set OwnerReference for EndpointSlice resource.` | Failed to set OwnerReference for EndpointSlice resource. | 
+|===
+
+'''
+
+
+=== Error Messages Output by app-monitor-dci
+[cols="1,4,3,2",options="header"]
+|===
+| # | Error Message / Pattern | Summary | Notes
+
+| 1 | `k8sclient.New(): <err>` | Failed to create Kubernetes client. | 
+| 2 | `unable to create Temporal client: <err>` | Failed to create Temporal client. | 
+| 3 | `Temporal worker failed unexpectedly: <err>` | Temporal worker stopped unexpectedly. | 
+| 4 | `Activity failed` (err=<err>) | Activity failed. | 
+| 5 | `VectorSignalActivity failed with other error: <err>` | VectorSignalActivity failed with an unexpected error. | 
+| 6 | `AlertManagerSignalActivity failed with other error: <err>` | AlertManagerSignalActivity failed with an unexpected error. | 
+| 7 | `signalBuf overflow (size=<n>), dropped oldest signal: workflowID=<id> signalName=<name>` | Signal buffer overflow: oldest signal dropped. | 
+| 8 | `Error reading vector-signal request body: <err> from <addr>` | Error reading vector-signal request body. | 
+| 9 | `Request body size (<n> bytes) exceeds maxRequestSize (10MB) for request <method> <path> from <addr>` | Request body size exceeds the 10MB limit. | 
+| 10 | `Failed to decode outer JSON: <err>. Request URL: <url>, RemoteAddr: <addr>` | Failed to decode outer JSON. | 
+| 11 | `Failed to decode inner JSON from metadata string: <err>. Request URL: <url>, RemoteAddr: <addr>` | Failed to decode inner JSON from metadata string. | 
+| 12 | `namespace/pod label is empty in vector-signal: namespace=<ns>, pod=<pod>` | namespace/pod label is empty in vector-signal. | 
+| 13 | `failed to check pod existence in vector-signal: namespace=<ns>, pod=<pod>, err=<err>` | Failed to check Pod existence in vector-signal. | 
+| 14 | `pod not found in vector-signal: namespace=<ns>, pod=<pod>` | Pod not found in vector-signal. | 
+| 15 | `Failed to signal workflow '<id>': <err>. Signal Name: 'vector-signal'` | Failed to send signal to vector-signal workflow. | 
+| 16 | `Error writing response body: <err>, bytes written: <n>. Request URL: <url>, RemoteAddr: <addr>` | Error writing response body. | 
+| 17 | `failed to read alertmanager-signal request body: <err>` | Failed to read alertmanager-signal request body. | 
+| 18 | `Failed to decode outer JSON: <err>. Request URL: <url>, RemoteAddr: <addr>` | Failed to decode outer JSON (alertmanager-signal). | 
+| 19 | `Failed to decode inner JSON from metadata string: <err>. Request URL: <url>, RemoteAddr: <addr>` | Failed to decode inner JSON from metadata string (alertmanager-signal). | 
+| 20 | `namespace/pod label is empty in alertmanager-signal: namespace=<ns>, pod=<pod>` | namespace/pod label is empty in alertmanager-signal. | 
+| 21 | `failed to check pod existence in alertmanager-signal: namespace=<ns>, pod=<pod>, err=<err>` | Failed to check Pod existence in alertmanager-signal. | 
+| 22 | `Failed to signal workflow '<id>': <err>. Signal Name: 'alertmanager-signal'` | Failed to send signal to alertmanager-signal workflow. | 
+| 23 | `Failed to start HTTP server: <err>` | Failed to start HTTP server. | 
+| 24 | `unable to create Temporal client: <err>` | Failed to create Temporal client. | 
+| 25 | `Failed to start workflow <id>: <err>` | Failed to start workflow. | 
+| 26 | `All <n> workflow(s) failed to start` | All workflows failed to start. | 
+| 27 | `failed to marshal Usages: <err>` | Failed to marshal Usages. | 
+| 28 | `failed to create or patch podStatus: <err>` | Failed to create or patch podStatus. | 
+| 29 | `failed to unmarshal: <err>` | Failed to deserialize. | 
+| 30 | `query failed, status: <status>` | Query failed. | 
+| 31 | `result empty or value missing` | Query result is empty or value is missing. | 
+| 32 | `value is not string` | Value is not a string type. | 
+| 33 | `failed to check ResourceClaim: <err>` | Failed to check ResourceClaim. | 
+| 34 | `failed to get in-cluster config: <err>` | Failed to get In-Cluster configuration. | 
+| 35 | `failed to create clientset: <err>` | Failed to create clientset. | 
+| 36 | `failed to get pod: <err>` | Failed to get Pod. | 
+| 37 | `unsupported RESOURCE_API_VERSION: <version>` | Unsupported RESOURCE_API_VERSION. | 
+| 38 | `failed to connect to prometheus for pod <ns>/<pod> [query: <query>]: <err>` | Failed to connect to Prometheus for Pod. | 
+| 39 | `failed to read prometheus response for pod <ns>/<pod> [query: <query>]: <err>` | Failed to read Prometheus response for Pod. | 
+| 40 | `prometheus response body too large (>= 10MB), truncated for pod <ns>/<pod> [query: <query>]` | Prometheus response body exceeds 10MB. | 
+| 41 | `prometheus returned error status '<status>' for pod <ns>/<pod> [query: <query>]` | Prometheus returned an error status. | 
+| 42 | `prometheus query failed: <status>` | Prometheus query failed. | 
+|===
+
+
+'''
+
+++++
+<div style="text-align: right;">
+Copyright 2026 NTT, Inc.
+</div>
+++++

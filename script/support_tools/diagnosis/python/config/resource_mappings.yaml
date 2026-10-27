@@ -1,0 +1,849 @@
+# リソースマッピング定義
+# 各自動化スクリプトがデプロイ/設定するKubernetesリソースの汎用定義
+#
+# ==========================================
+# 汎用リソース定義フォーマット
+# ==========================================
+# 全てのKubernetesリソース（Pod/Node/Namespace/ConfigMap/Secret/CRD等）は
+# generic_resourcesセクションで統一的に定義します。
+#
+# 基本フォーマット:
+#   generic_resources:
+#     - kind: "リソースタイプ"              # 必須
+#       namespaced: true/false               # 必須（namespace対象か）
+#       namespace: "対象namespace"           # namespacedがtrueの場合に指定
+#       name_pattern: "正規表現パターン"     # オプション
+#       expected_status: "期待ステータス"    # Podのみ
+#       expected_exists: true/false          # 存在チェック
+#       expected_conditions: [...]           # Nodeのみ
+#       api_version: "APIバージョン"         # CRD/CR用
+#       description: "説明文"                # オプション
+#
+#   check_scope:
+#     cluster_type: "manager/tenant"         # クラスタタイプ（リソース個別指定も可）
+#     namespaces: [...]                      # 監視対象namespace
+#     include_dependencies: true/false       # 依存スクリプトのリソースも含めるか
+#     collect_all_pods: true/false           # 全Pod自動チェック機能（オプション）
+#
+# collect_all_pods 機能:
+#   true に設定すると、check_scope.namespaces で指定された全namespaceの全Podを
+#   自動的に収集し、異常状態（CrashLoopBackOff, Failed, ImagePullBackOff, Pending等）
+#   を検出します。generic_resources で個別定義されたPodとは独立して動作し、併用可能です。
+#   詳細ログ収集は config.yaml の collect_details_for_warnings/critical 設定に従います。
+#
+# 異常検出ロジック:
+#   - 期待値（expected_status/expected_exists等）と実際の状態が異なる → critical
+#   - Pod: CrashLoopBackOff, Failed等の既知異常状態 → critical/warning
+#   - Pod: 再起動回数が閾値超過 → warning（config.yamlで制御）
+#   - Node: NotReady, リソース圧迫 → critical/warning
+
+# スクリプト依存関係定義
+script_dependencies:
+  manager_cluster_setup: []
+  manager_software_deploy: [manager_cluster_setup]
+  tenant_provisioning: [manager_cluster_setup, manager_software_deploy]
+  tenant_deploy: [manager_cluster_setup, manager_software_deploy, tenant_provisioning]
+
+# ==========================================
+# manager_cluster_setup: Kubernetesクラスタ基盤構築
+# ==========================================
+manager_cluster_setup:
+  description: "Kubernetes cluster setup with kube-vip HA, CRI-O, and Calico"
+  
+  # 収集範囲定義
+  check_scope:
+    cluster_type: "manager"
+    namespaces:
+      - kube-system
+      - kube-public
+      - kube-node-lease
+      - default
+    include_dependencies: false
+    collect_all_pods: true
+  
+  # 汎用リソース定義
+  generic_resources:
+    # ノード
+    - kind: "Node"
+      namespaced: false
+      expected_conditions:
+        - condition: "Ready"
+          status: "True"
+      description: "Cluster nodes"
+    
+    # システムNamespace
+    - kind: "Namespace"
+      namespaced: false
+      name_pattern: "^(kube-system|kube-public|kube-node-lease|default)$"
+      expected_exists: true
+      description: "System namespaces"
+    
+    # ConfigMap
+    - kind: "ConfigMap"
+      namespaced: true
+      expected_exists: true
+      description: "System ConfigMap"
+    
+    # kube-apiserver
+    - kind: "Pod"
+      namespace: "kube-system"
+      namespaced: true
+      name_pattern: "^kube-apiserver-"
+      expected_status: "Running"
+      description: "Kubernetes API Server"
+    
+    # kube-controller-manager
+    - kind: "Pod"
+      namespace: "kube-system"
+      namespaced: true
+      name_pattern: "^kube-controller-manager-"
+      expected_status: "Running"
+      description: "Kubernetes Controller Manager"
+    
+    # kube-scheduler
+    - kind: "Pod"
+      namespace: "kube-system"
+      namespaced: true
+      name_pattern: "^kube-scheduler-"
+      expected_status: "Running"
+      description: "Kubernetes Scheduler"
+    
+    # etcd
+    - kind: "Pod"
+      namespace: "kube-system"
+      namespaced: true
+      name_pattern: "^etcd-"
+      expected_status: "Running"
+      description: "etcd"
+    
+    # Calico
+    - kind: "Pod"
+      namespace: "kube-system"
+      namespaced: true
+      name_pattern: "^calico-"
+      expected_status: "Running"
+      description: "Calico Network Plugin"
+    
+    # kube-vip
+    - kind: "Pod"
+      namespace: "kube-system"
+      namespaced: true
+      name_pattern: "^kube-vip-"
+      expected_status: "Running"
+      description: "kube-vip for HA"
+    
+    # CoreDNS
+    - kind: "Pod"
+      namespace: "kube-system"
+      namespaced: true
+      name_pattern: "^coredns-"
+      expected_status: "Running"
+      description: "CoreDNS"
+
+# ==========================================
+# manager_software_deploy: DCI管理基盤ソフトウェアコンポーネント配備
+# ==========================================
+manager_software_deploy:
+  description: "DCI management software components deployment"
+  
+  # 収集範囲定義
+  check_scope:
+    cluster_type: "manager"
+    namespaces:
+      - nfs-provisioner
+      - cert-manager
+      - nginx-gateway
+      - harbor
+      - cnpg-system
+      - database
+      - resource-pool-manager-system
+      - dcirpm
+      - postgrest
+      - capi-system
+      - capdci-system
+      - caaph-system
+      - prometheus
+      - loki
+      - vector
+      - npd
+      - velero
+    include_dependencies: true
+    collect_all_pods: true
+  
+  # 汎用リソース定義
+  generic_resources:
+    # cert-manager Pods
+    - kind: "Pod"
+      namespace: "cert-manager"
+      namespaced: true
+      name_pattern: "^cert-manager-"
+      expected_status: "Running"
+      description: "cert-manager for certificate management"
+    
+    # cert-manager CRD
+    - kind: "CustomResourceDefinition"
+      namespaced: false
+      name_pattern: "^certificates\\.cert-manager\\.io$"
+      expected_exists: true
+      description: "cert-manager Certificate CRD"
+    
+    # Harbor Pods
+    - kind: "Pod"
+      namespace: "harbor"
+      namespaced: true
+      name_pattern: "^harbor-"
+      expected_status: "Running"
+      description: "Harbor container registry"
+    
+    # Harbor Secrets
+    - kind: "Secret"
+      namespace: "harbor"
+      namespaced: true
+      name_pattern: "^harbor-"
+      expected_exists: true
+      description: "Harbor secrets"
+    
+    # Harbor PVC
+    - kind: "PersistentVolumeClaim"
+      namespace: "harbor"
+      namespaced: true
+      name_pattern: ".*"
+      expected_exists: true
+      description: "Harbor persistent storage"
+    
+    # CNPG Operator
+    - kind: "Pod"
+      namespace: "cnpg-system"
+      namespaced: true
+      name_pattern: "^cnpg-"
+      expected_status: "Running"
+      description: "CloudNativePG PostgreSQL Operator"
+    
+    # Prometheus
+    - kind: "Pod"
+      namespace: "prometheus"
+      namespaced: true
+      name_pattern: "^(prometheus-|alertmanager-|grafana-)"
+      expected_status: "Running"
+      description: "Prometheus monitoring stack"
+    
+    # Loki
+    - kind: "Pod"
+      namespace: "loki"
+      namespaced: true
+      name_pattern: "^loki-"
+      expected_status: "Running"
+      description: "Loki log aggregation"
+    
+    # Vector
+    - kind: "Pod"
+      namespace: "vector"
+      namespaced: true
+      name_pattern: "^vector-"
+      expected_status: "Running"
+      description: "Vector log collector"
+    
+    # Node Problem Detector
+    - kind: "Pod"
+      namespace: "npd"
+      namespaced: true
+      name_pattern: "^node-problem-detector-"
+      expected_status: "Running"
+      description: "Node Problem Detector"
+    
+    # Cluster API
+    - kind: "Pod"
+      namespace: "capi-system"
+      namespaced: true
+      name_pattern: "^capi-"
+      expected_status: "Running"
+      description: "Cluster API"
+    
+    # Cluster API CRD
+    - kind: "CustomResourceDefinition"
+      namespaced: false
+      name_pattern: "^clusters\\.cluster\\.x-k8s\\.io$"
+      expected_exists: true
+      description: "Cluster API Cluster CRD"
+    
+    # Velero
+    - kind: "Pod"
+      namespace: "velero"
+      namespaced: true
+      name_pattern: "^velero-"
+      expected_status: "Running"
+      description: "Velero backup system"
+    
+    # NFS Provisioner
+    - kind: "Pod"
+      namespace: "nfs-provisioner"
+      namespaced: true
+      name_pattern: "^nfs-provisioner-"
+      expected_status: "Running"
+      description: "NFS Subdir External Provisioner"
+    
+    # NGINX Gateway
+    - kind: "Pod"
+      namespace: "nginx-gateway"
+      namespaced: true
+      name_pattern: "^ngf-"
+      expected_status: "Running"
+      description: "NGINX Gateway Fabric"
+
+    # Gateway LoadBalancer VIP確認
+    - kind: "Service"
+      namespace: "nginx-gateway"
+      namespaced: true
+      name_pattern: "^gateway-lb"
+      expected_exists: true
+      description: "Gateway LoadBalancer with VIP"
+    
+    # PostgreSQL Cluster
+    - kind: "Pod"
+      namespace: "database"
+      namespaced: true
+      name_pattern: "^database-cluster-"
+      expected_status: "Running"
+      description: "PostgreSQL Cluster (CNPG)"
+    
+    # Resource Pool Manager
+    - kind: "Pod"
+      namespace: "resource-pool-manager-system"
+      namespaced: true
+      name_pattern: "^resource-pool-manager-"
+      expected_status: "Running"
+      description: "Resource Pool Manager"
+    
+    # PostgREST
+    - kind: "Pod"
+      namespace: "postgrest"
+      namespaced: true
+      name_pattern: "^postgrest-"
+      expected_status: "Running"
+      description: "PostgREST API"
+    
+    # CAPDCI
+    - kind: "Pod"
+      namespace: "capdci-system"
+      namespaced: true
+      name_pattern: "^cluster-api-"
+      expected_status: "Running"
+      description: "Cluster API Provider DCI"
+
+    # アラート受信系コンポーネント
+    - kind: "Pod"
+      namespace: "resource-pool-manager-system"
+      namespaced: true
+      name_pattern: "^resource-pool-manager-alert-receiver-"
+      expected_status: "Running"
+      description: "RPM Alert Receiver (Manager)"
+
+    # 既存Lokiの確認項目追加
+    - kind: "Secret"
+      namespace: "loki"
+      namespaced: true
+      name_pattern: "loki-storage-.*"
+      expected_exists: false  # 外部MinIO使用、Secret不要
+      description: "Loki MinIO storage credentials"
+
+    # rsyslog vector設定の確認
+    - kind: "ConfigMap"
+      namespace: "vector"
+      namespaced: true
+      name_pattern: "vector.*"
+      expected_exists: true
+      description: "Vector rsyslog configuration"
+
+    # IPMI Exporter
+    - kind: "Pod"
+      namespace: "prometheus"
+      namespaced: true
+      name_pattern: "^ipmi-exporter-"
+      expected_status: "Running"
+      description: "IPMI Exporter for physical server monitoring"
+
+    # Physical Infrastructure SSH Keys
+    - kind: "Secret"
+      namespace: "default"
+      namespaced: true
+      name_pattern: "physical-infrastructure-ssh-keys"
+      expected_exists: true
+      description: "SSH credentials for physical infrastructure access"
+
+    # Tenant Prometheus ScrapeConfig (Manager cluster)
+    - kind: "ScrapeConfig"
+      namespace: "prometheus"
+      namespaced: true
+      api_version: "monitoring.coreos.com/v1alpha1"
+      name_pattern: "^scrapeconfig-.*"
+      expected_exists: false
+      optional: true
+      description: "Tenant Prometheus metrics scrape configuration (created by tenant_deploy)"
+
+    # CoreDNS ConfigMap (Manager cluster)
+    - kind: "ConfigMap"
+      namespace: "kube-system"
+      namespaced: true
+      name_pattern: "^coredns$"
+      expected_exists: true
+      description: "CoreDNS with static entries for tenant Prometheus"
+
+# ==========================================
+# tenant_provisioning: テナント論理インフラ準備とプロビジョニング
+# ==========================================
+tenant_provisioning:
+  description: "Tenant logical infrastructure preparation and provisioning"
+  
+  # 収集範囲定義
+  check_scope:
+    cluster_type: "manager"
+    namespaces:
+      - "{{ tenant_namespace }}"
+      - dcirpm
+    include_dependencies: true
+    collect_all_pods: true
+  
+  # 汎用リソース定義
+  generic_resources:
+    # Tenant Cluster CR instance
+    - kind: "Cluster"
+      namespace: "{{ tenant_namespace }}"
+      namespaced: true
+      api_version: "cluster.x-k8s.io/v1beta1"
+      name_pattern: ".*"
+      expected_exists: true
+      description: "Tenant Kubernetes cluster"
+    
+    # DCI Cluster
+    - kind: "DCICluster"
+      namespace: "{{ tenant_namespace }}"
+      namespaced: true
+      api_version: "infrastructure.cluster.x-k8s.io/v1beta1"
+      name_pattern: ".*"
+      expected_exists: true
+      description: "DCI Infrastructure cluster"
+    
+    # Control Plane
+    - kind: "KubeadmControlPlane"
+      namespace: "{{ tenant_namespace }}"
+      namespaced: true
+      api_version: "controlplane.cluster.x-k8s.io/v1beta1"
+      name_pattern: ".*"
+      expected_exists: true
+      description: "Control Plane nodes"
+    
+    # Worker nodes
+    - kind: "MachineDeployment"
+      namespace: "{{ tenant_namespace }}"
+      namespaced: true
+      api_version: "cluster.x-k8s.io/v1beta1"
+      name_pattern: ".*"
+      expected_exists: true
+      description: "Worker nodes deployment"
+
+    # MachineHealthCheck (オプション扱い)
+    - kind: "MachineHealthCheck"
+      namespace: "{{ tenant_namespace }}"
+      namespaced: true
+      api_version: "cluster.x-k8s.io/v1beta1"
+      name_pattern: ".*"
+      expected_exists: false  # disable_machine_health_check=trueの場合は存在しない
+      optional: true
+      description: "Machine Health Check (optional)"
+
+    # TenantLogicalInfra (カスタムリソース)
+    - kind: "TenantLogicalInfra"
+      namespace: "dcirpm"
+      namespaced: true
+      api_version: "example.com/v1"
+      name_pattern: "(spare-cluster|spare-node-cluster|vmhost-tli)"
+      expected_exists: true
+      description: "Tenant logical infrastructure definition"
+
+    # LogicalServer (カスタムリソース)
+    - kind: "LogicalServer"
+      namespace: "dcirpm"
+      namespaced: true
+      api_version: "example.com/v1"
+      name_pattern: ".*"
+      expected_exists: true
+      description: "Spare node definitions"
+
+    # Cluster Autoscaler ServiceAccount
+    - kind: "ServiceAccount"
+      namespace: "{{ tenant_namespace }}"
+      namespaced: true
+      name_pattern: "^cluster-autoscaler-for-"
+      expected_exists: true
+      description: "Cluster Autoscaler service account"
+
+    # Cluster Autoscaler kubeconfig Secret
+    - kind: "Secret"
+      namespace: "{{ tenant_namespace }}"
+      namespaced: true
+      name_pattern: "^cluster-autoscaler-mgmt-kubeconfig-for-"
+      expected_exists: true
+      description: "Cluster Autoscaler management cluster access"
+
+    # Scale Controller ServiceAccount
+    - kind: "ServiceAccount"
+      namespace: "{{ tenant_namespace }}"
+      namespaced: true
+      name_pattern: "^scale-controller-for-"
+      expected_exists: true
+      description: "Scale Controller service account"
+
+    # Scale Controller kubeconfig Secret
+    - kind: "Secret"
+      namespace: "{{ tenant_namespace }}"
+      namespaced: true
+      name_pattern: "^management-api-kubeconfig-for-"
+      expected_exists: true
+      description: "Scale Controller management API access"
+
+    # HelmChartProxy for Loki
+    - kind: "HelmChartProxy"
+      namespace: "{{ tenant_namespace }}"
+      namespaced: true
+      api_version: "addons.cluster.x-k8s.io/v1alpha1"
+      name_pattern: ".*loki.*"
+      expected_exists: true
+      description: "Loki Helm chart deployment via Cluster API"
+
+# ==========================================
+# tenant_deploy: テナントサービス配備
+# ==========================================
+tenant_deploy:
+  description: "Tenant service deployment and configuration"
+  
+  # 収集範囲定義
+  # 注: cluster_typeはリソース個別に指定
+  check_scope:
+    namespaces:
+      # 管理クラスタ
+      - "{{ tenant_namespace }}"  # HelmChartProxy等
+      - "sa-{{ tenant_namespace }}"  # ServiceAccount等
+      # テナントクラスタ
+      - kube-system
+      - harbor
+      - argo-events
+      - temporal
+      - prometheus
+      - vector
+      - nginx-gateway
+      - gpu-operator
+      - nvidia-network-operator
+      - loki
+      - dci
+    include_dependencies: true
+    collect_all_pods: true
+  
+  # 汎用リソース定義
+  generic_resources:
+    # ==========================================
+    # 管理クラスタのリソース
+    # ==========================================
+    
+    # HelmChartProxy for components
+    - kind: "HelmChartProxy"
+      namespace: "{{ tenant_namespace }}"
+      namespaced: true
+      cluster_type: "manager"
+      api_version: "addons.cluster.x-k8s.io/v1alpha1"
+      name_pattern: ".*"
+      expected_exists: true
+      optional: true
+      description: "Helm chart deployments via Cluster API (Harbor, GPU Operator, etc.)"
+
+    # ==========================================
+    # テナントクラスタのリソース
+    # ==========================================
+    
+    # ノード
+    - kind: "Node"
+      namespaced: false
+      cluster_type: "tenant"
+      expected_conditions:
+        - condition: "Ready"
+          status: "True"
+      description: "tenant nodes"
+
+    # ServiceAccount namespace
+    - kind: "Namespace"
+      namespaced: false
+      cluster_type: "tenant"
+      name_pattern: "sa-{{ tenant_namespace }}"
+      expected_exists: true
+      description: "Tenant manager ServiceAccount namespace"
+
+    # Harbor Namespace
+    - kind: "Namespace"
+      namespaced: false
+      cluster_type: "tenant"
+      name_pattern: "harbor"
+      expected_exists: true
+      description: "Harbor namespace on tenant"
+    
+    # Argo Events (including eventbus, controller, etc.)
+    - kind: "Pod"
+      namespace: "argo-events"
+      namespaced: true
+      cluster_type: "tenant"
+      name_pattern: ".*"
+      expected_status: "Running"
+      description: "Argo Events pods on tenant (eventbus, controller, etc.)"
+    
+    # Temporal
+    - kind: "Pod"
+      namespace: "temporal"
+      namespaced: true
+      cluster_type: "tenant"
+      name_pattern: "temporal-"
+      expected_status: "Running"
+      optional: true
+      description: "Temporal Workflow Engine"
+    
+    # Gateway LoadBalancer Service
+    - kind: "Service"
+      namespace: "nginx-gateway"
+      namespaced: true
+      cluster_type: "tenant"
+      name_pattern: "gateway-lb"
+      expected_exists: true
+      description: "Gateway LoadBalancer with VIP"
+    
+    # Tenant ServiceAccount
+    - kind: "ServiceAccount"
+      namespace: "sa-{{ tenant_namespace }}"
+      namespaced: true
+      cluster_type: "tenant"
+      expected_exists: true
+      description: "Tenant manager service account"
+    
+    # CoreDNS on tenant cluster
+    - kind: "Pod"
+      namespace: "kube-system"
+      namespaced: true
+      cluster_type: "tenant"
+      name_pattern: "coredns-"
+      expected_status: "Running"
+      description: "CoreDNS on tenant cluster"
+
+    # Tenant manager ClusterRoleBinding
+    - kind: "ClusterRoleBinding"
+      namespaced: false
+      cluster_type: "tenant"
+      name_pattern: "tenant-manager-sa-crb"
+      expected_exists: true
+      description: "Tenant manager cluster role binding"
+
+    # dcgm-exporter (GPU監視)
+    - kind: "DaemonSet"
+      namespace: "gpu-operator"
+      namespaced: true
+      cluster_type: "tenant"
+      name_pattern: "nvidia-dcgm-exporter"
+      expected_exists: true
+      description: "NVIDIA DCGM Exporter for GPU monitoring"
+
+    # dcgm-exporter Pods (GPU監視)
+    - kind: "Pod"
+      namespace: "gpu-operator"
+      namespaced: true
+      cluster_type: "tenant"
+      name_pattern: "nvidia-dcgm-exporter-.*"
+      expected_status: "Running"
+      description: "NVIDIA DCGM Exporter pods for GPU monitoring"
+
+    # Loki storage確認
+    - kind: "Secret"
+      namespace: "loki"
+      namespaced: true
+      cluster_type: "tenant"
+      name_pattern: "loki-storage-.*"
+      expected_exists: false  # 外部MinIO使用、Secret不要
+      description: "Loki storage credentials on tenant"
+
+    # Tenant manager ServiceAccount Secret
+    - kind: "Secret"
+      namespace: "sa-{{ tenant_namespace }}"
+      namespaced: true
+      cluster_type: "tenant"
+      name_pattern: "tenant-manager-sa-secret"
+      expected_exists: true
+      description: "Tenant manager service account token"
+
+    # NVIDIA Network Operator Namespace
+    - kind: "Namespace"
+      namespaced: false
+      cluster_type: "tenant"
+      name_pattern: "nvidia-network-operator"
+      expected_exists: true
+      description: "NVIDIA Network Operator namespace"
+
+    # Multus CNI
+    - kind: "DaemonSet"
+      namespace: "nvidia-network-operator"
+      namespaced: true
+      cluster_type: "tenant"
+      name_pattern: "kube-multus-ds"
+      expected_exists: true
+      description: "Multus CNI for multiple network interfaces"
+
+    # SR-IOV CNI
+    - kind: "DaemonSet"
+      namespace: "nvidia-network-operator"
+      namespaced: true
+      cluster_type: "tenant"
+      name_pattern: "kube-sriov-cni-ds"
+      expected_exists: true
+      description: "SR-IOV CNI DaemonSet"
+
+    # NVIDIA MOFED drivers
+    - kind: "DaemonSet"
+      namespace: "nvidia-network-operator"
+      namespaced: true
+      cluster_type: "tenant"
+      name_pattern: "mofed-"
+      expected_exists: true
+      description: "NVIDIA MOFED (OFED) drivers"
+
+    # Network Operator controller
+    - kind: "Pod"
+      namespace: "nvidia-network-operator"
+      namespaced: true
+      cluster_type: "tenant"
+      name_pattern: "network-operator-"
+      expected_status: "Running"
+      description: "NVIDIA Network Operator main controller"
+
+    # NVIDIA IPAM controller
+    - kind: "Pod"
+      namespace: "nvidia-network-operator"
+      namespaced: true
+      cluster_type: "tenant"
+      name_pattern: "nv-ipam-controller-"
+      expected_status: "Running"
+      description: "NVIDIA IPAM controller"
+
+    # NVIDIA IPAM node agents
+    - kind: "DaemonSet"
+      namespace: "nvidia-network-operator"
+      namespaced: true
+      cluster_type: "tenant"
+      name_pattern: "nv-ipam-node"
+      expected_exists: true
+      description: "NVIDIA IPAM node agents"
+
+    # SR-IOV device plugin
+    - kind: "DaemonSet"
+      namespace: "nvidia-network-operator"
+      namespaced: true
+      cluster_type: "tenant"
+      name_pattern: "sriov-device-plugin"
+      expected_exists: true
+      description: "SR-IOV device plugin"
+
+    # SR-IOV network config daemon
+    - kind: "DaemonSet"
+      namespace: "nvidia-network-operator"
+      namespaced: true
+      cluster_type: "tenant"
+      name_pattern: "sriov-network-config-daemon"
+      expected_exists: true
+      description: "SR-IOV network configuration daemon"
+
+    # GPU Operator - Container Toolkit
+    - kind: "DaemonSet"
+      namespace: "gpu-operator"
+      namespaced: true
+      cluster_type: "tenant"
+      name_pattern: "nvidia-container-toolkit-daemonset"
+      expected_exists: true
+      description: "NVIDIA Container Toolkit"
+
+    # GPU Operator - Validator
+    - kind: "DaemonSet"
+      namespace: "gpu-operator"
+      namespaced: true
+      cluster_type: "tenant"
+      name_pattern: "nvidia-operator-validator"
+      expected_exists: true
+      description: "NVIDIA Driver and toolkit validation"
+
+    # Gateway API - Certificate
+    - kind: "Certificate"
+      namespace: "nginx-gateway"
+      namespaced: true
+      cluster_type: "tenant"
+      api_version: "cert-manager.io/v1"
+      name_pattern: "vip-cert"
+      expected_exists: true
+      description: "Gateway VIP certificate"
+
+    # Gateway API - Issuer
+    - kind: "Issuer"
+      namespace: "nginx-gateway"
+      namespaced: true
+      cluster_type: "tenant"
+      api_version: "cert-manager.io/v1"
+      name_pattern: "gateway-ca-issuer"
+      expected_exists: true
+      description: "Gateway certificate issuer"
+
+    # Gateway API - HTTPRoute
+    - kind: "HTTPRoute"
+      namespace: "prometheus"
+      namespaced: true
+      cluster_type: "tenant"
+      api_version: "gateway.networking.k8s.io/v1beta1"
+      name_pattern: "prometheus-route"
+      expected_exists: true
+      description: "Prometheus HTTPRoute for external access"
+
+    # CoreDNS ConfigMap (monitoring integration)
+    - kind: "ConfigMap"
+      namespace: "kube-system"
+      namespaced: true
+      cluster_type: "tenant"
+      name_pattern: "coredns"
+      expected_exists: true
+      description: "CoreDNS with static entries for Loki and Prometheus"
+
+    # Grafana Alert ConfigMap
+    - kind: "ConfigMap"
+      namespace: "prometheus"
+      namespaced: true
+      cluster_type: "tenant"
+      name_pattern: "grafana-alerting-provisioning"
+      expected_exists: true
+      description: "Grafana GPU utilization alert rules"
+
+    # Loki Pods
+    - kind: "Pod"
+      namespace: "loki"
+      namespaced: true
+      cluster_type: "tenant"
+      name_pattern: "loki-"
+      expected_status: "Running"
+      description: "Loki logging pods on tenant"
+
+    # Prometheus Pods  
+    - kind: "Pod"
+      namespace: "prometheus"
+      namespaced: true
+      cluster_type: "tenant"
+      name_pattern: "prometheus-"
+      expected_status: "Running"
+      description: "Prometheus monitoring pods on tenant"
+
+    # DCI Application Pods
+    - kind: "Pod"
+      namespace: "dci"
+      namespaced: true
+      cluster_type: "tenant"
+      name_pattern: ".*"
+      expected_status: "Running"
+      description: "DCI application pods on tenant"
+
+

@@ -1,0 +1,73 @@
+- name: Kyvernoの配備とプロキシ設定ポリシーの作成・配備
+  hosts: all
+  vars:
+    play_description: |
+      事前準備(システム構築) - Kyvernoの配備とプロキシ設定ポリシーの作成・配備（外部通信にプロキシが必要な場合のみ）
+    kyverno_namespace: kyverno  # Kyverno namespace
+    kyverno_values_file: "{{ dci_manager_path }}/others/kyverno/values.yaml"  # Kyverno valuesファイル
+    kyverno_inject_proxy_file: "{{ dci_manager_path }}/others/kyverno/inject-proxy-settings.yaml"  # プロキシ設定ポリシーファイル
+  environment:
+    KUBECONFIG: "/home/{{ ansible_user }}/.kube/config"
+  pre_tasks:
+    - name: プロキシ設定が無効の場合はPlaybookをスキップ
+      ansible.builtin.meta: end_play
+      when: not proxy_setup_enabled
+
+  tasks:
+    - name: Helmリポジトリ追加（kyverno）
+      ansible.builtin.command:
+        cmd: /usr/local/bin/helm repo add kyverno {{ kyverno_chart_repo }}
+      register: helm_repo_kyverno
+      retries: 3
+      delay: 10
+      until: helm_repo_kyverno.rc == 0 or 'already exists' in helm_repo_kyverno.stderr
+      changed_when:
+        - helm_repo_kyverno.rc == 0
+        - '"already exists" not in helm_repo_kyverno.stdout'
+        - '"already exists" not in helm_repo_kyverno.stderr'
+      failed_when:
+        - helm_repo_kyverno.rc != 0
+        - '"already exists" not in helm_repo_kyverno.stderr'
+        - "'connection refused' not in helm_repo_kyverno.stderr | lower"
+        - "'timeout' not in helm_repo_kyverno.stderr | lower"
+
+    - name: Helmリポジトリ更新
+      ansible.builtin.command:
+        cmd: /usr/local/bin/helm repo update
+      register: helm_repo_update
+      retries: 3
+      delay: 10
+      until: helm_repo_update.rc == 0
+      changed_when: false
+      failed_when:
+        - helm_repo_update.rc != 0
+        - "'connection refused' not in helm_repo_update.stderr | lower"
+        - "'timeout' not in helm_repo_update.stderr | lower"
+
+    - name: Kyvernoのデプロイ（新規インストールまたはアップグレード）
+      ansible.builtin.command:
+        cmd: >
+          /usr/local/bin/helm upgrade --install kyverno
+          --namespace {{ kyverno_namespace }}
+          kyverno/kyverno
+          --create-namespace
+          -f {{ kyverno_values_file }}
+          --version {{ kyverno_chart_version }}
+          --wait --timeout 10m
+      register: helm_kyverno
+      retries: 3
+      delay: 10
+      until: helm_kyverno.rc == 0
+      changed_when:
+        - helm_kyverno.rc == 0
+        - '"has been upgraded" in helm_kyverno.stdout or "has been installed" in helm_kyverno.stdout'
+      failed_when:
+        - helm_kyverno.rc != 0
+        - "'connection refused' not in helm_kyverno.stderr | lower"
+        - "'timeout' not in helm_kyverno.stderr | lower"
+
+    - name: プロキシ設定ポリシーの適用
+      ansible.builtin.command:
+        cmd: kubectl apply -f {{ kyverno_inject_proxy_file }}
+      register: kubectl_inject_proxy
+      changed_when: '"configured" in kubectl_inject_proxy.stdout or "created" in kubectl_inject_proxy.stdout'

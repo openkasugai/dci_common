@@ -1,0 +1,20 @@
+- name: テナント削除後 CoreDNS設定のクリーンアップ
+  hosts: all
+  vars:
+    play_description: |
+      テナント削除後の手順 - CoreDNSのPrometheus静的エントリを削除
+  environment:
+    KUBECONFIG: "/home/{{ ansible_user }}/.kube/config"
+  tasks:
+    - name: ファイル更新用のスクリプトをターゲットにコピー
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/remove_corefile_hosts.sh"
+        dest: "{{ ansible_work_dir }}/remove_corefile_hosts.sh"
+        mode: '0755'
+
+    - name: テナント数分ループ
+      ansible.builtin.include_role:
+        name: cleanup_coredns_block
+      vars:
+        tenant_namespace: "{{ item.tenant_namespace }}"
+      loop: "{{ tenants }}"

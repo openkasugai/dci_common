@@ -1,0 +1,130 @@
+cluster:
+  name: dci-cluster
+  namespace: default
+
+kubernetes:
+  podCidr: 10.245.0.0/16
+  svcCidr: 10.96.0.0/12
+
+controlPlane:
+  name: controlplane
+  namespace: default
+  replicas: 3
+  location: dc1
+  serverType: VM
+  os:
+    distribution: rhel
+    version: 9.6-custom
+  minCPU:
+  minMemory:
+  minStorage:
+  encryptionKey: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+  secretName: management-api-kubeconfig-for-tenant-1
+
+controlPlaneEndpoint: 192.168.2.201
+
+managerNetwork:
+  cidrBlock: 192.168.2.0/24
+  vlanID: 10
+  ipRange:
+    start: 192.168.2.195
+    end: 192.168.2.199
+
+hostNetwork:
+  cidrBlock: 192.168.2.0/24
+  vlanID: 10
+  ipRange:
+    start: 192.168.2.195
+    end: 192.168.2.199
+
+cniNetwork:
+  cidrBlock: 192.168.2.0/24
+  vlanID: 10
+  ipRange:
+    start: 192.168.2.195
+    end: 192.168.2.199
+
+appDataNetwork:
+  cidrBlock: 10.20.11.0/24
+  vlanID: 12
+  ipRange:
+    start: 10.20.11.21
+    end: 10.20.11.80
+
+kubeVip:
+  address: 192.168.2.201
+
+ntp:
+  servers:
+    - host: ntp.nict.go.jp
+    - host: ntp.jst.mfeed.ad.jp
+
+dns:
+  nameserver: 8.8.8.8
+  search: maas
+
+rhc:
+  activationKey: xxxx
+  organization: "12345678"
+
+cni:
+  cidrPrefix: 192.168.2.
+  gateway: 192.168.2.2
+
+pbr:
+  hostNW:
+    subnet: 172.28.171.0/24
+    gateway: 172.28.171.252
+  cniNW:
+    subnet: 172.28.174.0/24
+
+proxy:
+  address: 172.28.197.90
+  port: 8080
+  tenantHarborIP: 172.28.197.90
+  managerHarborIP: 192.168.2.199
+
+firewall:
+  tenantOperatorCidr: 172.28.174.0/24
+  bastionIP: 192.168.2.102
+  loadBalancerVIP: 172.28.174.41
+
+caCertificate: |
+  -----BEGIN CERTIFICATE-----
+  ****************************************************************
+  -----END CERTIFICATE-----
+
+worker:
+# MUST be a list in case of single worker
+- machineDeployment:
+    name: worker-md-1
+    namespace: default
+  clusterAutoscaler:
+    nodeGroupMaxSize: 2
+    nodeGroupMinSize: 1
+    cpu: 112
+    memoryG: 128G
+    diskGi: 960Gi
+    maxPods: 110
+    gpuCount: 2
+  replicas: 1
+  kubeadmConfigTemplate:
+    name: worker
+    namespace: default
+  machineTemplate:
+    name: worker-1
+    namespace: default
+  location: dc1
+  serverType: COTSServer
+  os:
+    distribution: rhel
+    version: 9.6-custom
+  minCPU:
+  minMemory:
+  minStorage:
+  gpu:
+    model: NVIDIA-H100-PCIE-80GB
+    num: 1
+  nic:
+    model: NVIDIA-CONNECTX-6-DX
+    num: 1

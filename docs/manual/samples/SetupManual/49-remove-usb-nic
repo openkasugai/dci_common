@@ -1,0 +1,46 @@
+#!/usr/bin/env python3
+import json
+import os
+import pprint
+
+EXCLUDED_MAC = {
+    '00:11:22:33:44:55',
+    '01:11:22:33:44:55',
+}
+
+def main():
+    maas_resource_file = os.environ["MAAS_RESOURCES_FILE"]
+    with open(maas_resource_file, 'r') as resources_file:
+        data=json.load(resources_file)
+    resources_file.close()
+    filtered_cards = []
+    usb_ports = []
+    for card in data["resources"]["network"]["cards"]:
+
+        if card['driver'] != 'rndis_host':
+            filtered_cards.append(card)
+        else:
+            if card['ports'][0]['address'] in EXCLUDED_MAC:
+                print(f"MAC {card['ports'][0]['address']} is in the excluded list, skipping it")
+                filtered_cards.append(card)
+                continue
+            usb_ports.append(card['ports'][0]['id'])
+            print(f"rndis_host found in resources/networks/cards/port, removing it")
+    data["resources"]["network"]["cards"]=filtered_cards
+
+    for usb_port in usb_ports:
+        if usb_port in data["networks"].keys():
+            del(data["networks"][usb_port])
+            print(f"Removing interface {usb_port} from the networks elements")
+        else:
+            print(f"{usb_port} not found, skipping...")
+
+    data_json = json.dumps(data, indent=4)
+    with open(maas_resource_file, 'w') as resources_file:
+        resources_file.write(data_json)
+    resources_file.close()
+    pprint.pprint(data["networks"])
+    pprint.pprint(data["resources"]["network"]["cards"])
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,6 @@
+# Ansible Vault暗号化用ファイル
+# 機密情報（パスワード、APIキー、SSH鍵、組織ID等）を格納
+
+# テナント1のシークレット情報
+tenant_1_harbor_user: admin             # テナント用Harborサーバ ユーザ名
+tenant_1_harbor_password: "*****"       # テナント用Harborサーバ パスワード

@@ -1,0 +1,392 @@
+= メトリクス一覧
+:toc: macro
+:toclevels: 4
+:sectnums:
+:sectnumlevels: 4
+:figure-caption: 図
+:table-caption: 表
+:docinfo: shared
+:source-highlighter: highlight.js
+:highlightjs-theme: vs2015
+
+第1.0版
+
+2026年11月5日
+
+NTT株式会社
+
+
+== DCIアプリ
+
+[cols="1,1,3,4",options="header"]
+|===
+|区分 |カテゴリ |項目 |メトリクス
+
+.13+|DCIアプリ
+.5+|Pod情報
+|DCIアプリ(Pod)毎のスループット(ネットワーク)
+|container_network_receive / transmit_bytes_total
+
+|DCIアプリ(Pod)毎のCPU使用量
+|kube_node_status_capacity（CPUコア数）, container_cpu_usage_seconds_total
+
+|DCIアプリ(Pod)毎のメモリ使用量
+|kube_node_status_capacity（メモリバイト）, container_memory_working_set_bytes, container_memory_rss
+
+|DCIアプリ(Pod)毎の受信帯域幅
+|container_network_receive_bytes_total
+
+|DCIアプリ(Pod)毎の送信帯域幅
+|container_network_transmit_bytes_total
+
+.2+|Pod情報
+|DCIアプリ(Pod)毎の受信パケットレート
+|container_network_receive_packets_total
+
+|DCIアプリ(Pod)毎の送信パケットレート
+|container_network_transmit_packets_total
+
+
+.6+|Podに割当てたGPU情報
+|GPU使用率
+|DCGM_FI_DEV_GPU_UTIL, DCGM_FI_PROF_SM_ACTIVE, DCGM_FI_PROF_GR_ENGINE_ACTIVE
+
+|GPUメモリ使用率
+|DCGM_FI_DEV_FB_USED
+
+|メモリ温度
+|DCGM_FI_DEV_MEMORY_TEMP
+
+|GPU温度
+|DCGM_FI_DEV_GPU_TEMP
+
+|消費電力
+|DCGM_FI_DEV_POWER_USAGE
+
+|合計エネルギー消費量
+|DCGM_FI_DEV_TOTAL_ENERGY_CONSUMPTION
+
+.2+|メインコンテナ
+.2+|メインコンテナ情報
+|DCIアプリ毎のCPU使用量
+|container_cpu_usage_seconds_total
+
+|DCIアプリ毎のメモリ使用量
+|container_memory_usage_bytes
+
+.12+|サイドカーコンテナ
+.6+|サイドカーコンテナ情報（接続管理）
+|接続管理サイドカーのCPU使用量
+|container_cpu_usage_seconds_total
+
+|接続管理サイドカーのメモリ使用量
+|container_memory_usage_bytes
+
+|接続管理サイドカーの受信帯域幅
+|container_network_receive_bytes_total
+
+|接続管理サイドカーの送信帯域幅
+|container_network_transmit_bytes_total
+
+|接続管理サイドカーの受信パケットレート
+|container_network_receive_packets_total
+
+|接続管理サイドカーの送信パケットレート
+|container_network_transmit_packets_total
+
+.6+|サイドカーコンテナ情報（状態監視）
+|状態監視サイドカーのCPU使用量
+|container_cpu_usage_seconds_total
+
+|状態監視サイドカーのメモリ使用量
+|container_memory_usage_bytes
+
+|状態監視サイドカーの受信帯域幅
+|container_network_receive_bytes_total
+
+|状態監視サイドカーの送信帯域幅
+|container_network_transmit_bytes_total
+
+|状態監視サイドカーの受信パケットレート
+|container_network_receive_packets_total
+
+|状態監視サイドカーの送信パケットレート
+|container_network_transmit_packets_total
+
+|===
+
+
+== DCIテナント論理インフラ
+
+[cols="2,2,3,4",options="header"]
+|===
+|区分 |カテゴリ |項目 |メトリクス
+
+.6+|論理サーバ(K8s Control Plane, K8s Node): VM
+.6+|Node情報
+|Node毎のCPU使用量
+|node_cpu_seconds_total
+
+|Node毎のメモリ使用量
+|node_memory_MemTotal_bytes, node_memory_MemFree_bytes, node_memory_Buffers_bytes, node_memory_Cached_bytes
+
+|Node毎のDisk I/O
+|node_disk_read_bytes_total, node_disk_written_bytes_total, node_disk_io_time_seconds_total
+
+|Node毎のDisk使用量
+|node_filesystem_size_bytes, node_filesystem_avail_bytes
+
+|Node毎のネットワーク受信量
+|node_network_receive_bytes_total
+
+|Node毎のネットワーク送信量
+|node_network_transmit_bytes_total
+
+.21+|論理サーバ(K8s Node): 物理サーバ(COTS, Composed)
+.6+|Node情報
+|Node毎のCPU使用量
+|node_cpu_seconds_total
+
+|Node毎のメモリ使用量
+|node_memory_MemTotal_bytes, node_memory_MemFree_bytes, node_memory_Buffers_bytes, node_memory_Cached_bytes
+
+|Node毎のDisk I/O
+|node_disk_read_bytes_total, node_disk_written_bytes_total, node_disk_io_time_seconds_total
+
+|Node毎のDisk使用量
+|node_filesystem_size_bytes, node_filesystem_avail_bytes
+
+|Node毎のネットワーク受信量
+|node_network_receive_bytes_total
+
+|Node毎のネットワーク送信量
+|node_network_transmit_bytes_total
+
+.15+|GPU情報
+|SMクロック周波数
+|DCGM_FI_DEV_SM_CLOCK
+
+|メモリクロック周波数
+|DCGM_FI_DEV_MEM_CLOCK
+
+|メモリ温度
+|DCGM_FI_DEV_MEMORY_TEMP
+
+|GPU温度
+|DCGM_FI_DEV_GPU_TEMP
+
+|消費電力
+|DCGM_FI_DEV_POWER_USAGE
+
+|合計エネルギー消費量
+|DCGM_FI_DEV_TOTAL_ENERGY_CONSUMPTION
+
+|PCIeリプレイカウンタ
+|DCGM_FI_DEV_PCIE_REPLAY_COUNTER
+
+|XIDエラー
+|DCGM_FI_DEV_XID_ERRORS
+
+|NVLINK合計帯域幅
+|DCGM_FI_DEV_NVLINK_BANDWIDTH_TOTAL
+
+|vGPUのライセンスステータス
+|DCGM_FI_DEV_VGPU_LICENSE_STATUS
+
+|グラフィックスエンジンアクティブ時間割合
+|DCGM_FI_PROF_GR_ENGINE_ACTIVE
+
+|テンソルパイプアクティブサイクル比率
+|DCGM_FI_PROF_PIPE_TENSOR_ACTIVE
+
+|デバイスメモリインタフェイスのデータ送信/受信アクティブサイクル比率
+|DCGM_FI_PROF_DRAM_ACTIVE
+
+|PCIe TXデータ量
+|DCGM_FI_PROF_PCIE_TX_BYTES
+
+|PCIe RXデータ量
+|DCGM_FI_PROF_PCIE_RX_BYTES
+
+|===
+
+
+== DCIマネージャ
+
+[cols="1,1,3,4",options="header"]
+|===
+|区分 |カテゴリ |項目 |メトリクス
+
+.2+|DCIマネージャ用クラスタ
+.2+|リソースプール管理情報
+|論理サーバの払出し時間
+|provisioning_duration_seconds
+
+|controllerのworkqueueに溜まっているリクエスト数
+|workqueue_depth
+
+.13+|論理サーバ(VM)
+.7+|Node情報
+|CPU使用量情報
+|node_cpu_seconds_total
+
+|メモリ使用量情報
+|node_memory_MemAvailable_bytes
+
+|ネットワークトラフィック情報
+|node_network_receive_bytes_total, node_network_transmit_bytes_total
+
+|ディスク使用量情報
+|node_filesystem_size_bytes, node_filesystem_free_bytes
+
+|Disk I/O
+|node_disk_reads_completed_total, node_disk_writes_completed_total
+
+|ネットワーク受信量
+|node_network_receive_bytes_total
+
+|ネットワーク送信量
+|node_network_transmit_bytes_total
+
+.6+|Pod情報
+|Pod毎のCPU使用量
+|container_cpu_usage_seconds_total
+
+|Pod毎のメモリ使用量
+|container_memory_working_set_bytes
+
+|Pod毎の受信帯域幅
+|container_network_receive_bytes_total
+
+|Pod毎の送信帯域幅
+|container_network_transmit_bytes_total
+
+|Pod毎の受信パケットレート
+|container_network_receive_packets_total
+
+|Pod毎の送信パケットレート
+|container_network_transmit_packets_total
+
+|===
+
+== 物理インフラ
+
+[cols="1,2,3,4",options="header"]
+|===
+|区分 |カテゴリ |項目 |メトリクス
+
+.21+|物理サーバ
+.7+|リソースプール内の稼働中の物理サーバ
+
+|物理サーバのCPU使用率
+|server_cpu_usage
+
+|物理サーバのメモリ使用率
+|server_memory_usage
+
+|ネットワークトラフィック情報
+|node_network_receive_bytes_total, node_network_transmit_bytes_total
+
+|ディスク使用量情報
+|node_filesystem_size_bytes
+
+|Disk I/O
+|node_disk_read_bytes_total
+
+|ネットワーク受信量
+|node_network_receive_bytes_total
+
+|ネットワーク送信量
+|node_network_transmit_bytes_total
+
+.7+|テナント論理インフラのVM用の物理サーバ
+
+|物理サーバのCPU使用率
+|server_cpu_usage
+
+|物理サーバのメモリ使用率
+|server_memory_usage
+
+|ネットワークトラフィック情報
+|node_network_receive_bytes_total, node_network_transmit_bytes_total
+
+|ディスク使用量情報
+|node_filesystem_size_bytes
+
+|Disk I/O
+|node_disk_read_bytes_total
+
+|ネットワーク受信量
+|node_network_receive_bytes_total
+
+|ネットワーク送信量
+|node_network_transmit_bytes_total
+
+.7+|DCI管理用サーバ(VM用)の物理サーバ
+
+|物理サーバのCPU使用率
+|server_cpu_usage
+
+|物理サーバのメモリ使用率
+|server_memory_usage
+
+|ネットワークトラフィック情報
+|node_network_receive_bytes_total, node_network_transmit_bytes_total
+
+|ディスク使用量情報
+|node_filesystem_size_bytes
+
+|Disk I/O
+|node_disk_read_bytes_total
+
+|ネットワーク受信量
+|node_network_receive_bytes_total
+
+|ネットワーク送信量
+|node_network_transmit_bytes_total
+
+.12+|NW機器
+.12+|NW機器パケット統計
+|物理インフラ側で保持するNW機器の特定ポート受信カウンタ値
+|interface_rx_pk
+
+|物理インフラ側で保持するNW機器の特定ポート送信カウンタ値
+|interface_tx_pk
+
+|受信のビットレート
+|interface_rx_bps
+
+|送信のビットレート
+|interface_tx_bps
+
+|受信のインターフェース使用率
+|interface_rx_util
+
+|送信のインターフェース使用率
+|interface_tx_util
+
+|受信のエラーパケット数
+|interface_rx_err
+
+|送信のエラーパケット数
+|interface_tx_err
+
+|受信の破棄パケット数
+|interface_rx_drp
+
+|送信の破棄パケット数
+|interface_tx_drp
+
+|受信のオーバーランパケット数
+|interface_rx_ovr
+
+|送信のオーバーランパケット数
+|interface_tx_ovr
+
+|===
+
+++++
+<div style="text-align: right;">
+Copyright 2026 NTT, Inc.
+</div>
+++++

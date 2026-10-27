@@ -1,0 +1,389 @@
+- name: Control Plane 1台目の初期化
+  hosts: all
+  become: true
+  vars:
+    play_description: |
+      環境構築手順書 - 構築手順1：基本部分 マネージャ用k8sクラスタ構築
+       - k8sクラスタ構築 (冗長化/非冗長化 CP1台目を対象とする手順)
+  tasks:
+    - name: クラスタ構成判定
+      ansible.builtin.set_fact:
+        is_ha_config: "{{ groups['dci_mgmt_k8s_control_plane'] | length >= 2 }}"
+        is_single_node: "{{ groups['dci_mgmt_k8s_control_plane'] | length == 1 }}"
+
+    - name: 構成情報表示
+      ansible.builtin.debug:
+        msg:
+          - "Control Plane台数: {{ groups['dci_mgmt_k8s_control_plane'] | length }}"
+          - "HA構成: {{ is_ha_config }}"
+          - "シングルノード構成: {{ is_single_node }}"
+
+    # ----------------------------------------------------------------
+    # HA構成時のみ: kube-vip関連設定
+    # ----------------------------------------------------------------
+    - name: Ensure /etc/kubernetes/manifests directory exists (HA構成時のみ)
+      ansible.builtin.file:
+        path: /etc/kubernetes/manifests
+        state: directory
+        mode: '0755'
+        owner: root
+        group: root
+      when: is_ha_config
+
+    - name: kube-vip.yamlを/etc/kubernetes/manifests/に作成 (HA構成時のみ)
+      ansible.builtin.template:
+        src: kube-vip.yaml.j2
+        dest: /etc/kubernetes/manifests/kube-vip.yaml
+        owner: root
+        group: root
+        mode: '0644'
+      when: is_ha_config
+
+    - name: kubeadm-config.yamlを/etc/kubernetes/に作成 (HA構成時のみ)
+      ansible.builtin.template:
+        src: kubeadm-config.yaml.j2
+        dest: /etc/kubernetes/kubeadm-config.yaml
+        owner: root
+        group: root
+        mode: '0644'
+      when: is_ha_config
+
+    # ----------------------------------------------------------------
+    # クラスタ初期化状態確認 (冪等性チェック)
+    # ----------------------------------------------------------------
+    - name: クラスタ初期化状態確認（admin.conf）
+      ansible.builtin.stat:
+        path: /etc/kubernetes/admin.conf
+      register: k8s_admin_conf
+
+    - name: クラスタ初期化状態確認（manifests）
+      ansible.builtin.stat:
+        path: /etc/kubernetes/manifests/kube-apiserver.yaml
+      register: k8s_manifests
+
+    - name: クラスタ初期化状態判定
+      ansible.builtin.set_fact:
+        cluster_already_initialized: >-
+          {{
+            k8s_admin_conf.stat.exists and
+            k8s_manifests.stat.exists
+          }}
+
+    - name: クラスタ初期化状態デバッグ
+      ansible.builtin.debug:
+        msg:
+          - "admin.conf exists: {{ k8s_admin_conf.stat.exists }}"
+          - "manifests exist: {{ k8s_manifests.stat.exists }}"
+          - "cluster_already_initialized: {{ cluster_already_initialized }}"
+
+    # ----------------------------------------------------------------
+    # kubeadm init実行 (HA構成/シングルノード構成で分岐)
+    # ----------------------------------------------------------------
+    - name: kubeadm init（HA構成・未初期化時のみ）
+      ansible.builtin.command: >
+        kubeadm init --config /etc/kubernetes/kubeadm-config.yaml --upload-certs
+      register: kubeadm_init_result_ha
+      when:
+        - not cluster_already_initialized
+        - is_ha_config
+
+    - name: kubeadm init（シングルノード構成・未初期化時のみ）
+      ansible.builtin.shell: |
+        kubeadm init \
+          --kubernetes-version {{ k8s_version }} \
+          --pod-network-cidr="{{ pod_subnet }}" \
+          --apiserver-advertise-address={{ cni_address }} \
+          --cri-socket="{{ cri_socket }}"
+      register: kubeadm_init_result_single
+      when:
+        - not cluster_already_initialized
+        - is_single_node
+
+    - name: kubeadm init結果の統合
+      ansible.builtin.set_fact:
+        kubeadm_init_result: "{{ kubeadm_init_result_ha if is_ha_config else kubeadm_init_result_single }}"
+
+    - name: kubeadm initの出力を表示
+      ansible.builtin.debug:
+        msg: "{{ kubeadm_init_result.stdout_lines }}"
+      when:
+        - kubeadm_init_result is defined
+        - kubeadm_init_result.stdout_lines is defined
+
+    # ----------------------------------------------------------------
+    # joinコマンド抽出 (HA構成時)
+    # ----------------------------------------------------------------
+    - name: kubeadm joinコマンド（control-plane用）抽出 (HA構成時)
+      ansible.builtin.shell: |
+        echo '{{ kubeadm_init_result.stdout }}' | awk '
+        /You can now join any number of control-plane nodes/,/^Please note that/ {
+          if (/^\s*kubeadm join/) found=1
+          if (found) {
+            printf "%s ", $0
+            if (!/\\$/) exit
+          }
+        }' | sed 's/\\//g' | sed 's/\t/ /g' | sed 's/  */ /g' | xargs
+      register: join_command_controlplane
+      changed_when: false
+      when:
+        - is_ha_config
+        - kubeadm_init_result is defined
+        - kubeadm_init_result.stdout is defined
+      failed_when:
+        - join_command_controlplane is defined
+        - join_command_controlplane.rc is defined
+        - join_command_controlplane.rc != 0
+
+    - name: kubeadm joinコマンド（worker用）抽出
+      ansible.builtin.shell: |
+        echo '{{ kubeadm_init_result.stdout }}' | awk '
+        /Then you can join any number of worker nodes/ {found=1; next}
+        found && /^\s*kubeadm join/ {
+          line = $0
+          while (line ~ /\\$/) {
+            printf "%s ", line
+            if (getline <= 0) break
+            line = $0
+          }
+          print line
+          exit
+        }' | sed 's/\\//g' | sed 's/\t/ /g' | sed 's/  */ /g' | xargs
+      register: join_command_worker
+      changed_when: false
+      when:
+        - kubeadm_init_result is defined
+        - kubeadm_init_result.stdout is defined
+      failed_when:
+        - join_command_worker is defined
+        - join_command_worker.rc is defined
+        - join_command_worker.rc != 0
+
+    # ----------------------------------------------------------------
+    # joinコマンド抽出 (シングルノード構成時)
+    # ----------------------------------------------------------------
+    - name: kubeadm joinコマンド引数の抽出 (シングルノード構成・新規init時)
+      ansible.builtin.set_fact:
+        extracted_join_command_lines: >-
+          {{ kubeadm_init_result.stdout_lines | select('match', '^kubeadm join .*') | list
+             + kubeadm_init_result.stdout_lines | select('match', '^[\s\t]*--discovery-token-ca-cert-hash .*') | list }}
+      when:
+        - is_single_node
+        - kubeadm_init_result is defined
+        - kubeadm_init_result.changed
+        - kubeadm_init_result.stdout_lines is defined
+
+    - name: 抽出したjoinコマンド行を1つの文字列に結合 (シングルノード構成)
+      ansible.builtin.set_fact:
+        kubeadm_worker_join_command_raw: "{{ extracted_join_command_lines | join(' ') | replace('\\\\', '') | replace('\t', ' ') | trim }}"
+      when:
+        - is_single_node
+        - extracted_join_command_lines is defined
+        - extracted_join_command_lines | length > 0
+
+    # ----------------------------------------------------------------
+    # 既存クラスタからのjoinコマンド再生成 (初期化済みの場合)
+    # ----------------------------------------------------------------
+    - name: 新しいブートストラップトークンの作成 (既存クラスタ)
+      ansible.builtin.shell: "kubeadm token create"
+      register: new_token_result
+      environment:
+        KUBECONFIG: /etc/kubernetes/admin.conf
+      when:
+        - cluster_already_initialized
+        - kubeadm_init_result.skipped is defined
+
+    - name: certificate-keyを再生成 (既存クラスタ・HA構成時)
+      ansible.builtin.shell: "kubeadm init phase upload-certs --upload-certs 2>/dev/null | tail -1"
+      register: new_cert_key_result
+      environment:
+        KUBECONFIG: /etc/kubernetes/admin.conf
+      when:
+        - is_ha_config
+        - cluster_already_initialized
+        - kubeadm_init_result.skipped is defined
+
+    - name: CA証明書ハッシュの取得 (既存クラスタ)
+      ansible.builtin.shell: "openssl x509 -pubkey -in /etc/kubernetes/pki/ca.crt | openssl rsa -pubin -outform der 2>/dev/null | openssl dgst -sha256 -hex | sed 's/^.* //'"
+      register: ca_cert_hash_result
+      when:
+        - cluster_already_initialized
+        - kubeadm_init_result.skipped is defined
+
+    - name: API serverエンドポイント取得 (既存クラスタ)
+      ansible.builtin.shell: "kubectl config view -o jsonpath='{.clusters[0].cluster.server}' | sed 's|https://||'"
+      register: api_endpoint_result
+      environment:
+        KUBECONFIG: /etc/kubernetes/admin.conf
+      when:
+        - cluster_already_initialized
+        - kubeadm_init_result.skipped is defined
+
+    - name: joinコマンド（control-plane用）組み立て (既存クラスタ・HA構成時)
+      ansible.builtin.set_fact:
+        kubeadm_control_plane_join_command: "kubeadm join {{ api_endpoint_result.stdout }} --token {{ new_token_result.stdout }} --discovery-token-ca-cert-hash sha256:{{ ca_cert_hash_result.stdout }} --control-plane --certificate-key {{ new_cert_key_result.stdout }}"
+      when:
+        - is_ha_config
+        - cluster_already_initialized
+        - new_token_result is defined
+        - ca_cert_hash_result is defined
+        - api_endpoint_result is defined
+        - new_cert_key_result is defined
+
+    - name: joinコマンド（worker用）組み立て (既存クラスタ)
+      ansible.builtin.set_fact:
+        kubeadm_worker_join_command_raw: "kubeadm join {{ api_endpoint_result.stdout }} --token {{ new_token_result.stdout }} --discovery-token-ca-cert-hash sha256:{{ ca_cert_hash_result.stdout }}"
+      when:
+        - cluster_already_initialized
+        - new_token_result is defined
+        - ca_cert_hash_result is defined
+        - api_endpoint_result is defined
+
+    # ----------------------------------------------------------------
+    # joinコマンド変数設定・CRIソケットオプション付与
+    # ----------------------------------------------------------------
+    - name: joinコマンド（control-plane用）変数設定 (HA構成・新規init時)
+      ansible.builtin.set_fact:
+        kubeadm_control_plane_join_command: "{{ join_command_controlplane.stdout }}"
+      when:
+        - is_ha_config
+        - join_command_controlplane is defined
+        - join_command_controlplane.stdout is defined
+        - join_command_controlplane.stdout != ""
+
+    - name: joinコマンド（worker用）変数設定 (新規init時)
+      ansible.builtin.set_fact:
+        kubeadm_worker_join_command_raw: "{{ join_command_worker.stdout }}"
+      when:
+        - join_command_worker is defined
+        - join_command_worker.stdout is defined
+        - join_command_worker.stdout != ""
+
+    - name: joinコマンド（control-plane用）にcri-socketオプション付与 (HA構成時)
+      ansible.builtin.set_fact:
+        kubeadm_control_plane_join_command: "{{ kubeadm_control_plane_join_command }} --cri-socket=unix:///var/run/crio/crio.sock"
+      when:
+        - is_ha_config
+        - kubeadm_control_plane_join_command is defined
+
+    - name: joinコマンド（worker用）にcri-socketオプション付与
+      ansible.builtin.set_fact:
+        kubeadm_worker_join_command: "{{ kubeadm_worker_join_command_raw }} --cri-socket=unix:///var/run/crio/crio.sock"
+      when:
+        - kubeadm_worker_join_command_raw is defined
+
+    # ----------------------------------------------------------------
+    # joinコマンド保存
+    # ----------------------------------------------------------------
+    - name: joinコマンド（control-plane用）を各ホスト用に保存 (HA構成時)
+      ansible.builtin.copy:
+        content: "{{ kubeadm_control_plane_join_command }}\n"
+        dest: "{{ playbook_dir }}/kubeadm_control_plane_join_command_{{ item }}.txt"
+      delegate_to: localhost
+      loop: "{{ groups['dci_mgmt_k8s_control_plane'][1:] }}"
+      when:
+        - is_ha_config
+        - kubeadm_control_plane_join_command is defined
+      run_once: true
+
+    - name: joinコマンド（worker用）を各ホスト用に保存
+      ansible.builtin.copy:
+        content: "{{ kubeadm_worker_join_command }}\n"
+        dest: "{{ playbook_dir }}/kubeadm_worker_join_command_{{ item }}.txt"
+      delegate_to: localhost
+      loop: "{{ groups['dci_mgmt_k8s_node'] | default([]) }}"
+      when:
+        - kubeadm_worker_join_command is defined
+      run_once: true
+
+    # ----------------------------------------------------------------
+    # kubeconfigセットアップ
+    # ----------------------------------------------------------------
+    - name: .kubeディレクトリ存在確認
+      become: false
+      ansible.builtin.stat:
+        path: "/home/{{ ansible_user }}/.kube"
+      register: kube_dir_status
+
+    - name: kubeconfigファイル存在確認
+      become: false
+      ansible.builtin.stat:
+        path: "/home/{{ ansible_user }}/.kube/config"
+      register: kubeconfig_status
+
+    - name: 既存kubeconfigの内容確認
+      become: false
+      ansible.builtin.shell: |
+        if [ -f "/home/{{ ansible_user }}/.kube/config" ]; then
+          sudo diff -q /etc/kubernetes/admin.conf "/home/{{ ansible_user }}/.kube/config" >/dev/null 2>&1
+          echo $?
+        else
+          echo "1"
+        fi
+      register: kubeconfig_diff
+      changed_when: false
+
+    - name: .kubeディレクトリ作成
+      become: false
+      ansible.builtin.file:
+        path: "/home/{{ ansible_user }}/.kube"
+        state: directory
+        mode: '0755'
+      when: not kube_dir_status.stat.exists
+
+    - name: kubeconfigファイルコピー
+      ansible.builtin.copy:
+        src: /etc/kubernetes/admin.conf
+        dest: "/home/{{ ansible_user }}/.kube/config"
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: '0600'
+        remote_src: yes
+      when: kubeconfig_diff.stdout != '0'
+
+    - name: kubeconfigをローカルに保存 (WKノード配布用)
+      ansible.builtin.fetch:
+        src: "/home/{{ ansible_user }}/.kube/config"
+        dest: "{{ playbook_dir }}/kubeconfig_{{ inventory_hostname }}"
+        flat: yes
+      become: false
+
+    # ----------------------------------------------------------------
+    # Calico適用
+    # ----------------------------------------------------------------
+    - name: Calico DaemonSet状態確認
+      become: false
+      ansible.builtin.shell: |
+        kubectl get daemonset -n kube-system calico-node --no-headers 2>/dev/null | wc -l
+      register: calico_daemonset_check
+      changed_when: false
+      failed_when: false
+      environment:
+        KUBECONFIG: "/home/{{ ansible_user }}/.kube/config"
+
+    - name: Calico適用状態デバッグ
+      ansible.builtin.debug:
+        msg:
+          - "Calico DaemonSet exists: {{ (calico_daemonset_check.stdout | int) > 0 }}"
+          - "Should apply Calico: {{ (calico_daemonset_check.stdout | int) == 0 }}"
+
+    - name: Calico適用 (未適用時のみ)
+      become: false
+      ansible.builtin.command:
+        cmd: kubectl apply -f {{ ansible_work_dir }}/calico.yaml
+      register: calico_apply_result
+      changed_when: "'unchanged' not in calico_apply_result.stdout"
+      when:
+        - calico_daemonset_check is defined
+        - (calico_daemonset_check.stdout | int) == 0
+      environment:
+        KUBECONFIG: "/home/{{ ansible_user }}/.kube/config"
+
+    - name: usage.projectcalico.org へのテレメトリの無効化
+      become: false
+      ansible.builtin.command:
+        cmd: kubectl patch felixconfiguration default --type=merge -p '{"spec":{"usageReportingEnabled":false}}'
+      register: telemetry_disable_result
+      changed_when: "'patched' in telemetry_disable_result.stdout or 'created' in telemetry_disable_result.stdout"
+      failed_when: telemetry_disable_result.rc != 0
+      environment:
+        KUBECONFIG: "/home/{{ ansible_user }}/.kube/config"

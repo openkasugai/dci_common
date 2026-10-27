@@ -1,0 +1,22 @@
+### 環境に合わせて設定変更 ##############################
+
+# テナント情報 (削除するテナントを定義)
+tenants:
+  - tenant_name: tenant-1                                                            # テナント用のクラスタ名
+    tenant_namespace: tenant-1                                                       # テナント用のネームスペース
+    kubeconfig_file: tenant-1.kubeconfig                                             # テナント用のkubeconfigファイル名(※1)
+    harbor_ca_file: harbor-tenant-1-ca.crt                                          # テナント用Harbor CA証明書ファイル名(※2)
+    harbor_private_key_file: harbor-tenant-1-ca.key                                 # テナント用Harbor秘密鍵ファイル名(※3)
+    tenant_harbor_url: 192.168.2.32                                                 # テナント用HarborサーバIPアドレス
+    tenant_harbor_port: 30003                                                        # テナント用Harborサーバポート
+    tenant_harbor_user: "{{ tenant_1_harbor_user }}"                                 # テナント用Harborサーバ ユーザ名
+    tenant_harbor_password: "{{ tenant_1_harbor_password }}"                         # テナント用Harborサーバ パスワード
+    gateway_loadbalancer_vip: 192.168.2.31                                          # CoreDNS静的エントリ削除照合用VIP
+    tenant_cni_cidr: 192.168.20.0/24                                                 # 削除したテナント論理インフラのCNI用CIDR
+
+# ※1) 事前準備で ~/dci_manager/others/tenant-infrastructure-management/resources/accounts/tenant-manager/ 配下に作成したkubeconfigファイル名
+# ※2) 事前準備で /etc/pki/ca-trust/source/anchors/ 配下にコピーしたcrtファイル名（例: harbor-tenant-1-ca.crt）
+# ※3) 事前準備で /etc/pki/CA/private/ 配下にコピーしたkeyファイル名（例: harbor-tenant-1-ca.key）
+
+### 以下は編集不要 #####################################
+# 設定項目なし

@@ -1,0 +1,24 @@
+- name: サーバ操作監査の設定
+  hosts: all
+  become: true
+  vars:
+    play_description: |
+      事前準備(システム構築) - サーバ操作の監査の設定
+    auditd_src_file: "{{ dci_manager_path }}/others/monitoring/audit-setting/custom-audit.rules"  # dci_manager内のソースファイル相対パス
+    auditd_rules_dest_path: "/etc/audit/rules.d/custom_audit.rules"  # auditdカスタムルールファイル配置先パス
+  tasks:
+    - name: カスタム監査ルールファイルの格納
+      ansible.builtin.copy:
+        src: "{{ auditd_src_file }}"
+        dest: "{{ auditd_rules_dest_path }}"
+        owner: root
+        group: root
+        mode: '0640'
+        remote_src: yes
+      register: copy_audit_rules_result
+
+    - name: カスタム監査ルールの反映
+      ansible.builtin.command: auditctl -R "{{ auditd_rules_dest_path }}"
+      when: copy_audit_rules_result.changed
+      register: auditctl_result
+      changed_when: true

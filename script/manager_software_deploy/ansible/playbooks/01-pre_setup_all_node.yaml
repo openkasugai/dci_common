@@ -1,0 +1,135 @@
+- name: システム事前セットアップ（全ノード）
+  hosts: all
+  become: true
+  vars:
+    play_description: |
+      事前準備(システム構築) - 事前準備
+       - 全ノードを対象とする手順
+  tasks:
+    - name: 作業ディレクトリ作成
+      become: false
+      ansible.builtin.file:
+        path: "{{ ansible_work_dir }}"
+        state: directory
+        mode: '0755'
+
+    # Firewallの設定 -> 事前準備（Firewall設定）シート
+    - name: Firewall設定（control-planeノード）
+      ansible.builtin.include_role:
+        name: firewall_setup
+      vars:
+        firewall_template: firewall_cp.sh.j2
+      when: 
+        - firewall_setup_enabled
+        - inventory_hostname in groups['dci_mgmt_k8s_control_plane']
+
+    - name: Firewall設定（workerノード）
+      ansible.builtin.include_role:
+        name: firewall_setup
+      vars:
+        firewall_template: firewall_worker.sh.j2
+      when:
+        - firewall_setup_enabled
+        - inventory_hostname in groups['dci_mgmt_k8s_node']
+        - inventory_hostname not in groups['dci_mgmt_k8s_control_plane']
+
+    - name: プロキシ設定（/etc/environment）
+      ansible.builtin.blockinfile:
+        path: /etc/environment
+        create: yes
+        mode: '0644'
+        marker: "# {mark} ANSIBLE MANAGED BLOCK - Proxy設定"
+        block: |
+          http_proxy={{ proxy_url }}
+          https_proxy={{ proxy_url }}
+          no_proxy={{ no_proxy_list }}
+          HTTP_PROXY={{ proxy_url }}
+          HTTPS_PROXY={{ proxy_url }}
+          NO_PROXY={{ no_proxy_list }}
+      when: proxy_setup_enabled
+
+    - name: 必要パッケージインストール（wget, make, git, buildah）
+      ansible.builtin.yum:
+        name:
+          - wget
+          - make
+          - git
+          - buildah
+        state: present
+      register: package_install_result
+      retries: 3
+      delay: 10
+      until: package_install_result is succeeded
+      failed_when: package_install_result.failed
+
+    - name: Goバイナリ取得・展開・配置
+      block:
+        - name: Goアーカイブ取得
+          become: false
+          ansible.builtin.get_url:
+            url: "{{ go_download_url }}"
+            dest: "{{ ansible_work_dir }}/{{ go_installer }}"
+            timeout: 120
+          register: go_download_result
+          retries: 3
+          delay: 5
+          until: go_download_result is succeeded
+          failed_when: go_download_result.failed
+
+        - name: Goアーカイブ展開
+          become: false
+          ansible.builtin.unarchive:
+            src: "{{ ansible_work_dir }}/{{ go_installer }}"
+            dest: "/home/{{ ansible_user }}"
+            remote_src: yes
+          register: go_unarchive_result
+          failed_when: go_unarchive_result.failed
+
+        - name: GOPATHディレクトリ作成
+          become: false
+          ansible.builtin.file:
+            path: "/home/{{ ansible_user }}/gopath/bin"
+            state: directory
+            mode: '0755'
+          register: gopath_create_result
+          failed_when: gopath_create_result.failed
+
+        - name: Go環境変数を.bashrcに追加
+          become: false
+          ansible.builtin.blockinfile:
+            path: "/home/{{ ansible_user }}/.bashrc"
+            marker: "# {mark} ANSIBLE MANAGED BLOCK - Go環境変数"
+            block: |
+                export GOPATH="$HOME/gopath"
+                export GOROOT="$HOME/go"
+                export PATH="$GOPATH/bin:$PATH"
+                export PATH="$GOROOT/bin:$PATH"
+          register: go_env_result
+          failed_when: go_env_result.failed
+
+    - name: yqバイナリ取得・配置
+      block:
+        - name: yqバイナリダウンロード
+          ansible.builtin.get_url:
+            url: "{{ yq_download_url }}"
+            dest: "/usr/local/bin/yq"
+            mode: '0755'
+            timeout: 120
+          register: yq_download_result
+          retries: 3
+          delay: 5
+          until: yq_download_result is succeeded
+          failed_when: yq_download_result.failed
+
+    - name: DHRCリポジトリのクローンまたは更新
+      ansible.builtin.git:
+        repo: "{{ item.repo }}"
+        dest: "{{ item.path }}"
+        version: "{{ item.version }}"
+        force: yes
+      loop: "{{ dhrc_repositories }}"
+      register: git_clone_result
+      retries: 3
+      delay: 10
+      until: git_clone_result is succeeded
+      become: false

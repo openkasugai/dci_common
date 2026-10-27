@@ -1,0 +1,404 @@
+= DCI-2.0 DHRC構成品情報兼OSS情報
+:toc: macro
+:toclevels: 4
+:sectnums:
+:sectnumlevels: 4
+:figure-caption: 図
+:table-caption: 表
+:docinfo: shared
+:source-highlighter: highlight.js
+:highlightjs-theme: vs2015
+
+第1.0版
+
+2026年11月5日
+
+NTT株式会社
+
+
+.目次
+toc::[]
+
+== DHRC構成品情報
+=== DCI管理用クラスタのK8s Control Plane上の構成品
+[source, console]
+----
+$ kubectl  get pod -A
+NAMESPACE                           NAME                                                              READY   STATUS      RESTARTS        AGE
+caaph-system                        caaph-controller-manager-5777dd6775-chn7g                         1/1     Running     0               12d
+capdci-system                       cluster-api-provider-dci-controller-manager-5f84bdd685-cbppv      1/1     Running     0               12d
+capi-kubeadm-bootstrap-system       capi-kubeadm-bootstrap-controller-manager-6d44b66c58-p7bnc        1/1     Running     0               12d
+capi-kubeadm-control-plane-system   capi-kubeadm-control-plane-controller-manager-5bdf7b57df-bx658    1/1     Running     0               12d
+capi-system                         capi-controller-manager-6d8c789d5d-cg8zl                          1/1     Running     0               12d
+cert-manager                        cert-manager-6688c74798-cb4x6                                     1/1     Running     0               12d
+cert-manager                        cert-manager-cainjector-5ff7bddf79-8p7gc                          1/1     Running     0               12d
+cert-manager                        cert-manager-webhook-5b9b7f6c76-hlk6j                             1/1     Running     0               12d
+cnpg-system                         cnpg-cloudnative-pg-7b4bdbc8f6-965vx                              1/1     Running     0               4d4h
+database                            database-cluster-1                                                1/1     Running     0               4d2h
+database                            database-cluster-2                                                1/1     Running     0               4d2h
+database                            database-cluster-3                                                1/1     Running     0               24h
+default                             physical-infrastructure-cdi-deployment-6cc94ddd47-rd2g7           1/1     Running     0               45h
+default                             physical-infrastructure-exporter-deployment-678f4f877-kf48d       1/1     Running     0               45h
+default                             physical-infrastructure-log-deployment-656bb8dc8b-dkkgc           1/1     Running     0               45h
+default                             physical-infrastructure-maas-deployment-6d8c849756-ndmt4          1/1     Running     0               45h
+default                             physical-infrastructure-network-deployment-8664fdddf4-f6g88       1/1     Running     0               45h
+harbor                              harbor-core-57777d7887-km56z                                      1/1     Running     0               12d
+harbor                              harbor-database-0                                                 1/1     Running     0               12d
+harbor                              harbor-jobservice-85bbfc8d99-s4mwt                                1/1     Running     0               12d
+harbor                              harbor-nginx-5d476bc6d5-9grxg                                     1/1     Running     0               12d
+harbor                              harbor-portal-5547bc5b9d-t57jr                                    1/1     Running     0               12d
+harbor                              harbor-redis-0                                                    1/1     Running     0               12d
+harbor                              harbor-registry-8447f7dbcc-lwflz                                  2/2     Running     0               24h
+harbor                              harbor-trivy-0                                                    1/1     Running     0               12d
+kube-system                         calico-kube-controllers-76f5855748-m2mbl                          1/1     Running     0               24h
+kube-system                         calico-node-6tbr6                                                 1/1     Running     0               13d
+kube-system                         calico-node-dr4t4                                                 1/1     Running     0               13d
+kube-system                         calico-node-h7844                                                 1/1     Running     0               13d
+kube-system                         calico-node-k57lp                                                 1/1     Running     0               13d
+kube-system                         calico-node-xhpxr                                                 1/1     Running     0               13d
+kube-system                         coredns-7d7cd6c587-49thm                                          1/1     Running     0               8d
+kube-system                         coredns-7d7cd6c587-qxcn6                                          1/1     Running     0               8d
+kube-system                         etcd-d1-f01-k8s-master01                                          1/1     Running     0               13d
+kube-system                         etcd-d1-f01-k8s-master02                                          1/1     Running     0               13d
+kube-system                         etcd-d1-f01-k8s-master03                                          1/1     Running     0               13d
+kube-system                         kube-apiserver-d1-f01-k8s-master01                                1/1     Running     0               12d
+kube-system                         kube-apiserver-d1-f01-k8s-master02                                1/1     Running     0               12d
+kube-system                         kube-apiserver-d1-f01-k8s-master03                                1/1     Running     0               12d
+kube-system                         kube-controller-manager-d1-f01-k8s-master01                       1/1     Running     0               13d
+kube-system                         kube-controller-manager-d1-f01-k8s-master02                       1/1     Running     0               13d
+kube-system                         kube-controller-manager-d1-f01-k8s-master03                       1/1     Running     0               13d
+kube-system                         kube-proxy-c9m62                                                  1/1     Running     0               13d
+kube-system                         kube-proxy-ccqm9                                                  1/1     Running     0               13d
+kube-system                         kube-proxy-hfxfh                                                  1/1     Running     0               13d
+kube-system                         kube-proxy-jvldj                                                  1/1     Running     0               13d
+kube-system                         kube-proxy-zhxns                                                  1/1     Running     0               13d
+kube-system                         kube-scheduler-d1-f01-k8s-master01                                1/1     Running     0               13d
+kube-system                         kube-scheduler-d1-f01-k8s-master02                                1/1     Running     0               13d
+kube-system                         kube-scheduler-d1-f01-k8s-master03                                1/1     Running     0               13d
+kube-system                         kube-vip-d1-f01-k8s-master01                                      1/1     Running     0               13d
+kube-system                         kube-vip-d1-f01-k8s-master02                                      1/1     Running     0               13d
+kube-system                         kube-vip-d1-f01-k8s-master03                                      1/1     Running     0               13d
+loki                                loki-0                                                            2/2     Running     0               12d
+loki                                loki-1                                                            2/2     Running     0               12d
+loki                                loki-2                                                            2/2     Running     0               24h
+loki                                loki-canary-4g4jm                                                 1/1     Running     0               12d
+loki                                loki-canary-fwhlc                                                 1/1     Running     0               12d
+loki                                loki-canary-v54fm                                                 1/1     Running     0               12d
+loki                                loki-chunks-cache-0                                               2/2     Running     0               24h
+loki                                loki-gateway-66484f8cf7-ld4tm                                     1/1     Running     0               24h
+loki                                loki-results-cache-0                                              2/2     Running     0               12d
+nfs-provisioner                     nfs-provisioner-nfs-subdir-external-provisioner-649fc7874-vsfqt   1/1     Running     0               12d
+nginx-gateway                       gateway-nginx-dfb9bcccd-gshk8                                     1/1     Running     0               12d
+nginx-gateway                       ngf-nginx-gateway-fabric-568fffdd7c-gmzkd                         1/1     Running     0               12d
+npd                                 node-problem-detector-77f8w                                       1/1     Running     0               12d
+npd                                 node-problem-detector-kx79v                                       1/1     Running     0               12d
+npd                                 node-problem-detector-ldhqh                                       1/1     Running     0               12d
+npd                                 node-problem-detector-s8t8v                                       1/1     Running     0               12d
+npd                                 node-problem-detector-zcqp8                                       1/1     Running     0               12d
+postgrest                           postgrest-deployment-5bc4bc5f67-c2wvv                             1/1     Running     0               12d
+prometheus                          ipmi-exporter-prometheus-ipmi-exporter-58b845464b-psm54           1/1     Running     0               12d
+prometheus                          prometheus-b-kube-promethe-operator-67c487d995-48pwq              1/1     Running     0               12d
+prometheus                          prometheus-grafana-6567b7c49d-wr4sv                               3/3     Running     0               12d
+prometheus                          prometheus-grafana-b-7756fdbcf5-986rm                             2/2     Running     0               24h
+prometheus                          prometheus-kube-prometheus-operator-65748457f9-b9jk6              1/1     Running     0               12d
+prometheus                          prometheus-kube-state-metrics-75df9665fb-7vcff                    1/1     Running     0               12d
+prometheus                          prometheus-prometheus-b-kube-promethe-prometheus-0                2/2     Running     0               12d
+prometheus                          prometheus-prometheus-kube-prometheus-prometheus-0                2/2     Running     0               12d
+prometheus                          prometheus-prometheus-node-exporter-8m5tp                         1/1     Running     0               12d
+prometheus                          prometheus-prometheus-node-exporter-9sjxk                         1/1     Running     0               12d
+prometheus                          prometheus-prometheus-node-exporter-cwdsb                         1/1     Running     0               12d
+prometheus                          prometheus-prometheus-node-exporter-wscxn                         1/1     Running     0               12d
+prometheus                          prometheus-prometheus-node-exporter-znc8m                         1/1     Running     0               12d
+resource-pool-manager-system        resource-pool-manager-alert-receiver-67444d8d99-h2n8d             1/1     Running     0               12d
+resource-pool-manager-system        resource-pool-manager-controller-manager-5c88456c99-5dvkv         1/1     Running     0               12d
+vector                              vector-audit-l9lnr                                                1/1     Running     0               12d
+vector                              vector-audit-m25cl                                                1/1     Running     0               12d
+vector                              vector-audit-pjm5p                                                1/1     Running     0               12d
+vector                              vector-fwcwq                                                      1/1     Running     0               12d
+vector                              vector-lh2fw                                                      1/1     Running     0               5d22h
+vector                              vector-t97np                                                      1/1     Running     0               12d
+vector                              vector-ttdmc                                                      1/1     Running     0               12d
+vector                              vector-wn2gp                                                      1/1     Running     0               12d
+velero                              database-default-kopia-maintain-job-1783997855514-5smfb           0/1     Completed   0               3h9m
+velero                              database-default-kopia-maintain-job-1784001755524-btnxb           0/1     Completed   0               124m
+velero                              database-default-kopia-maintain-job-1784005655534-nx5dw           0/1     Completed   0               59m
+velero                              node-agent-7dz9l                                                  1/1     Running     0               12d
+velero                              node-agent-brgpt                                                  1/1     Running     0               12d
+velero                              node-agent-cvlks                                                  1/1     Running     0               12d
+velero                              node-agent-lndjf                                                  1/1     Running     0               12d
+velero                              node-agent-mdhc6                                                  1/1     Running     0               12d
+velero                              velero-5f65b56fcd-rkdzv                                           1/1     Running     0               12d
+----
+
+=== DCIテナント論理インフラのK8s Control Plane上の構成品
+[source, console]
+----
+$ kubectl  get pod -A
+NAMESPACE                         NAME                                                              READY   STATUS      RESTARTS          AGE
+argo-events                       alertmanager-temporal-signal-sensor-sensor-kbzsq-748cf5bf79f2q9   1/1     Running     0                 8d
+argo-events                       alertmanager-temporal-signal-sensor-sensor-kbzsq-748cf5bf7f87ml   1/1     Running     0                 8d
+argo-events                       alertmanager-temporal-signal-sensor-sensor-kbzsq-748cf5bf7j4d42   1/1     Running     0                 8d
+argo-events                       alertmanager-webhook-eventsource-wmtpw-7bc4d584ff-v7khh           1/1     Running     0                 8d
+argo-events                       alertmanager-webhook-eventsource-wmtpw-7bc4d584ff-wbvnn           1/1     Running     0                 8d
+argo-events                       alertmanager-webhook-eventsource-wmtpw-7bc4d584ff-wxtzb           1/1     Running     0                 8d
+argo-events                       argo-events-controller-manager-6db68bf98-mlbrr                    1/1     Running     0                 8d
+argo-events                       eventbus-default-js-0                                             3/3     Running     0                 8d
+argo-events                       eventbus-default-js-1                                             3/3     Running     0                 8d
+argo-events                       eventbus-default-js-2                                             3/3     Running     0                 8d
+argo-events                       vector-temporal-signal-sensor-sensor-7ltgz-fbcbf6d8c-69b2b        1/1     Running     0                 8d
+argo-events                       vector-temporal-signal-sensor-sensor-7ltgz-fbcbf6d8c-drt8w        1/1     Running     0                 8d
+argo-events                       vector-temporal-signal-sensor-sensor-7ltgz-fbcbf6d8c-t2rxc        1/1     Running     0                 8d
+argo-events                       vector-webhook-eventsource-kkssz-85d9c75fcb-7vjmt                 1/1     Running     0                 8d
+argo-events                       vector-webhook-eventsource-kkssz-85d9c75fcb-cp2r4                 1/1     Running     0                 8d
+argo-events                       vector-webhook-eventsource-kkssz-85d9c75fcb-xhx5m                 1/1     Running     0                 8d
+calico-system                     calico-apiserver-645b554bf8-59mb5                                 1/1     Running     0                 11d
+calico-system                     calico-apiserver-645b554bf8-jrcl5                                 1/1     Running     0                 11d
+calico-system                     calico-kube-controllers-78544474db-lppfs                          1/1     Running     0                 11d
+calico-system                     calico-node-bbj28                                                 1/1     Running     0                 19h
+calico-system                     calico-node-cbc9v                                                 1/1     Running     0                 5d3h
+calico-system                     calico-node-k56m4                                                 1/1     Running     0                 11d
+calico-system                     calico-node-v6d8t                                                 1/1     Running     0                 10d
+calico-system                     calico-node-xtr7v                                                 1/1     Running     0                 10d
+calico-system                     calico-typha-66d85cdbc9-tcrgq                                     1/1     Running     0                 5m24s
+calico-system                     calico-typha-66d85cdbc9-v5msq                                     1/1     Running     0                 11d
+calico-system                     calico-typha-66d85cdbc9-vw756                                     1/1     Running     0                 10d
+calico-system                     goldmane-76cd845459-vmslw                                         1/1     Running     0                 11d
+calico-system                     whisker-86675fc79-psn2p                                           2/2     Running     0                 11d
+cert-manager                      cert-manager-6688c74798-jpfmj                                     1/1     Running     0                 11d
+cert-manager                      cert-manager-cainjector-5ff7bddf79-v77s4                          1/1     Running     0                 11d
+cert-manager                      cert-manager-webhook-5b9b7f6c76-ftgds                             1/1     Running     0                 11d
+dci                               app-conn-info-maker-dci-controller-manager-7df9d9dd78-cwsqf       1/1     Running     0                 8d
+dci                               app-conn-info-maker-dci-controller-manager-7df9d9dd78-kzs2q       1/1     Running     0                 8d
+dci                               prometheus-adapter-77c5b8788c-jc9nn                               1/1     Running     0                 8d
+dci                               prometheus-adapter-77c5b8788c-qbs5x                               1/1     Running     0                 8d
+envoy-gateway-system              envoy-gateway-5646b9d547-vnzzr                                    1/1     Running     0                 5d1h
+gpu-operator                      gpu-feature-discovery-r98jc                                       1/1     Running     0                 5d1h
+gpu-operator                      gpu-feature-discovery-vmb4g                                       1/1     Running     0                 6m30s
+gpu-operator                      gpu-operator-6d5cf5576c-7pxqk                                     1/1     Running     0                 8d
+gpu-operator                      gpu-operator-node-feature-discovery-gc-55ffc49ccc-xgddv           1/1     Running     0                 5d1h
+gpu-operator                      gpu-operator-node-feature-discovery-master-6b5787f695-grkcb       1/1     Running     0                 8d
+gpu-operator                      gpu-operator-node-feature-discovery-worker-6b7zv                  1/1     Running     0                 3d18h
+gpu-operator                      gpu-operator-node-feature-discovery-worker-lnrc5                  1/1     Running     0                 3d18h
+gpu-operator                      gpu-operator-node-feature-discovery-worker-m87pk                  1/1     Running     0                 3d18h
+gpu-operator                      gpu-operator-node-feature-discovery-worker-st8kf                  1/1     Running     0                 5d1h
+gpu-operator                      gpu-operator-node-feature-discovery-worker-tpqvg                  1/1     Running     0                 19h
+gpu-operator                      nvidia-container-toolkit-daemonset-nd6f4                          1/1     Running     0                 6m30s
+gpu-operator                      nvidia-container-toolkit-daemonset-trmnt                          1/1     Running     0                 5d3h
+gpu-operator                      nvidia-cuda-validator-jv9ll                                       0/1     Completed   0                 5d1h
+gpu-operator                      nvidia-dcgm-exporter-7l4jk                                        1/1     Running     0                 6m30s
+gpu-operator                      nvidia-dcgm-exporter-fj52p                                        1/1     Running     0                 5d1h
+gpu-operator                      nvidia-driver-daemonset-9l25h                                     2/2     Running     0                 5d3h
+gpu-operator                      nvidia-driver-daemonset-c6btx                                     2/2     Running     0                 19h
+gpu-operator                      nvidia-mig-manager-4hxqr                                          1/1     Running     0                 6m30s
+gpu-operator                      nvidia-mig-manager-ftf92                                          1/1     Running     0                 5d3h
+gpu-operator                      nvidia-operator-validator-kpt2l                                   1/1     Running     0                 5d1h
+gpu-operator                      nvidia-operator-validator-x6xr5                                   1/1     Running     0                 6m30s
+harbor                            harbor-core-6b7cfc69bd-dtmd5                                      1/1     Running     0                 10d
+harbor                            harbor-database-0                                                 1/1     Running     0                 10d
+harbor                            harbor-jobservice-76fcbb6d4b-px5h2                                1/1     Running     0                 10d
+harbor                            harbor-nginx-756677df84-w8prf                                     1/1     Running     0                 10d
+harbor                            harbor-portal-5547bc5b9d-94v2t                                    1/1     Running     0                 10d
+harbor                            harbor-redis-0                                                    1/1     Running     0                 10d
+harbor                            harbor-registry-59d64c49db-4j84q                                  2/2     Running     0                 10d
+harbor                            harbor-trivy-0                                                    1/1     Running     0                 10d
+kube-system                       cluster-autoscaler-clusterapi-cluster-autoscaler-57c6f9db5zz2c4   1/1     Running     0                 8d
+kube-system                       coredns-77dfdb76d4-l9npv                                          1/1     Running     0                 7d1h
+kube-system                       coredns-77dfdb76d4-x2xlr                                          1/1     Running     0                 5d4h
+kube-system                       etcd-vm37.maas                                                    1/1     Running     0                 11d
+kube-system                       etcd-vm40.maas                                                    1/1     Running     0                 10d
+kube-system                       etcd-vm43.maas                                                    1/1     Running     0                 10d
+kube-system                       kube-apiserver-vm37.maas                                          1/1     Running     0                 11d
+kube-system                       kube-apiserver-vm40.maas                                          1/1     Running     0                 10d
+kube-system                       kube-apiserver-vm43.maas                                          1/1     Running     0                 10d
+kube-system                       kube-controller-manager-vm37.maas                                 1/1     Running     0                 11d
+kube-system                       kube-controller-manager-vm40.maas                                 1/1     Running     0                 10d
+kube-system                       kube-controller-manager-vm43.maas                                 1/1     Running     0                 10d
+kube-system                       kube-proxy-4jqld                                                  1/1     Running     0                 19h
+kube-system                       kube-proxy-4t87r                                                  1/1     Running     0                 10d
+kube-system                       kube-proxy-b29n5                                                  1/1     Running     0                 11d
+kube-system                       kube-proxy-shv5z                                                  1/1     Running     0                 10d
+kube-system                       kube-proxy-wlg55                                                  1/1     Running     0                 5d3h
+kube-system                       kube-scheduler-vm37.maas                                          1/1     Running     0                 11d
+kube-system                       kube-scheduler-vm40.maas                                          1/1     Running     0                 10d
+kube-system                       kube-scheduler-vm43.maas                                          1/1     Running     0                 10d
+kube-system                       kube-vip-vm37.maas                                                1/1     Running     0                 11d
+kube-system                       kube-vip-vm40.maas                                                1/1     Running     0                 10d
+kube-system                       kube-vip-vm43.maas                                                1/1     Running     0                 10d
+kyverno                           kyverno-admission-controller-5887db49ff-s9k9l                     1/1     Running     0                 11d
+kyverno                           kyverno-background-controller-84b58c4b5c-69swm                    1/1     Running     0                 11d
+kyverno                           kyverno-cleanup-controller-79f465d958-bw89n                       1/1     Running     0                 11d
+kyverno                           kyverno-reports-controller-69d6848858-7958p                       1/1     Running     0                 11d
+loki                              loki-0                                                            2/2     Running     0                 8d
+loki                              loki-1                                                            2/2     Running     0                 8d
+loki                              loki-2                                                            2/2     Running     0                 8d
+loki                              loki-canary-ntg29                                                 1/1     Running     0                 8d
+loki                              loki-canary-sqklx                                                 1/1     Running     0                 8d
+loki                              loki-canary-zdn4w                                                 1/1     Running     0                 8d
+loki                              loki-chunks-cache-0                                               2/2     Running     0                 8d
+loki                              loki-gateway-66484f8cf7-rb5w5                                     1/1     Running     0                 8d
+loki                              loki-results-cache-0                                              2/2     Running     0                 8d
+nfs-subdir-external-provisioner   nfs-provisioner-nfs-subdir-external-provisioner-5b84c4d4fbb9hpv   1/1     Running     0                 11d
+nginx-gateway                     gateway-nginx-55c75b4648-zsvt6                                    1/1     Running     0                 5d1h
+nginx-gateway                     ngf-nginx-gateway-fabric-568fffdd7c-9wbhc                         1/1     Running     0                 11d
+npd                               node-problem-detector-59zt7                                       1/1     Running     0                 8d
+npd                               node-problem-detector-hkpw4                                       1/1     Running     0                 8d
+npd                               node-problem-detector-kjgql                                       1/1     Running     0                 19h
+npd                               node-problem-detector-kxtw2                                       1/1     Running     0                 5d3h
+npd                               node-problem-detector-p98gv                                       1/1     Running     0                 8d
+nvidia-dra-driver-gpu             nvidia-dra-driver-gpu-controller-b94fd47b6-mjpzn                  1/1     Running     0                 8d
+nvidia-dra-driver-gpu             nvidia-dra-driver-gpu-kubelet-plugin-7v2gr                        0/2     Init:0/1    0                 21s
+nvidia-dra-driver-gpu             nvidia-dra-driver-gpu-kubelet-plugin-brtjw                        0/2     Init:0/1    0                 24s
+nvidia-network-operator           kube-multus-ds-4rhnp                                              1/1     Running     0                 19h
+nvidia-network-operator           kube-multus-ds-t6pcz                                              1/1     Running     0                 5d3h
+nvidia-network-operator           kube-sriov-cni-ds-dpm29                                           1/1     Running     0                 10d
+nvidia-network-operator           kube-sriov-cni-ds-dzhl6                                           1/1     Running     0                 19h
+nvidia-network-operator           kube-sriov-cni-ds-n7xmc                                           1/1     Running     0                 10d
+nvidia-network-operator           kube-sriov-cni-ds-qppjj                                           1/1     Running     0                 5d3h
+nvidia-network-operator           kube-sriov-cni-ds-z4wr7                                           1/1     Running     0                 10d
+nvidia-network-operator           mofed-rhel9.6-756589c66-ds-9jp4z                                  1/1     Running     0                 19h
+nvidia-network-operator           mofed-rhel9.6-756589c66-ds-qplr4                                  1/1     Running     0                 5d1h
+nvidia-network-operator           network-operator-67f6cc999d-dnw4m                                 1/1     Running     0                 10d
+nvidia-network-operator           network-operator-node-feature-discovery-gc-5f67b5d754-lpcsr       1/1     Running     0                 5d1h
+nvidia-network-operator           network-operator-node-feature-discovery-master-6c99ff55d-xx8mw    1/1     Running     0                 10d
+nvidia-network-operator           network-operator-node-feature-discovery-worker-8z48c              1/1     Running     0                 13h
+nvidia-network-operator           network-operator-node-feature-discovery-worker-c76sv              1/1     Running     0                 13h
+nvidia-network-operator           network-operator-node-feature-discovery-worker-r8gq2              1/1     Running     0                 13h
+nvidia-network-operator           network-operator-node-feature-discovery-worker-w5hvh              1/1     Running     0                 13h
+nvidia-network-operator           network-operator-node-feature-discovery-worker-zx5zx              1/1     Running     0                 13h
+nvidia-network-operator           network-operator-sriov-network-operator-5f7d6cc746-jpmlz          1/1     Running     0                 13h
+nvidia-network-operator           nv-ipam-controller-7f7cc85798-9xqnq                               1/1     Running     0                 10d
+nvidia-network-operator           nv-ipam-controller-7f7cc85798-s4kcw                               1/1     Running     0                 10d
+nvidia-network-operator           nv-ipam-node-dft4d                                                1/1     Running     0                 19h
+nvidia-network-operator           nv-ipam-node-nh9fl                                                1/1     Running     0                 5d3h
+nvidia-network-operator           sriov-device-plugin-2gjlq                                         1/1     Running     0                 13m
+nvidia-network-operator           sriov-device-plugin-cn7dz                                         1/1     Running     0                 5m31s
+nvidia-network-operator           sriov-network-config-daemon-5jrb7                                 1/1     Running     0                 6m21s
+nvidia-network-operator           sriov-network-config-daemon-87qll                                 1/1     Running     0                 20m
+policy-reporter                   policy-reporter-7964db8bcc-jj26v                                  1/1     Running     0                 8d
+policy-reporter                   policy-reporter-kyverno-plugin-65697858d6-ttbxd                   1/1     Running     0                 8d
+prometheus                        alertmanager-prometheus-kube-prometheus-alertmanager-0            2/2     Running     0                 8d
+prometheus                        alertmanager-prometheus-kube-prometheus-alertmanager-1            2/2     Running     0                 8d
+prometheus                        alertmanager-prometheus-kube-prometheus-alertmanager-2            2/2     Running     0                 8d
+prometheus                        prometheus-b-grafana-85f6979fc5-xblrp                             2/2     Running     0                 7d22h
+prometheus                        prometheus-b-kube-promethe-operator-67c487d995-wzldz              1/1     Running     0                 8d
+prometheus                        prometheus-grafana-749cb9bd7c-z5r2p                               3/3     Running     0                 7d22h
+prometheus                        prometheus-kube-prometheus-operator-65748457f9-fq5gf              1/1     Running     0                 8d
+prometheus                        prometheus-kube-state-metrics-755b896f8-cnjn7                     1/1     Running     0                 8d
+prometheus                        prometheus-prometheus-b-kube-promethe-prometheus-0                2/2     Running     0                 8d
+prometheus                        prometheus-prometheus-kube-prometheus-prometheus-0                2/2     Running     0                 8d
+prometheus                        prometheus-prometheus-node-exporter-7fvd7                         1/1     Running     0                 19h
+prometheus                        prometheus-prometheus-node-exporter-dqgbx                         1/1     Running     0                 5d3h
+prometheus                        prometheus-prometheus-node-exporter-gbrkx                         1/1     Running     0                 8d
+prometheus                        prometheus-prometheus-node-exporter-ktj2l                         1/1     Running     0                 8d
+prometheus                        prometheus-prometheus-node-exporter-zqcwp                         1/1     Running     0                 8d
+scale-controller-system           scale-controller-alert-receiver-6b75cb4d-rs7z6                    1/1     Running     0                 8d
+scale-controller-system           scale-controller-controller-manager-6896d7458f-5pf74              1/1     Running     0                 8d
+sriov-device-settings             sriov-device-settings-job-j8qf4                                   1/1     Running     0                 10d
+temporal                          elasticsearch-master-0                                            1/1     Running     0                 8d
+temporal                          elasticsearch-master-1                                            1/1     Running     0                 8d
+temporal                          temporal-client-rpp2x                                             0/1     Completed   0                 8d
+temporal                          temporal-gateway-5dcf4b85f8-4b4vz                                 1/1     Running     0                 8d
+temporal                          temporal-gateway-5dcf4b85f8-69g5n                                 1/1     Running     0                 8d
+temporal                          temporal-gateway-5dcf4b85f8-rhrwg                                 1/1     Running     0                 8d
+temporal                          temporal-stack-admintools-6c4f8bd457-l8m4t                        1/1     Running     0                 8d
+temporal                          temporal-stack-cassandra-0                                        1/1     Running     0                 8d
+temporal                          temporal-stack-cassandra-1                                        1/1     Running     0                 8d
+temporal                          temporal-stack-cassandra-2                                        1/1     Running     0                 8d
+temporal                          temporal-stack-frontend-5f7db8d6dd-f2xd2                          1/1     Running     0                 8d
+temporal                          temporal-stack-frontend-5f7db8d6dd-fjz8k                          1/1     Running     0                 8d
+temporal                          temporal-stack-frontend-5f7db8d6dd-p94pf                          1/1     Running     0                 8d
+temporal                          temporal-stack-history-68d87b8dcd-cwdl9                           1/1     Running     0                 8d
+temporal                          temporal-stack-history-68d87b8dcd-dj9wd                           1/1     Running     0                 8d
+temporal                          temporal-stack-history-68d87b8dcd-dkvgf                           1/1     Running     0                 8d
+temporal                          temporal-stack-matching-b4ff699b7-59wrf                           1/1     Running     0                 8d
+temporal                          temporal-stack-matching-b4ff699b7-7p2fc                           1/1     Running     0                 8d
+temporal                          temporal-stack-matching-b4ff699b7-v9q8d                           1/1     Running     0                 8d
+temporal                          temporal-stack-web-6465b95748-xn5vz                               1/1     Running     0                 8d
+temporal                          temporal-stack-worker-64ddb8cfbc-2dxxl                            1/1     Running     0                 8d
+temporal                          temporal-workflow-6c68b4979f-5bvzp                                1/1     Running     0                 8d
+temporal                          temporal-workflow-6c68b4979f-gh52l                                1/1     Running     0                 8d
+temporal                          temporal-workflow-6c68b4979f-rvsd9                                1/1     Running     0                 8d
+tigera-operator                   tigera-operator-675679649b-cgw6s                                  1/1     Running     0                 11d
+vector                            vector-4zw2c                                                      1/1     Running     0                 5d21h
+vector                            vector-audit-g462b                                                1/1     Running     0                 7d23h
+vector                            vector-audit-m87z6                                                1/1     Running     0                 7d23h
+vector                            vector-audit-smcmb                                                1/1     Running     0                 7d23h
+vector                            vector-fftwd                                                      1/1     Running     0                 5d21h
+vector                            vector-gnknm                                                      1/1     Running     0                 5d21h
+vector                            vector-gt8d4                                                      1/1     Running     0                 19h
+vector                            vector-j8zlm                                                      1/1     Running     0                 5d3h
+velero                            node-agent-7mpp9                                                  1/1     Running     0                 11d
+velero                            node-agent-95jhq                                                  1/1     Running     0                 10d
+velero                            node-agent-kbdwq                                                  1/1     Running     0                 19h
+velero                            node-agent-kgv66                                                  1/1     Running     0                 5d3h
+velero                            node-agent-m62r2                                                  1/1     Running     0                 10d
+velero                            velero-5f65b56fcd-qmp6d                                           1/1     Running     0                 11d
+watch-gpu-status                  mig-config-labeler-8rxzz                                          1/1     Running     0                 5d3h
+watch-gpu-status                  mig-config-labeler-x2mzk                                          1/1     Running     0                 6m30s
+watch-gpu-status                  watch-gpu-status-job-cfn5p                                        1/1     Running     0                 8d
+----
+
+== OSS一覧
+以下はDHRC構成品におけるOSSについての情報を一覧化したものである。
+
+[cols="1,3,2,4,4,6",options="header"]
+|===
+| No. | ソフトウェア名 | バージョン | GitHubのURL | 公式サイトのトップページのURL | 備考
+
+| 1 | Kubernetes | 1.36.3 | https://github.com/kubernetes/kubernetes[GitHub] | https://kubernetes.io/[公式サイト] |
+| 2 | CRI-O | 1.36.3 | https://github.com/cri-o/cri-o[GitHub] | https://cri-o.io/[公式サイト] |
+| 3 | Multus | network-operator-v26.4.1 | https://github.com/k8snetworkplumbingwg/multus-cni[GitHub] | 無し |
+| 4 | Calico | 3.32.1 | https://github.com/projectcalico/calico[GitHub] | https://www.tigera.io/project-calico/[公式サイト] |
+| 5 | Node Exporter | 1.12.1 | https://github.com/prometheus/node_exporter[GitHub] | https://prometheus.io/[公式サイト] |
+| 6 | Prometheus | 3.13.2 | https://github.com/prometheus/prometheus[GitHub] | https://prometheus.io/[公式サイト] |
+| 7 | Vector | 0.52.0-debian | https://github.com/vectordotdev/vector[GitHub] | https://vector.dev/[公式サイト] |
+| 8 | Loki | 3.4.2 | https://github.com/grafana/loki[GitHub] | https://grafana.com/oss/loki/[公式サイト] |
+| 9 | Grafana | 13.1.2 | https://github.com/grafana/grafana[GitHub] | https://grafana.com/[公式サイト] |
+| 10 | Harbor | 2.14.1 | https://github.com/goharbor/harbor[GitHub] | https://goharbor.io/[公式サイト] |
+| 11 | Trivy | v2.14.1 | https://github.com/aquasecurity/trivy[GitHub] | https://trivy.dev/[公式サイト] |Harborと同時にインストールされる。使用するバージョンはHarborのバージョンに合わせている。
+| 12 | Kyverno | 1.16.1 | https://github.com/kyverno/kyverno[GitHub] | https://kyverno.io/[公式サイト] |
+| 13 | NVIDIA Container Toolkit | v1.20.0 | https://github.com/NVIDIA/nvidia-container-toolkit[GitHub] | https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/[公式サイト] |
+| 14 | SR-IOV CNI Plugin | 2.10.0 | https://github.com/k8snetworkplumbingwg/sriov-cni[GitHub] | 無し |
+| 15 | NVIDIA GPU Operator | v26.7.0 | https://github.com/NVIDIA/gpu-operator[GitHub] | https://docs.nvidia.com/datacenter/cloud-native/gpu-operator/[公式サイト] |
+| 16 | NVIDIA GPU Driver | 595.91.07 | 無し | https://www.nvidia.com/en-us/drivers/[公式サイト] |
+| 17 | k8s-dra-driver-gpu | 0.5.0 | https://github.com/NVIDIA/k8s-dra-driver-gpu[GitHub] | 無し |
+| 18 | NVIDIA Network Operator | v26.4.1 | https://github.com/Mellanox/network-operator[GitHub] | https://docs.nvidia.com/networking/software/cloud-orchestration/network-operator/[公式サイト] |
+| 19 | SR-IOV Network Device Plugin | network-operator-v26.4.1 | https://github.com/k8snetworkplumbingwg/sriov-network-device-plugin[GitHub] | 無し |
+| 20 | Argo Events | 1.9.10 | https://github.com/argoproj/argo-events[GitHub] | https://argoproj.github.io/argo-events/[公式サイト] |
+| 21 | DCGM Exporter | 4.6.0-4.8.3 | https://github.com/NVIDIA/dcgm-exporter[GitHub] | https://docs.nvidia.com/datacenter/dcgm/[公式サイト] |
+| 22 | Cluster API | 1.14.0 | https://github.com/kubernetes-sigs/cluster-api[GitHub] | https://cluster-api.sigs.k8s.io/[公式サイト] |
+| 23 | MAAS | 3.6 (3.6.5) | https://github.com/maas/maas[GitHub] | https://maas.io/[公式サイト] |
+| 24 | PostgreSQL | 17.0 | https://github.com/postgres/postgres[GitHub] | https://www.postgresql.org/[公式サイト] | エラーメッセージについては以下のURLを参照： https://www.postgresql.org/docs/current/errcodes-appendix.html[エラーコード一覧]
+| 25 | RHEL | 9.6 | 無し | https://www.redhat.com/en/technologies/linux-platforms/enterprise-linux[公式サイト] |
+| 26 | Helm | 4 (4.2.4) | https://github.com/helm/helm[GitHub] | https://helm.sh/[公式サイト] |
+| 27 | CloudNativePG | 1.30.0 | https://github.com/cloudnative-pg/cloudnative-pg[GitHub] | https://cloudnative-pg.io/[公式サイト] |
+| 28 | NFS Subdir External Provisioner | 4.0.2 | https://github.com/kubernetes-sigs/nfs-subdir-external-provisioner[GitHub] | 無し |
+| 29 | ansible-core | 2.14.18 | https://github.com/ansible/ansible[GitHub] | https://www.ansible.com/[公式サイト] |
+| 30 | Velero | 1.17.1 | https://github.com/vmware-tanzu/velero[GitHub] | https://velero.io/[公式サイト] |
+| 31 | NodeProblemDetector | 1.36.0 | https://github.com/kubernetes/node-problem-detector[GitHub] | 無し |
+| 32 | auditd | 3.1.5 | https://github.com/linux-audit/audit-userspace[GitHub] | https://people.redhat.com/sgrubb/audit/[公式サイト] |
+| 33 | Temporal | 1.29.1 | https://github.com/temporalio/temporal[GitHub] | https://temporal.io/[公式サイト] |
+| 34 | AlertManager | 0.33.1 | https://github.com/prometheus/alertmanager[GitHub] | https://prometheus.io/docs/alerting/latest/alertmanager/[公式サイト] |使用するバージョンはPrometheusのバージョンに合わせている。
+| 35 | cert-manager | 1.21.1 | https://github.com/cert-manager/cert-manager[GitHub] | https://cert-manager.io/[公式サイト] |
+| 36 | kube-vip | 0.8.4 | https://github.com/kube-vip/kube-vip[GitHub] | https://kube-vip.io/[公式サイト] |
+| 37 | Cluster Autoscaler | 1.36.1 | https://github.com/kubernetes/autoscaler[GitHub] | 無し |使用するバージョンは、Kubernetesのバージョン(マイナーバージョンまで)に合わせている。
+| 38 | PostgREST | 14.1 | https://github.com/PostgREST/postgrest[GitHub] | https://postgrest.org[公式サイト] | 
+| 39 | Prometheus Adapter | 0.12.0 | https://github.com/kubernetes-sigs/prometheus-adapter[GitHub] | 無し |
+| 40 | SR-IOV Network Operator | network-operator-v26.4.1 | https://github.com/k8snetworkplumbingwg/sriov-network-operator[GitHub] | 無し | NVIDIA Network Operatorのサポートライフサイクルに追従
+| 41 | nvidia-k8s-ipam | network-operator-v26.4.1 | https://github.com/Mellanox/nvidia-k8s-ipam[GitHub] | 無し | NVIDIA Network Operatorのサポートライフサイクルに追従
+| 42 | ipmi_exporter | 1.10.1 | https://github.com/prometheus-community/ipmi_exporter[GitHub] | 無し | 
+| 43 | kube-state-metrics | 2.19.1 | https://github.com/kubernetes/kube-state-metrics[GitHub] | 無し | kube-prometheus-stackのChartのバージョンに依存
+| 44 | NGINX Gateway Fabric | 2.3.0 | https://github.com/nginx/nginx-gateway-fabric[GitHub] | https://docs.nginx.com/nginx-gateway-fabric/[公式サイト] | 
+| 45 | Policy Reporter | 3.7.0 | https://github.com/kyverno/policy-reporter[GitHub] | https://kyverno.github.io/policy-reporter-docs/[公式サイト] | 
+| 46 | Golang | 1.26.2 | https://github.com/golang/go[GitHub] | https://go.dev/[公式サイト] | 
+| 47 | Gateway API | 1.4.1 | https://github.com/kubernetes-sigs/gateway-api[GitHub] | https://gateway-api.sigs.k8s.io/[公式サイト] | 
+| 48 | cluster-api-addon-provider-helm | 0.6.4 | https://github.com/kubernetes-sigs/cluster-api-addon-provider-helm[GitHub] | 無し |
+| 49 | k8s-mig-manager | 0.15.0 | https://github.com/NVIDIA/mig-parted[GitHub] | 無し |
+| 50 | NATS(JetStream) | 2.10.10 | https://github.com/nats-io/nats-server[GitHub] | https://nats.io/[公式サイト] | ArgoEventsの内部(EventBus機能)で使用。Argo Eventsと同時にインストールされる。使用するバージョンはArgo Eventsのバージョンに合わせている。
+|===
+
+++++
+<div style="text-align: right;">
+Copyright 2026 NTT, Inc.
+</div>
+++++

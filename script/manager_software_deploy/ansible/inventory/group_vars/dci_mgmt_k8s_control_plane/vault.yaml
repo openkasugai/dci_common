@@ -1,0 +1,35 @@
+# Ansible Vault暗号化用ファイル
+# 機密情報（パスワード、APIキー、SSH鍵、組織ID等）を格納
+
+# Harbor認証情報
+harbor_manager_user: admin  # Harborマネージャユーザ
+harbor_manager_password: "*****"  # Harborマネージャパスワード
+
+# 物理インフラ SSH鍵設定
+# NWスイッチおよびCDI関連ホストを設定
+# CDI関連ホストはCDIバージョンによって登録するホストが異なる
+#  --------------+------------------------------------------------------------+
+#                | CDI関連ホスト                                               |
+#   CDIバージョン | Client PC | CDI管理サーバ(ホストOS) | CDI管理サーバ(ゲストOS) |
+#  --------------+-----------+------------------------+-----------------------+
+#   v1.0         | -         | ●                      | ●                     |
+#   v1.1         | ●　       | -                      | ●                     |
+#   v2.0(v1.1e3) | ●　       | ●                      | -                     |
+#  --------------+-----------+------------------------+-----------------------+
+# 対象の接続先がない場合は、項目ごと削除
+physical_infrastructure_ssh_remotes:
+  - { host: "192.168.1.10", user: "admin", password: "*****" }
+  - { host: "192.168.1.11", user: "admin", password: "*****" }
+  - { host: "192.168.1.20", user: "admin", password: "*****" }
+
+# IPMI Exporter 監視先設定
+# 対象の接続先がない場合は、項目ごと削除
+ipmi_servers:
+  - ipmi_address: "192.168.1.10"
+    ipmi_user: "admin"
+    ipmi_password: "*****"
+    privilege: "admin"
+  - ipmi_address: "192.168.1.11"
+    ipmi_user: "admin"
+    ipmi_password: "*****"
+    privilege: "admin"

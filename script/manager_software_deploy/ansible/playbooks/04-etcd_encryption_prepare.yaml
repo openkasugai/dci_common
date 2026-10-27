@@ -1,0 +1,41 @@
+- name: etcd secret暗号化設定ファイルの準備
+  hosts: all
+  become: true
+  vars:
+    play_description: |
+      事前準備(システム構築) - etcd secretの暗号化
+       - 暗号化設定ファイルを生成(CP1台目を対象とする手順)
+    encryption_config_path: /etc/kubernetes/encryption-config.yaml
+  tasks:
+    - name: encryption-config.yamlの存在確認
+      ansible.builtin.stat:
+        path: "{{ encryption_config_path }}"
+      register: encryption_config_exists
+
+    - name: encryption-config.yamlが既に存在する場合はスキップ
+      ansible.builtin.debug:
+        msg: "encryption-config.yamlが既に存在するため、新規作成とキー生成をスキップします。"
+      when: encryption_config_exists.stat.exists
+  
+    - name: ランダム暗号化キーの生成
+      ansible.builtin.shell: head -c 32 /dev/urandom | base64 | tr -d '\n'
+      register: encryption_key_result
+      changed_when: false
+      when: not encryption_config_exists.stat.exists
+
+    - name: encryption-config.yamlの生成
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/encryption-config.j2"
+        dest: "{{ encryption_config_path }}"
+        owner: root
+        group: root
+        mode: '0600'
+      vars:
+        encryption_secret: "{{ encryption_key_result.stdout }}"
+      when: not encryption_config_exists.stat.exists
+
+    - name: encryption-config.yamlをAnsibleホストにフェッチ
+      ansible.builtin.fetch:
+        src: "{{ encryption_config_path }}"
+        dest: "/tmp/k8s_encryption_config/encryption-config.yaml"
+        flat: yes

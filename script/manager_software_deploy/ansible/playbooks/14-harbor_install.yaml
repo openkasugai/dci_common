@@ -1,0 +1,88 @@
+- name: Harborインストール
+  hosts: all
+  vars:
+    play_description: |
+      事前準備(システム構築) - コンテナレジストリ(Harbor)の配備
+    harbor_namespace: harbor  # Harbor namespace
+    harbor_values_file: "{{ dci_manager_path }}/others/harbor/values.yaml"  # Harbor valuesファイル
+  environment:
+    KUBECONFIG: "/home/{{ ansible_user }}/.kube/config"
+  tasks:
+    - name: Helmリポジトリ追加（harbor）
+      ansible.builtin.command:
+        cmd: /usr/local/bin/helm repo add harbor {{ harbor_chart_repo }}
+      register: helm_repo_harbor
+      retries: 3
+      delay: 10
+      until: helm_repo_harbor.rc == 0 or 'already exists' in helm_repo_harbor.stderr
+      changed_when: 
+        - helm_repo_harbor.rc == 0
+        - '"already exists" not in helm_repo_harbor.stdout'
+        - '"already exists" not in helm_repo_harbor.stderr'
+      failed_when:
+        - helm_repo_harbor.rc != 0
+        - '"already exists" not in helm_repo_harbor.stderr'
+        - "'connection refused' not in helm_repo_harbor.stderr | lower"
+        - "'timeout' not in helm_repo_harbor.stderr | lower"
+
+    - name: Helmリポジトリ更新
+      ansible.builtin.command:
+        cmd: /usr/local/bin/helm repo update
+      register: helm_repo_update
+      retries: 3
+      delay: 10
+      until: helm_repo_update.rc == 0
+      changed_when: false
+      failed_when:
+        - helm_repo_update.rc != 0
+        - "'connection refused' not in helm_repo_update.stderr | lower"
+        - "'timeout' not in helm_repo_update.stderr | lower"
+
+    - name: Namespace作成（harbor）
+      ansible.builtin.command:
+        cmd: kubectl create namespace {{ harbor_namespace }}
+      register: ns_create
+      changed_when: ns_create.rc == 0
+      failed_when: 
+        - ns_create.rc != 0
+        - '"already exists" not in ns_create.stderr'
+
+    - name: harbor values.yamlのcommonName設定
+      ansible.builtin.replace:
+        path: "{{ harbor_values_file }}"
+        regexp: '^(\s+)commonName:\s+.*$'
+        replace: '\1commonName: {{ kube_vip_address }}'
+
+    - name: harbor values.yamlのexternalURL設定
+      ansible.builtin.replace:
+        path: "{{ harbor_values_file }}"
+        regexp: '^externalURL:\s+https://[^:]+(:30003.*)?$'
+        replace: 'externalURL: https://{{ kube_vip_address }}:30003'
+
+    - name: Harborのデプロイ（新規インストールまたはアップグレード）
+      ansible.builtin.command:
+        cmd: >
+          /usr/local/bin/helm upgrade --install harbor harbor/harbor
+          --version {{ harbor_chart_version }}
+          -n {{ harbor_namespace }}
+          -f {{ harbor_values_file }}
+          --set nginx.image.repository=docker.io/goharbor/nginx-photon
+          --set portal.image.repository=docker.io/goharbor/harbor-portal
+          --set core.image.repository=docker.io/goharbor/harbor-core
+          --set jobservice.image.repository=docker.io/goharbor/harbor-jobservice
+          --set registry.registry.image.repository=docker.io/goharbor/registry-photon
+          --set registry.controller.image.repository=docker.io/goharbor/harbor-registryctl
+          --set trivy.image.repository=docker.io/goharbor/trivy-adapter-photon
+          --set database.internal.image.repository=docker.io/goharbor/harbor-db
+          --set redis.internal.image.repository=docker.io/goharbor/redis-photon
+      register: helm_harbor
+      retries: 3
+      delay: 10
+      until: helm_harbor.rc == 0
+      changed_when: 
+        - helm_harbor.rc == 0
+        - '"has been upgraded" in helm_harbor.stdout or "has been installed" in helm_harbor.stdout'
+      failed_when:
+        - helm_harbor.rc != 0
+        - "'connection refused' not in helm_harbor.stderr | lower"
+        - "'timeout' not in helm_harbor.stderr | lower"

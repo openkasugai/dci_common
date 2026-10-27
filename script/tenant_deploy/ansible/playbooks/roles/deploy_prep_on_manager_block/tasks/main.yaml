@@ -1,0 +1,287 @@
+# テナント側の設定
+- name: Gateway関連YAMLファイルをテンプレートから作成
+  ansible.builtin.template:
+    src: "{{ playbook_dir }}/{{ template_file }}.j2"
+    dest: "{{ tenant_work_dir }}/{{ template_file }}.yaml"
+    mode: '0644'
+  loop:
+    - gateway-lb
+    - vip-cert
+  loop_control:
+    loop_var: template_file
+
+- name: Prometheus関連YAMLファイルをテンプレートから作成
+  ansible.builtin.template:
+    src: "{{ playbook_dir }}/httproute.j2"
+    dest: "{{ tenant_work_dir }}/httproute.yaml"
+    mode: '0644'
+
+- name: テナントクラスタにgateway/httproute設定を適用
+  ansible.builtin.command: >
+    kubectl --kubeconfig={{ tenant_work_dir }}/{{ kubeconfig_file }} apply -f {{ yaml_file }}
+  loop:
+    - "{{ tenant_work_dir }}/gateway-lb.yaml"
+    - "{{ dci_manager_path }}/others/tenant-infrastructure-management/resources/gateway/gateway.yaml"
+    - "{{ dci_manager_path }}/others/tenant-infrastructure-management/resources/gateway/gateway-ca-issuer.yaml"
+    - "{{ tenant_work_dir }}/vip-cert.yaml"
+    - "{{ tenant_work_dir }}/httproute.yaml"
+  loop_control:
+    loop_var: yaml_file
+  register: gateway_apply_result
+  changed_when: "'unchanged' not in gateway_apply_result.stdout"
+
+# マネージャ側の設定
+- name: ファイル更新用のスクリプトをターゲットにコピー
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/update_corefile_hosts.sh"
+    dest: "{{ ansible_work_dir }}/update_corefile_hosts.sh"
+    mode: '0755'
+
+- name: マネージャクラスタのCoreDNS ConfigMapを取得
+  ansible.builtin.command: >
+    kubectl get configmap coredns -n kube-system -o jsonpath={.data.Corefile}
+  register: corefile_raw
+  changed_when: false
+
+- name: CoreDNSにPrometheus静的エントリを追加
+  ansible.builtin.shell: >
+    echo "{{ corefile_raw.stdout }}" |
+    {{ ansible_work_dir }}/update_corefile_hosts.sh prometheus.{{ tenant_namespace }}.local {{ gateway_loadbalancer_vip }}
+  register: updated_corefile
+  changed_when: updated_corefile.rc == 0
+  failed_when: updated_corefile.rc > 1
+
+- name: 更新済みCorefileをConfigMapに適用
+  ansible.builtin.shell: |
+    kubectl patch configmap coredns -n kube-system \
+      --type merge \
+      -p "{\"data\":{\"Corefile\":$(echo '{{ updated_corefile.stdout | tojson }}')}}"
+  when: updated_corefile.changed
+  changed_when: true
+
+- name: 変更を適用するためCoreDNS Podを再起動
+  ansible.builtin.command: >
+    kubectl rollout restart deployment coredns -n kube-system
+  when: updated_corefile.changed
+  changed_when: true
+
+- name: CoreDNS再起動完了待機
+  ansible.builtin.command: >
+    kubectl rollout status deployment coredns -n kube-system --timeout=300s
+  when: updated_corefile.changed
+  changed_when: false
+
+- name: テナントprometheus用のscrapeconfigを作成
+  ansible.builtin.copy:
+    src: "{{ dci_manager_path }}/others/monitoring/kube-prometheus-stack/scrapeconfig-tenant-1.yaml"
+    dest: "{{ tenant_work_dir }}/scrapeconfig-{{ tenant_namespace }}.yaml"
+    remote_src: true
+
+- name: テナントネームスペースでscrapeconfigを更新
+  ansible.builtin.replace:
+    path: "{{ tenant_work_dir }}/scrapeconfig-{{ tenant_namespace }}.yaml"
+    regexp: 'tenant-1'
+    replace: "{{ tenant_namespace }}"
+
+- name: マネージャクラスタにscrapeconfigを適用
+  ansible.builtin.command: >
+    kubectl apply -f {{ tenant_work_dir }}/scrapeconfig-{{ tenant_namespace }}.yaml
+  register: scrapeconfig_apply
+  changed_when: "'unchanged' not in scrapeconfig_apply.stdout"
+
+# Vector/Loki連携 - テナント側の設定
+- name: テナントクラスタのCoreDNS ConfigMapを取得
+  ansible.builtin.command: >
+    kubectl --kubeconfig={{ tenant_work_dir }}/{{ kubeconfig_file }} get configmap coredns -n kube-system -o jsonpath={.data.Corefile}
+  register: tenant_corefile_raw
+  changed_when: false
+
+- name: CoreDNSにPrometheus静的エントリを追加（テナント側）
+  ansible.builtin.shell: >
+    echo "{{ tenant_corefile_raw.stdout }}" |
+    {{ ansible_work_dir }}/update_corefile_hosts.sh loki.local {{ mgr_gateway_loadbalancer_vip }}
+  register: tenant_updated_corefile
+  changed_when: tenant_updated_corefile.rc == 0
+  failed_when: tenant_updated_corefile.rc > 1
+
+- name: 更新済みCorefileをConfigMapに適用
+  ansible.builtin.shell: |
+    kubectl --kubeconfig={{ tenant_work_dir }}/{{ kubeconfig_file }} patch configmap coredns -n kube-system \
+      --type merge \
+      -p "{\"data\":{\"Corefile\":$(echo '{{ tenant_updated_corefile.stdout | tojson }}')}}"
+  when: tenant_updated_corefile.changed
+  changed_when: true
+
+- name: 変更を適用するためCoreDNS Podを再起動
+  ansible.builtin.command: >
+    kubectl --kubeconfig={{ tenant_work_dir }}/{{ kubeconfig_file }} rollout restart deployment coredns -n kube-system
+  when: tenant_updated_corefile.changed
+  changed_when: true
+
+- name: CoreDNS再起動完了待機（テナント側）
+  ansible.builtin.command: >
+    kubectl --kubeconfig={{ tenant_work_dir }}/{{ kubeconfig_file }} rollout status deployment coredns -n kube-system --timeout=300s
+  when: tenant_updated_corefile.changed
+  changed_when: false
+
+- name: Vector設定更新スクリプトをターゲットにコピー
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/update_vector_config.py"
+    dest: "{{ ansible_work_dir }}/update_vector_config.py"
+    mode: '0755'
+
+- name: 参照用にVector ConfigMapを取得
+  ansible.builtin.command: >
+    kubectl --kubeconfig={{ tenant_work_dir }}/{{ kubeconfig_file }} get configmap vector -n vector -o jsonpath='{.data.vector\.yaml}'
+  register: vector_cm_result
+  changed_when: false
+
+- name: テナントクラスタのVector ConfigMapのvector.yamlをファイルに取得
+  ansible.builtin.shell: >
+    kubectl --kubeconfig={{ tenant_work_dir }}/{{ kubeconfig_file }}
+    get configmap vector -n vector -o jsonpath='{.data.vector\.yaml}'
+    > {{ tenant_work_dir }}/vector-{{ tenant_namespace }}.yaml
+  changed_when: false
+
+- name: Vector ConfigMapを編集
+  ansible.builtin.command: >
+    python3 {{ ansible_work_dir }}/update_vector_config.py
+    {{ tenant_namespace }}
+    {{ tenant_work_dir }}/vector-{{ tenant_namespace }}.yaml
+    {{ tenant_work_dir }}/vector-updated-{{ tenant_namespace }}.yaml
+  register: update_vector_result
+  changed_when: update_vector_result.rc == 0
+  failed_when: update_vector_result.rc > 1
+
+- name: 更新済みvector.yamlをConfigMapに適用
+  ansible.builtin.shell: |
+    kubectl --kubeconfig={{ tenant_work_dir }}/{{ kubeconfig_file }} \
+      patch configmap vector -n vector \
+      --type merge \
+      -p "{\"data\":{\"vector.yaml\":$(jq -Rs . {{ tenant_work_dir }}/vector-updated-{{ tenant_namespace }}.yaml)}}"
+  when: update_vector_result.changed
+  changed_when: true
+
+- name: Vector DaemonSetを再起動（ConfigMap更新後）
+  ansible.builtin.command: >
+    kubectl --kubeconfig={{ tenant_work_dir }}/{{ kubeconfig_file }} -n vector rollout restart ds/vector
+  changed_when: true
+  when: update_vector_result.changed
+
+- name: Vector DaemonSet再起動完了待機
+  ansible.builtin.command: >
+    kubectl --kubeconfig={{ tenant_work_dir }}/{{ kubeconfig_file }} -n vector rollout status ds/vector --timeout=300s
+  when: update_vector_result.changed
+  changed_when: false
+  failed_when: false
+
+- name: テナントクラスタのVector-Audit ConfigMapのvector.yamlをファイルに取得
+  ansible.builtin.shell: >
+    kubectl --kubeconfig={{ tenant_work_dir }}/{{ kubeconfig_file }}
+    get configmap vector-audit -n vector -o jsonpath='{.data.vector\.yaml}'
+    > {{ tenant_work_dir }}/vector-audit-{{ tenant_namespace }}.yaml
+  changed_when: false
+
+- name: Vector-Audit ConfigMapを編集
+  ansible.builtin.command: >
+    python3 {{ ansible_work_dir }}/update_vector_config.py
+    {{ tenant_namespace }}
+    {{ tenant_work_dir }}/vector-audit-{{ tenant_namespace }}.yaml
+    {{ tenant_work_dir }}/vector-audit-updated-{{ tenant_namespace }}.yaml
+    audit
+  register: update_vector_audit_result
+  changed_when: update_vector_audit_result.rc == 0
+  failed_when: update_vector_audit_result.rc > 1
+
+- name: 更新済みvector.yamlをVector-Audit ConfigMapに適用
+  ansible.builtin.shell: |
+    kubectl --kubeconfig={{ tenant_work_dir }}/{{ kubeconfig_file }} \
+      patch configmap vector-audit -n vector \
+      --type merge \
+      -p "{\"data\":{\"vector.yaml\":$(jq -Rs . {{ tenant_work_dir }}/vector-audit-updated-{{ tenant_namespace }}.yaml)}}"
+  when: update_vector_audit_result.changed
+  changed_when: true
+
+- name: Vector-Audit DaemonSetを再起動（ConfigMap更新後）
+  ansible.builtin.command: >
+    kubectl --kubeconfig={{ tenant_work_dir }}/{{ kubeconfig_file }} -n vector rollout restart ds/vector-audit
+  changed_when: true
+  when: update_vector_audit_result.changed
+
+- name: Vector-Audit DaemonSet再起動完了待機
+  ansible.builtin.command: >
+    kubectl --kubeconfig={{ tenant_work_dir }}/{{ kubeconfig_file }} -n vector rollout status ds/vector-audit --timeout=300s
+  when: update_vector_audit_result.changed
+  changed_when: false
+  failed_when: false
+
+# デフォルトのアラートルール設定
+- name: テナント用のデフォルトアラート設定をテンプレートから生成
+  ansible.builtin.template:
+    src: "{{ playbook_dir }}/default-alert-settings.j2"
+    dest: "{{ tenant_work_dir }}/default-alert-settings-{{ tenant_namespace }}.yaml"
+    mode: '0644'
+
+- name: テナントクラスタにデフォルトアラート設定を適用
+  ansible.builtin.command: >
+    kubectl --kubeconfig={{ tenant_work_dir }}/{{ kubeconfig_file }} apply -f {{ tenant_work_dir }}/default-alert-settings-{{ tenant_namespace }}.yaml
+  register: default_alert_apply
+  changed_when: "'unchanged' not in default_alert_apply.stdout"
+
+- name: テナントprometheusの現在のHelm値を取得
+  ansible.builtin.command: >
+    helm --kubeconfig {{ tenant_work_dir }}/{{ kubeconfig_file }} get values -n prometheus prometheus --all
+  register: tenant_prometheus_values
+  changed_when: false
+
+- name: テナントprometheusの値をファイルに保存
+  ansible.builtin.copy:
+    content: "{{ tenant_prometheus_values.stdout }}"
+    dest: "{{ tenant_work_dir }}/base-values-{{ tenant_namespace }}.yaml"
+    mode: '0644'
+
+- name: テナントprometheus用のoverride-values.yamlを作成
+  ansible.builtin.template:
+    src: "{{ playbook_dir }}/override-values.j2"
+    dest: "{{ tenant_work_dir }}/override-values-{{ tenant_namespace }}.yaml"
+    mode: '0644'
+
+- name: アラート設定でテナントprometheusをアップグレード
+  ansible.builtin.command: >
+    helm --kubeconfig {{ tenant_work_dir }}/{{ kubeconfig_file }} upgrade --install prometheus prometheus-community/kube-prometheus-stack
+    --version {{ prometheus_chart_version }}
+    --namespace prometheus
+    --values {{ tenant_work_dir }}/base-values-{{ tenant_namespace }}.yaml
+    --values {{ tenant_work_dir }}/override-values-{{ tenant_namespace }}.yaml
+  when: lookup('env', 'SKIP_HELM_UPGRADE') != 'true'
+  register: tenant_prometheus_upgrade
+  retries: 3
+  delay: 10
+  until: tenant_prometheus_upgrade.rc == 0
+  failed_when:
+    - tenant_prometheus_upgrade.rc != 0
+    - "'connection refused' not in tenant_prometheus_upgrade.stderr | lower"
+  changed_when: true
+
+- name: Prometheus主要Podプレフィックスリスト定義
+  ansible.builtin.set_fact:
+    prometheus_pod_prefixes:
+      - "alertmanager-prometheus"
+      - "prometheus(-[^-]+)?-grafana"
+      - "prometheus(-[^-]+)?-kube-promethe"
+      - "prometheus-kube-state-metrics"
+      - "prometheus-prometheus(-[^-]+)?-kube-promethe-prometheus"
+      - "prometheus-prometheus-node-exporter"
+  when: lookup('env', 'SKIP_HELM_UPGRADE') != 'true'
+
+- name: Prometheus全Pod Ready待機
+  ansible.builtin.include_role:
+    name: parallel_pod_wait
+  vars:
+    pod_wait_kubeconfig: "{{ tenant_work_dir }}/{{ kubeconfig_file }}"
+    pod_wait_namespace: prometheus
+    pod_wait_prefixes: "{{ prometheus_pod_prefixes }}"
+    pod_wait_timeout_creation: 60
+    pod_wait_timeout_ready: 600
+    pod_wait_component: Prometheus
+  when: lookup('env', 'SKIP_HELM_UPGRADE') != 'true'

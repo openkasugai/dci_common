@@ -1,0 +1,33 @@
+apiVersion: kubeadm.k8s.io/v1beta4
+kind: InitConfiguration
+localAPIEndpoint:
+  advertiseAddress: "{{ cni_address }}"
+  bindPort: 6443
+nodeRegistration:
+  criSocket: unix:///var/run/crio/crio.sock
+  imagePullPolicy: IfNotPresent
+  imagePullSerial: true
+  name: "{{ inventory_hostname }}"
+  taints: null
+---
+apiVersion: kubeadm.k8s.io/v1beta4
+kind: ClusterConfiguration
+kubernetesVersion: "v{{ k8s_version }}"
+controlPlaneEndpoint: "{{ kube_vip_address }}:6443"
+networking:
+  podSubnet: "{{ pod_subnet }}"
+  serviceSubnet: "{{ service_subnet }}"
+imageRepository: registry.k8s.io
+clusterName: kubernetes
+certificatesDir: /etc/kubernetes/pki
+etcd:
+  local:
+    dataDir: /var/lib/etcd
+apiServer: {}
+controllerManager: {}
+scheduler: {}
+dns: {}
+proxy: {}
+caCertificateValidityPeriod: 87600h0m0s
+certificateValidityPeriod: 8760h0m0s
+encryptionAlgorithm: RSA-2048

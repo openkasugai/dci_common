@@ -1,0 +1,17 @@
+### 環境に合わせて設定変更 ##############################
+
+# CalicoのNIC自動検出方法
+calico_autodetect_method: "kubernetes-internal-ip"
+# 複数NICを持つ環境ではクラスタを組むCNI用NICが必要
+# CNI用NICがeth1の場合は
+# calico_autodetect_method: interface=eth1 のようにCNI用NICを指定
+
+# kube-vip設定 (冗長構成用)
+kube_vip_interface: eth1         # kube-vipが使用するネットワークインタフェース
+kube_vip_cidr: 24                # kube-vipのCIDR
+
+# k8sクラスタ設定
+cri_socket: unix:///var/run/crio/crio.sock  # CRIソケットのパス
+
+### 以下は編集不要 #####################################
+# 設定項目なし

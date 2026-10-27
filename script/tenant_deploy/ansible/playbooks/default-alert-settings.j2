@@ -1,0 +1,905 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-alerting-provisioning
+  namespace: prometheus
+data:
+  default-alert-rules.yaml: |
+    apiVersion: 1
+    groups:    
+        - orgId: 1
+          name: gpu
+          folder: default-alert-rules
+          interval: 1m
+          rules:
+            - uid: afaq25bm9quwwa
+              title: GPU High Utilization (GPU_UTIL)
+              condition: C
+              data:
+                - refId: A
+                  relativeTimeRange:
+                    from: 600
+                    to: 0
+                  datasourceUid: prometheus
+                  model:
+                    disableTextWrap: false
+                    editorMode: code
+                    expr: avg_over_time(DCGM_FI_DEV_GPU_UTIL[5m])
+                    fullMetaSearch: false
+                    includeNullMetadata: true
+                    instant: true
+                    intervalMs: 1000
+                    legendFormat: __auto
+                    maxDataPoints: 43200
+                    range: false
+                    refId: A
+                    useBackend: false
+                - refId: C
+                  datasourceUid: __expr__
+                  model:
+                    conditions:
+                        - evaluator:
+                            params:
+                                - 80
+                            type: gte
+                          operator:
+                            type: and
+                          query:
+                            params:
+                                - C
+                          reducer:
+                            params: []
+                            type: last
+                          type: query
+                    datasource:
+                        type: __expr__
+                        uid: __expr__
+                    expression: A
+                    intervalMs: 1000
+                    maxDataPoints: 43200
+                    refId: C
+                    type: threshold
+              dashboardUid: ""
+              panelId: 0
+              noDataState: NoData
+              execErrState: Error
+              for: 3m
+              isPaused: false
+              notification_settings:
+                receiver: email
+            - uid: dfaqwhfzzzdvkb
+              title: GPU High Utilization (GR_ENGINE_ACTIVE)
+              condition: C
+              data:
+                - refId: A
+                  relativeTimeRange:
+                    from: 600
+                    to: 0
+                  datasourceUid: prometheus
+                  model:
+                    disableTextWrap: false
+                    editorMode: code
+                    expr: avg_over_time(DCGM_FI_PROF_GR_ENGINE_ACTIVE[5m])
+                    fullMetaSearch: false
+                    includeNullMetadata: true
+                    instant: true
+                    intervalMs: 1000
+                    legendFormat: __auto
+                    maxDataPoints: 43200
+                    range: false
+                    refId: A
+                    useBackend: false
+                - refId: C
+                  datasourceUid: __expr__
+                  model:
+                    conditions:
+                        - evaluator:
+                            params:
+                                - 80
+                            type: gte
+                          operator:
+                            type: and
+                          query:
+                            params:
+                                - C
+                          reducer:
+                            params: []
+                            type: last
+                          type: query
+                    datasource:
+                        type: __expr__
+                        uid: __expr__
+                    expression: A
+                    intervalMs: 1000
+                    maxDataPoints: 43200
+                    refId: C
+                    type: threshold
+              dashboardUid: ""
+              panelId: 0
+              noDataState: NoData
+              execErrState: Error
+              for: 3m
+              isPaused: false
+              notification_settings:
+                receiver: email
+            - uid: bfar3qlqw5xc0a
+              title: GPU ECC Double-Bit Error Detected
+              condition: C
+              data:
+                - refId: A
+                  relativeTimeRange:
+                    from: 600
+                    to: 0
+                  datasourceUid: prometheus
+                  model:
+                    disableTextWrap: false
+                    editorMode: builder
+                    expr: DCGM_FI_DEV_ECC_DBE_VOL_TOTAL
+                    fullMetaSearch: false
+                    includeNullMetadata: true
+                    instant: true
+                    intervalMs: 1000
+                    legendFormat: __auto
+                    maxDataPoints: 43200
+                    range: false
+                    refId: A
+                    useBackend: false
+                - refId: C
+                  datasourceUid: __expr__
+                  model:
+                    conditions:
+                        - evaluator:
+                            params:
+                                - 0
+                            type: gt
+                          operator:
+                            type: and
+                          query:
+                            params:
+                                - C
+                          reducer:
+                            params: []
+                            type: last
+                          type: query
+                    datasource:
+                        type: __expr__
+                        uid: __expr__
+                    expression: A
+                    intervalMs: 1000
+                    maxDataPoints: 43200
+                    refId: C
+                    type: threshold
+              dashboardUid: ""
+              panelId: 0
+              noDataState: NoData
+              execErrState: Error
+              isPaused: false
+              notification_settings:
+                receiver: email-and-webhook
+            - uid: dfar496phpyiob
+              title: GPU Temperature Threshold Exceeded
+              condition: C
+              data:
+                - refId: A
+                  relativeTimeRange:
+                    from: 600
+                    to: 0
+                  datasourceUid: prometheus
+                  model:
+                    disableTextWrap: false
+                    editorMode: builder
+                    expr: DCGM_FI_DEV_GPU_TEMP
+                    fullMetaSearch: false
+                    includeNullMetadata: true
+                    instant: true
+                    intervalMs: 1000
+                    legendFormat: __auto
+                    maxDataPoints: 43200
+                    range: false
+                    refId: A
+                    useBackend: false
+                - refId: C
+                  datasourceUid: __expr__
+                  model:
+                    conditions:
+                        - evaluator:
+                            params:
+                                - 85
+                            type: gte
+                          operator:
+                            type: and
+                          query:
+                            params:
+                                - C
+                          reducer:
+                            params: []
+                            type: last
+                          type: query
+                    datasource:
+                        type: __expr__
+                        uid: __expr__
+                    expression: A
+                    intervalMs: 1000
+                    maxDataPoints: 43200
+                    refId: C
+                    type: threshold
+              dashboardUid: ""
+              panelId: 0
+              noDataState: NoData
+              execErrState: Error
+              for: 3m
+              isPaused: false
+              notification_settings:
+                receiver: email
+            - uid: ffar4uszksvswb
+              title: PCIe Replay Error Rate Increased
+              condition: C
+              data:
+                - refId: A
+                  relativeTimeRange:
+                    from: 600
+                    to: 0
+                  datasourceUid: prometheus
+                  model:
+                    disableTextWrap: false
+                    editorMode: code
+                    expr: increase(DCGM_FI_DEV_PCIE_REPLAY_COUNTER[5m])
+                    fullMetaSearch: false
+                    includeNullMetadata: true
+                    instant: true
+                    intervalMs: 1000
+                    legendFormat: __auto
+                    maxDataPoints: 43200
+                    range: false
+                    refId: A
+                    useBackend: false
+                - refId: C
+                  datasourceUid: __expr__
+                  model:
+                    conditions:
+                        - evaluator:
+                            params:
+                                - 100
+                            type: gt
+                          operator:
+                            type: and
+                          query:
+                            params:
+                                - C
+                          reducer:
+                            params: []
+                            type: last
+                          type: query
+                    datasource:
+                        type: __expr__
+                        uid: __expr__
+                    expression: A
+                    intervalMs: 1000
+                    maxDataPoints: 43200
+                    refId: C
+                    type: threshold
+              dashboardUid: ""
+              panelId: 0
+              noDataState: NoData
+              execErrState: Error
+              for: 3m
+              isPaused: false
+              notification_settings:
+                receiver: email
+            - uid: dfar61139tds0b
+              title: GPU XID Error Detected
+              condition: C
+              data:
+                - refId: A
+                  relativeTimeRange:
+                    from: 600
+                    to: 0
+                  datasourceUid: prometheus
+                  model:
+                    disableTextWrap: false
+                    editorMode: code
+                    expr: increase(DCGM_FI_DEV_XID_ERRORS[5m])
+                    fullMetaSearch: false
+                    includeNullMetadata: true
+                    instant: true
+                    intervalMs: 1000
+                    legendFormat: __auto
+                    maxDataPoints: 43200
+                    range: false
+                    refId: A
+                    useBackend: false
+                - refId: C
+                  datasourceUid: __expr__
+                  model:
+                    conditions:
+                        - evaluator:
+                            params:
+                                - 0
+                            type: gt
+                          operator:
+                            type: and
+                          query:
+                            params:
+                                - C
+                          reducer:
+                            params: []
+                            type: last
+                          type: query
+                    datasource:
+                        type: __expr__
+                        uid: __expr__
+                    expression: A
+                    intervalMs: 1000
+                    maxDataPoints: 43200
+                    refId: C
+                    type: threshold
+              dashboardUid: ""
+              panelId: 0
+              noDataState: NoData
+              execErrState: Error
+              for: 3m
+              isPaused: false
+              notification_settings:
+                receiver: email
+            - uid: dfar76k1bn6kgb
+              title: GPU Power Usage Abnormal
+              condition: C
+              data:
+                - refId: A
+                  relativeTimeRange:
+                    from: 600
+                    to: 0
+                  datasourceUid: prometheus
+                  model:
+                    disableTextWrap: false
+                    editorMode: code
+                    expr: avg_over_time(DCGM_FI_DEV_POWER_USAGE[5m])
+                    fullMetaSearch: false
+                    includeNullMetadata: true
+                    instant: true
+                    intervalMs: 1000
+                    legendFormat: __auto
+                    maxDataPoints: 43200
+                    range: false
+                    refId: A
+                    useBackend: false
+                - refId: C
+                  datasourceUid: __expr__
+                  model:
+                    conditions:
+                        - evaluator:
+                            params:
+                                - 450
+                            type: gt
+                          operator:
+                            type: and
+                          query:
+                            params:
+                                - C
+                          reducer:
+                            params: []
+                            type: last
+                          type: query
+                    datasource:
+                        type: __expr__
+                        uid: __expr__
+                    expression: A
+                    intervalMs: 1000
+                    maxDataPoints: 43200
+                    refId: C
+                    type: threshold
+              dashboardUid: ""
+              panelId: 0
+              noDataState: NoData
+              execErrState: Error
+              for: 3m
+              isPaused: false
+              notification_settings:
+                receiver: email
+            - uid: dfar76k1bn6kgh
+              title: GPU Energy Consumption Abnormal
+              condition: C
+              data:
+                - refId: A
+                  relativeTimeRange:
+                    from: 600
+                    to: 0
+                  datasourceUid: prometheus
+                  model:
+                    disableTextWrap: false
+                    editorMode: code
+                    expr: rate(DCGM_FI_DEV_TOTAL_ENERGY_CONSUMPTION[5m]) / 1000
+                    fullMetaSearch: false
+                    includeNullMetadata: true
+                    instant: true
+                    intervalMs: 1000
+                    legendFormat: __auto
+                    maxDataPoints: 43200
+                    range: false
+                    refId: A
+                    useBackend: false
+                - refId: C
+                  datasourceUid: __expr__
+                  model:
+                    conditions:
+                        - evaluator:
+                            params:
+                                - 450
+                            type: gt
+                          operator:
+                            type: and
+                          query:
+                            params:
+                                - C
+                          reducer:
+                            params: []
+                            type: last
+                          type: query
+                    datasource:
+                        type: __expr__
+                        uid: __expr__
+                    expression: A
+                    intervalMs: 1000
+                    maxDataPoints: 43200
+                    refId: C
+                    type: threshold
+              dashboardUid: ""
+              panelId: 0
+              noDataState: NoData
+              execErrState: Error
+              for: 3m
+              isPaused: false
+              notification_settings:
+                receiver: email
+        - orgId: 1
+          name: gpu
+          folder: default-alert-rules
+          interval: 1m
+          rules:
+            - uid: cfbatosg7jz7kc
+              title: GPU High Utilization (SM_ACTIVE)
+              condition: C
+              data:
+                - refId: A
+                  relativeTimeRange:
+                    from: 600
+                    to: 0
+                  datasourceUid: prometheus
+                  model:
+                    disableTextWrap: false
+                    editorMode: code
+                    expr: avg_over_time(DCGM_FI_PROF_SM_ACTIVE[5m])
+                    fullMetaSearch: false
+                    includeNullMetadata: true
+                    instant: true
+                    intervalMs: 1000
+                    legendFormat: __auto
+                    maxDataPoints: 43200
+                    range: false
+                    refId: A
+                    useBackend: false
+                - refId: C
+                  datasourceUid: __expr__
+                  model:
+                    conditions:
+                        - evaluator:
+                            params:
+                                - 80
+                            type: gte
+                          operator:
+                            type: and
+                          query:
+                            params:
+                                - C
+                          reducer:
+                            params: []
+                            type: last
+                          type: query
+                    datasource:
+                        type: __expr__
+                        uid: __expr__
+                    expression: A
+                    intervalMs: 1000
+                    maxDataPoints: 43200
+                    refId: C
+                    type: threshold
+              noDataState: NoData
+              execErrState: Error
+              for: 3m
+              isPaused: false
+              notification_settings:
+                receiver: email
+        - orgId: 1
+          name: log
+          folder: default-alert-rules
+          interval: 1m
+          rules:
+            - uid: dfaq887k7wj5sa
+              title: Pod Error Bursts (>=10 in 5m)
+              condition: C
+              data:
+                - refId: A
+                  queryType: range
+                  relativeTimeRange:
+                    from: 600
+                    to: 0
+                  datasourceUid: P8E80F9AEF21F6940
+                  model:
+                    datasource:
+                        type: loki
+                        uid: P8E80F9AEF21F6940
+                    editorMode: code
+                    expr: "sum by (namespace, pod, node)(count_over_time({job=\"kubernetes_logs\"} | json | message =~ \"^E.*\" [5m]))"
+                    instant: true
+                    intervalMs: 1000
+                    maxDataPoints: 43200
+                    queryType: range
+                    refId: A
+                - refId: reducer
+                  queryType: expression
+                  datasourceUid: __expr__
+                  model:
+                    conditions:
+                        - evaluator:
+                            params:
+                                - 0
+                                - 0
+                            type: gt
+                          operator:
+                            type: and
+                          query:
+                            params: []
+                          reducer:
+                            params: []
+                            type: avg
+                          type: query
+                    datasource:
+                        name: Expression
+                        type: __expr__
+                        uid: __expr__
+                    expression: A
+                    intervalMs: 1000
+                    maxDataPoints: 43200
+                    reducer: last
+                    refId: reducer
+                    type: reduce
+                - refId: C
+                  datasourceUid: __expr__
+                  model:
+                    conditions:
+                        - evaluator:
+                            params:
+                                - 10
+                            type: gte
+                          operator:
+                            type: and
+                          query:
+                            params:
+                                - C
+                          reducer:
+                            params: []
+                            type: last
+                          type: query
+                    datasource:
+                        type: __expr__
+                        uid: __expr__
+                    expression: reducer
+                    intervalMs: 1000
+                    maxDataPoints: 43200
+                    refId: C
+                    type: threshold
+              dashboardUid: ""
+              panelId: 0
+              noDataState: OK
+              execErrState: Error
+              isPaused: false
+              notification_settings:
+                receiver: email
+        - orgId: 1
+          name: nic
+          folder: default-alert-rules
+          interval: 1m
+          rules:
+            - uid: ffar7sq6knjswb
+              title: NIC Link Down or Unstable
+              condition: C
+              data:
+                - refId: A
+                  relativeTimeRange:
+                    from: 600
+                    to: 0
+                  datasourceUid: prometheus
+                  model:
+                    disableTextWrap: false
+                    editorMode: code
+                    expr: 'avg_over_time(node_network_up{device!~"lo"}[5m]) '
+                    fullMetaSearch: false
+                    includeNullMetadata: true
+                    instant: true
+                    intervalMs: 1000
+                    legendFormat: __auto
+                    maxDataPoints: 43200
+                    range: false
+                    refId: A
+                    useBackend: false
+                - refId: C
+                  datasourceUid: __expr__
+                  model:
+                    conditions:
+                        - evaluator:
+                            params:
+                                - 0
+                            type: eq
+                          operator:
+                            type: and
+                          query:
+                            params:
+                                - C
+                          reducer:
+                            params: []
+                            type: last
+                          type: query
+                    datasource:
+                        type: __expr__
+                        uid: __expr__
+                    expression: A
+                    intervalMs: 1000
+                    maxDataPoints: 43200
+                    refId: C
+                    type: threshold
+              dashboardUid: ""
+              panelId: 0
+              noDataState: NoData
+              execErrState: Error
+              for: 3m
+              isPaused: false
+              notification_settings:
+                receiver: email
+            - uid: efar9iqiwe39cf
+              title: NIC Rx Packet Drops High
+              condition: C
+              data:
+                - refId: A
+                  relativeTimeRange:
+                    from: 600
+                    to: 0
+                  datasourceUid: prometheus
+                  model:
+                    disableTextWrap: false
+                    editorMode: code
+                    expr: increase(node_network_receive_drop_total{device!~"lo"}[1m])
+                    fullMetaSearch: false
+                    includeNullMetadata: true
+                    instant: true
+                    intervalMs: 1000
+                    legendFormat: __auto
+                    maxDataPoints: 43200
+                    range: false
+                    refId: A
+                    useBackend: false
+                - refId: C
+                  datasourceUid: __expr__
+                  model:
+                    conditions:
+                        - evaluator:
+                            params:
+                                - 100
+                            type: gt
+                          operator:
+                            type: and
+                          query:
+                            params:
+                                - C
+                          reducer:
+                            params: []
+                            type: last
+                          type: query
+                    datasource:
+                        type: __expr__
+                        uid: __expr__
+                    expression: A
+                    intervalMs: 1000
+                    maxDataPoints: 43200
+                    refId: C
+                    type: threshold
+              dashboardUid: ""
+              panelId: 0
+              noDataState: NoData
+              execErrState: Error
+              for: 3m
+              isPaused: false
+              notification_settings:
+                receiver: email
+            - uid: efar9nxquwz5sa
+              title: NIC Tx Packet Drops High
+              condition: C
+              data:
+                - refId: A
+                  relativeTimeRange:
+                    from: 600
+                    to: 0
+                  datasourceUid: prometheus
+                  model:
+                    disableTextWrap: false
+                    editorMode: code
+                    expr: increase(node_network_transmit_drop_total{device!~"lo"}[1m])
+                    fullMetaSearch: false
+                    includeNullMetadata: true
+                    instant: true
+                    intervalMs: 1000
+                    legendFormat: __auto
+                    maxDataPoints: 43200
+                    range: false
+                    refId: A
+                    useBackend: false
+                - refId: C
+                  datasourceUid: __expr__
+                  model:
+                    conditions:
+                        - evaluator:
+                            params:
+                                - 100
+                            type: gt
+                          operator:
+                            type: and
+                          query:
+                            params:
+                                - C
+                          reducer:
+                            params: []
+                            type: last
+                          type: query
+                    datasource:
+                        type: __expr__
+                        uid: __expr__
+                    expression: A
+                    intervalMs: 1000
+                    maxDataPoints: 43200
+                    refId: C
+                    type: threshold
+              dashboardUid: ""
+              panelId: 0
+              noDataState: NoData
+              execErrState: Error
+              for: 3m
+              isPaused: false
+              notification_settings:
+                receiver: email
+        - orgId: 1
+          name: node
+          folder: default-alert-rules
+          interval: 1m
+          rules:
+            - uid: ffapt7vgh7a4ga
+              title: CPU High Utilization
+              condition: C
+              data:
+                - refId: A
+                  relativeTimeRange:
+                    from: 600
+                    to: 0
+                  datasourceUid: prometheus
+                  model:
+                    editorMode: code
+                    expr: 100 * (1 - avg(rate(node_cpu_seconds_total{mode="idle"}[5m])) by (instance))
+                    instant: true
+                    intervalMs: 1000
+                    legendFormat: __auto
+                    maxDataPoints: 43200
+                    range: false
+                    refId: A
+                - refId: C
+                  datasourceUid: __expr__
+                  model:
+                    conditions:
+                        - evaluator:
+                            params:
+                                - 80
+                            type: gte
+                          operator:
+                            type: and
+                          query:
+                            params:
+                                - C
+                          reducer:
+                            params: []
+                            type: last
+                          type: query
+                    datasource:
+                        type: __expr__
+                        uid: __expr__
+                    expression: A
+                    intervalMs: 1000
+                    maxDataPoints: 43200
+                    refId: C
+                    type: threshold
+              dashboardUid: ""
+              panelId: 0
+              noDataState: OK
+              execErrState: Error
+              for: 5m
+              isPaused: false
+              notification_settings:
+                receiver: email
+        - orgId: 1
+          name: node
+          folder: default-alert-rules
+          interval: 1m
+          rules:
+            - uid: ffbaunfeaascgc
+              title: Node NotReady
+              condition: C
+              data:
+                - refId: A
+                  relativeTimeRange:
+                    from: 600
+                    to: 0
+                  datasourceUid: prometheus
+                  model:
+                    editorMode: code
+                    expr: kube_node_status_condition{condition="Ready", status!="true"}
+                    instant: true
+                    intervalMs: 1000
+                    legendFormat: __auto
+                    maxDataPoints: 43200
+                    range: false
+                    refId: A
+                - refId: C
+                  datasourceUid: __expr__
+                  model:
+                    conditions:
+                        - evaluator:
+                            params:
+                                - 0
+                            type: ne
+                          operator:
+                            type: and
+                          query:
+                            params:
+                                - C
+                          reducer:
+                            params: []
+                            type: last
+                          type: query
+                    datasource:
+                        type: __expr__
+                        uid: __expr__
+                    expression: A
+                    intervalMs: 1000
+                    maxDataPoints: 43200
+                    refId: C
+                    type: threshold
+              noDataState: NoData
+              execErrState: Error
+              for: 5m
+              isPaused: false
+              notification_settings:
+                receiver: email
+
+  default-contact-points.yaml: |
+    apiVersion: 1
+    contactPoints:
+        - orgId: 1
+          name: email
+          receivers:
+            - uid: dfaji07p76scgc
+              type: email
+              settings:
+                addresses: {{ alert_email }}
+                singleEmail: false
+              disableResolveMessage: false
+        - orgId: 1
+          name: email-and-webhook
+          receivers:
+            - uid: cfajiybox651da
+              type: webhook
+              settings:
+                httpMethod: POST
+                url: http://alertmanager-webhook-logger.default.svc.cluster.local/alerts
+              disableResolveMessage: false
+            - uid: efajiybox651ce
+              type: email
+              settings:
+                addresses: {{ alert_email }}
+                singleEmail: false
+              disableResolveMessage: false

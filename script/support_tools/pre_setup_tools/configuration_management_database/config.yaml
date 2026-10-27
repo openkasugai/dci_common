@@ -1,0 +1,335 @@
+location:
+  - dc1
+  - dc2
+
+nw_switch:
+  - nw_switch_name: "10g-sw1"
+    location: "loc1.location"
+    nw_ip_address: "172.20.30.101"
+    nw_user: "sw-user"
+    status: 0
+    product_info:
+      vendor: "edgecore networks"
+      product_name: "DCS208/AS5812-54X"
+      os: "Edgecore SONiC"
+      version: "none"
+  - nw_switch_name: "100g-sw1"
+    location: "loc1.location"
+    nw_ip_address: "172.20.30.102"
+    nw_user: "sw-user"
+    status: 0
+    product_info:
+      vendor: "broadcom"
+      product_name: "xxxxx"
+      os: "Broadcom SONiC"
+      version: "none"
+  - nw_switch_name: "10g-sw2"
+    location: "loc2.location"
+    nw_ip_address: "172.20.30.103"
+    nw_user: "sw-user"
+    status: 0
+    product_info:
+      vendor: "edgecore networks"
+      product_name: "DCS208/AS5812-54X"
+      os: "Edgecore SONiC"
+      version: "none"
+  - nw_switch_name: "100g-sw2"
+    location: "loc2.location"
+    nw_ip_address: "172.20.30.104"
+    nw_user: "sw-user"
+    status: 0
+    product_info:
+      vendor: "broadcom"
+      product_name: "xxxxx"
+      os: "Broadcom SONiC"
+      version: "none"
+
+nw_port:
+  - nw_switch_id: "sw1.NwSwitchID"
+    interface_name: Ethernet1
+  - nw_switch_id: "sw2.NwSwitchID"
+    interface_name: Ethernet10    
+  - nw_switch_id: "sw3.NwSwitchID"
+    interface_name: Ethernet6    
+  - nw_switch_id: "sw4.NwSwitchID"
+    interface_name: Ethernet7    
+  - nw_switch_id: "sw1.NwSwitchID"
+    interface_name: Ethernet5
+  - nw_switch_id: "sw1.NwSwitchID"
+    interface_name: Ethernet6
+  - nw_switch_id: "sw1.NwSwitchID"
+    interface_name: Ethernet7
+  - nw_switch_id: "sw1.NwSwitchID"
+    interface_name: Ethernet8
+  - nw_switch_id: "sw1.NwSwitchID"
+    interface_name: Ethernet9
+  - nw_switch_id: "sw1.NwSwitchID"
+    interface_name: Ethernet10
+  - nw_switch_id: "sw1.NwSwitchID"
+    interface_name: Ethernet11
+  - nw_switch_id: "sw1.NwSwitchID"
+    interface_name: Ethernet12
+  - nw_switch_id: "sw1.NwSwitchID"
+    interface_name: Ethernet13
+  - nw_switch_id: "sw1.NwSwitchID"
+    interface_name: Ethernet14
+  - nw_switch_id: "sw1.NwSwitchID"
+    interface_name: Ethernet15
+  - nw_switch_id: "sw1.NwSwitchID"
+    interface_name: Ethernet16
+  - nw_switch_id: "sw1.NwSwitchID"
+    interface_name: Ethernet17
+  - nw_switch_id: "sw1.NwSwitchID"
+    interface_name: Ethernet18
+  - nw_switch_id: "sw1.NwSwitchID"
+    interface_name: Ethernet19
+
+maas:
+  access_url: "http://172.20.30.105:5240/MAAS/api/2.0/"
+  api_key: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+  status: 0
+  product_info:
+    vendor: "canonical"
+    product_name: "MAAS"
+    version: "3.6"
+
+cdi:
+  name: "cdi_v1.1"
+  location: "dc1"
+  remote_host: "172.20.30.106"
+  remote_user: "ubuntu"
+  group_name: "group0"
+  status: 0
+  product_info:
+    vendor: "fujitsu"
+    product_name: "PRIMERGY CDI"
+    version: "1.1"
+
+  extra_parameters:
+    cdi_guest: "172.20.30.107"
+    cdi_user: "admin"
+    cdi_password: "aaaa"
+    cdimgr_guest_user: "eee"
+    cdimgr_guest_password: "xxxx"
+    cdimgr_host_password: "bbbb"
+    director_password: "cccc"
+
+pcie_box:
+  ip_address: "172.20.30.108"
+  status: 0
+
+  nic:
+    - res_uuid: "cec3c475-b3d4-4c44-ae56-f397a7c1926d"
+      res_name: "nic0"
+      mac: "00:11:11:11:11:11"
+      nw_port_id: 1
+      status: 0
+    - res_uuid: "95c6dd10-490b-4ed5-9643-dec9d591356d"
+      res_name: "nic1"
+      mac: "00:22:22:22:22:22"
+      nw_port_id: 2
+      status: 0
+
+  gpu:
+    - res_uuid: "123ac475-b3d4-4c44-ae56-f397a7c1926d"
+      res_name: "gpu0"
+      uuid: "GPU-00000000-0000-4000-8000-000000000005"
+      status: 0
+    - res_uuid: "456ac475-b3d4-4c44-ae56-f397a7c1926d"
+      res_name: "gpu1"
+      uuid: "GPU-00000000-0000-4000-8000-000000000006"
+      status: 0
+
+  ssd:
+    - res_uuid: "000ac475-abcd-4c44-ae56-f397a7c1926d"
+      res_name: "ssd0"
+      storage_gb: 960
+      status: 0
+    - res_uuid: "100ac475-abcd-4c44-ae56-f397a7c1926d"
+      res_name: "ssd1"
+      storage_gb: 960
+      status: 0
+
+compute_pool:
+  - host_name: "cdi-worker1"
+    ipmi_address: "172.20.30.109"
+    ipmi_user: "user"
+    ipmi_password: "xxxx"
+
+    mgr_mac: "00:11:22:33:44:55"
+    host_mac: "00:11:22:33:44:56"
+    host_nw_port_id: 3
+
+    cni_mac: "00:11:22:33:44:57"
+    cni_nw_port_id: 4
+
+    res_name: "pcpu0"
+    cpu_cores: 40
+    memory_mb: 128000
+    status: 0
+
+    product_info:
+      vendor: "fujitsu"
+      product_name: "PRIMERGY RX2530 M7"
+      version: "none"
+
+  - host_name: "cdi-worker2"
+    ipmi_address: "172.20.30.110"
+    ipmi_user: "user"
+    ipmi_password: "xxxx"
+
+    mgr_mac: "01:11:22:33:44:55"
+    host_mac: "01:11:22:33:44:56"
+    host_nw_port_id: 5
+
+    cni_mac: "01:11:22:33:44:57"
+    cni_nw_port_id: 6
+
+    apldata:
+      mac: "01:11:22:33:44:58"
+      nw_port_id: 7
+      nic_model: "NVIDIA-CONNECTX-7"
+
+    res_name: "pcpu1"
+    cpu_cores: 40
+    memory_mb: 128000
+    status: 0
+
+    product_info:
+      vendor: "fujitsu"
+      product_name: "PRIMERGY RX2530 M7"
+      version: "none"
+
+cots:
+  - host_name: d1-f01-cots-control01
+    location: dc1
+    ipmi_address: 172.20.30.111
+    ipmi_user: user
+    ipmi_password: xxxx
+    server_role: 0
+    deployment_type: 0
+    mgr_mac: "02:11:22:33:44:55"
+    host_mac: "02:11:22:33:44:56"
+    host_nw_port_id: 8
+    cni_mac: "02:11:22:33:44:57"
+    cni_nw_port_id: 9
+    cpu_cores: 80
+    memory_mb: 128000
+    storage_gb: 2400
+    status: 0
+    product_info:
+      vendor: "dell"
+      product_name: "PowerEdge R760"
+      version: "none"
+
+  - host_name: d1-f01-cots-control02
+    location: dc1
+    ipmi_address: 172.20.30.112
+    ipmi_user: user
+    ipmi_password: xxxx
+    server_role: 0
+    deployment_type: 0
+    mgr_mac: "03:11:22:33:44:55"
+    host_mac: "03:11:22:33:44:56"
+    host_nw_port_id: 10
+    cni_mac: "03:11:22:33:44:57"
+    cni_nw_port_id: 11
+    cpu_cores: 80
+    memory_mb: 128000
+    storage_gb: 2400
+    status: 0
+    product_info:
+      vendor: "dell"
+      product_name: "PowerEdge R760"
+      version: "none"
+
+  - host_name: d1-f01-cots-control03
+    location: dc1
+    ipmi_address: 172.20.30.113
+    ipmi_user: user
+    ipmi_password: xxxx
+    server_role: 0
+    deployment_type: 0
+    mgr_mac: "04:11:22:33:44:55"
+    host_mac: "04:11:22:33:44:56"
+    host_nw_port_id: 12
+    cni_mac: "04:11:22:33:44:57"
+    cni_nw_port_id: 13
+    cpu_cores: 80
+    memory_mb: 128000
+    storage_gb: 2400
+    status: 0
+    product_info:
+      vendor: "dell"
+      product_name: "PowerEdge R760"
+      version: "none"
+
+  - host_name: d1-f01-cots-worker01
+    location: dc1
+    ipmi_address: 172.20.30.114
+    ipmi_user: user
+    ipmi_password: xxxx
+    server_role: 1
+    deployment_type: 1
+    mgr_mac: "05:11:22:33:44:55"
+    host_mac: "05:11:22:33:44:56"
+    host_nw_port_id: 14
+    cni_mac: "05:11:22:33:44:57"
+    cni_nw_port_id: 15
+
+    apldata:
+      mac: "05:11:22:33:44:58"
+      nw_port_id: 16
+      nic_model: "NVIDIA-CONNECTX-6-DX"
+
+    cpu_cores: 64
+    memory_mb: 128000
+    storage_gb: 3840
+    status: 0
+
+    product_info:
+      vendor: "supermicro"
+      product_name: "SYS-212GB-NR"
+      version: "none"
+
+  - host_name: d1-f01-cots-worker02
+    location: dc1
+    ipmi_address: 172.20.30.115
+    ipmi_user: user
+    ipmi_password: xxxx
+    server_role: 1
+    deployment_type: 1
+    mgr_mac: "06:11:22:33:44:55"
+    host_mac: "06:11:22:33:44:56"
+    host_nw_port_id: 17
+    cni_mac: "06:11:22:33:44:57"
+    cni_nw_port_id: 18
+
+    apldata:
+      mac: "06:11:22:33:44:58"
+      nw_port_id: 19
+      nic_model: "NVIDIA-CONNECTX-6-DX"
+
+    cpu_cores: 64
+    memory_mb: 128000
+    storage_gb: 3840
+    status: 0
+
+    product_info:
+      vendor: "supermicro"
+      product_name: "SYS-212GB-NR"
+      version: "none"
+
+cots_gpu:
+  - worker: d1-f01-cots-worker01
+    uuid: "GPU-00000000-0000-4000-8000-000000000001"
+    model: "NVIDIA-H100-PCIE-80GB"
+    status: 0
+  - worker: d1-f01-cots-worker01
+    uuid: "GPU-00000000-0000-4000-8000-000000000002"
+    model: "NVIDIA-H100-PCIE-80GB"
+    status: 0
+  - worker: d1-f01-cots-worker02
+    uuid: "GPU-00000000-0000-4000-8000-000000000003"
+    model: "NVIDIA-H100-PCIE-80GB"
+    status: 0

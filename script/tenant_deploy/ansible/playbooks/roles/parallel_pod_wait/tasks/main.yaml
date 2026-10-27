@@ -1,0 +1,80 @@
+- name: "{{ pod_wait_component }} 主要Pod Ready待機"
+  ansible.builtin.shell: |
+    KC="{{ pod_wait_kubeconfig }}"
+    NAMESPACE="{{ pod_wait_namespace }}"
+    TIMEOUT_CREATION={{ pod_wait_timeout_creation }}
+    TIMEOUT_READY={{ pod_wait_timeout_ready }}
+    POLL_INTERVAL=10
+    FAIL_FLAG=$(mktemp /tmp/pod_wait_fail.XXXXXX)
+    rm -f "${FAIL_FLAG}"
+    is_bad_state() {
+      case "$1" in
+        CrashLoopBackOff|ImagePullBackOff|CreateContainerConfigError) return 0 ;;
+        *) return 1 ;;
+      esac
+    }
+    wait_for_prefix() {
+      local prefix="$1" elapsed=0 pods pod info ready status num denom
+      while ! kubectl --kubeconfig="${KC}" get pods -n "${NAMESPACE}" 2>/dev/null | grep -qE "^${prefix}"; do
+        if [ -f "${FAIL_FLAG}" ]; then
+          echo "Warning: [${prefix}] 他Podの失敗を検出、待機を中止します"
+          exit 1
+        fi
+        if [ ${elapsed} -ge ${TIMEOUT_CREATION} ]; then
+          echo "Warning: [${prefix}] Pod作成待機タイムアウト (${TIMEOUT_CREATION}s)"
+          exit 0
+        fi
+        sleep ${POLL_INTERVAL}
+        elapsed=$((elapsed + POLL_INTERVAL))
+      done
+      pods=$(kubectl --kubeconfig="${KC}" get pods -n "${NAMESPACE}" --no-headers 2>/dev/null | grep -E "^${prefix}" | awk '{print $1}')
+      for pod in ${pods}; do
+        elapsed=0
+        echo "Waiting for ${pod}..."
+        while [ ${elapsed} -lt ${TIMEOUT_READY} ]; do
+          if [ -f "${FAIL_FLAG}" ]; then
+            echo "Warning: [${pod}] 他Podの失敗を検出、待機を中止します"
+            exit 1
+          fi
+          info=$(kubectl --kubeconfig="${KC}" get pod "${pod}" -n "${NAMESPACE}" --no-headers 2>/dev/null | awk '{print $2, $3}')
+          ready=$(echo "${info}" | awk '{print $1}')
+          status=$(echo "${info}" | awk '{print $2}')
+          if is_bad_state "${status}"; then
+            echo "Warning: [${pod}] 回復不能なState検出: ${status}"
+            touch "${FAIL_FLAG}"
+            exit 1
+          fi
+          num=$(echo "${ready}" | cut -d/ -f1)
+          denom=$(echo "${ready}" | cut -d/ -f2)
+          if [ -n "${denom}" ] && [ "${denom}" != "0" ] && [ "${num}" = "${denom}" ]; then
+            echo "${pod} is Ready"
+            break
+          fi
+          sleep ${POLL_INTERVAL}
+          elapsed=$((elapsed + POLL_INTERVAL))
+        done
+        if [ ${elapsed} -ge ${TIMEOUT_READY} ]; then
+          echo "Warning: [${pod}] Ready待機タイムアウト (${TIMEOUT_READY}s)"
+          touch "${FAIL_FLAG}"
+          exit 1
+        fi
+      done
+      exit 0
+    }
+    POD_PREFIXES=({{ pod_wait_prefixes | join(' ') }})
+    PIDS=()
+    for prefix in "${POD_PREFIXES[@]}"; do
+      ( wait_for_prefix "${prefix}" ) &
+      PIDS+=($!)
+    done
+    FAILED=0
+    for pid in "${PIDS[@]}"; do
+      wait "${pid}" || FAILED=1
+    done
+    rm -f "${FAIL_FLAG}"
+    [ ${FAILED} -ne 0 ] && echo "Warning: 一部の{{ pod_wait_component }} PodがReady状態になりませんでした" && exit 1
+    exit 0
+  args:
+    executable: /bin/bash
+  changed_when: false
+  failed_when: false

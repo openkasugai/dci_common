@@ -1,0 +1,34 @@
+# テナントごとのCoreDNSエントリ削除処理
+- name: マネージャクラスタのCoreDNS ConfigMapを取得 ({{ tenant_namespace }})
+  ansible.builtin.command: >
+    kubectl get configmap coredns -n kube-system -o jsonpath={.data.Corefile}
+  register: corefile_raw
+  changed_when: false
+
+- name: CoreDNSからPrometheus静的エントリを削除 ({{ tenant_namespace }})
+  ansible.builtin.shell: >
+    echo "{{ corefile_raw.stdout }}" |
+    {{ ansible_work_dir }}/remove_corefile_hosts.sh prometheus.{{ tenant_namespace }}.local
+  register: updated_corefile
+  changed_when: updated_corefile.rc == 0
+  failed_when: updated_corefile.rc > 1
+
+- name: 更新済みCorefileをConfigMapに適用 ({{ tenant_namespace }})
+  ansible.builtin.shell: |
+    kubectl patch configmap coredns -n kube-system \
+      --type merge \
+      -p "{\"data\":{\"Corefile\":$(echo '{{ updated_corefile.stdout | tojson }}')}}"
+  when: updated_corefile.changed
+  changed_when: true
+
+- name: 変更を適用するためCoreDNS Podを再起動 ({{ tenant_namespace }})
+  ansible.builtin.command: >
+    kubectl rollout restart deployment coredns -n kube-system
+  when: updated_corefile.changed
+  changed_when: true
+
+- name: CoreDNS再起動完了待機 ({{ tenant_namespace }})
+  ansible.builtin.command: >
+    kubectl rollout status deployment coredns -n kube-system --timeout=300s
+  when: updated_corefile.changed
+  changed_when: false

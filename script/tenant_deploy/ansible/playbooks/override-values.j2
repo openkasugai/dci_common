@@ -1,0 +1,12 @@
+grafana:
+  extraConfigmapMounts:
+    - name: grafana-alerting-provisioning
+      mountPath: /etc/grafana/provisioning/alerting/
+      configMap: grafana-alerting-provisioning
+  grafana.ini:
+    smtp:
+      enabled: true
+      host: {{ smtp_server }}:{{ smtp_port }}
+
+defaultRules:
+  create: false

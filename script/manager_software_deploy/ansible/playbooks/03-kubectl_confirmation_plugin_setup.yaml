@@ -1,0 +1,52 @@
+- name: 問い合わせ機能kubectlプラグインの設定
+  hosts: all
+  become: true
+  vars:
+    play_description: |
+      事前準備(システム構築) - 問い合わせ機能kubectlプラグインの設定
+  tasks:
+    - name: kubectl-confirmationプラグインをビルド
+      become: false
+      ansible.builtin.command:
+        cmd: make build
+        chdir: "{{ dci_common_path }}/kubectl_plugins/kubectl-confirmation/"
+      environment:
+        PATH: "/home/{{ ansible_user }}/gopath/bin:/home/{{ ansible_user }}/go/bin:{{ ansible_env.PATH }}"
+        GOPATH: "/home/{{ ansible_user }}/gopath"
+        GOROOT: "/home/{{ ansible_user }}/go"
+
+    - name: kubectl-confirmationプラグインをインストール
+      become: false
+      ansible.builtin.command:
+        cmd: make install
+        chdir: "{{ dci_common_path }}/kubectl_plugins/kubectl-confirmation/"
+      environment:
+        PATH: "/home/{{ ansible_user }}/gopath/bin:/home/{{ ansible_user }}/go/bin:{{ ansible_env.PATH }}"
+        GOPATH: "/home/{{ ansible_user }}/gopath"
+        GOROOT: "/home/{{ ansible_user }}/go"
+
+    - name: kubectl confirmation環境変数を.bashrcに追加
+      become: false
+      ansible.builtin.blockinfile:
+        path: "/home/{{ ansible_user }}/.bashrc"
+        marker: "# {mark} ANSIBLE MANAGED BLOCK - kubectl confirmation環境変数"
+        create: yes
+        block: |
+          alias kubectl="kubectl confirmation"
+          export UNSAFE_KUBECTL_COMMANDS="delete"
+          export UNSAFE_RESOURCE_KINDS="NodeScalingRequest{nodeRequestType=delete},CardScalingRequest{scalingParameter.op=delete},CardScalingRequest{scalingParameter.op=replace}"
+
+    - name: kubectl confirmationプラグインの動作確認
+      become: false
+      ansible.builtin.shell: |
+        source /home/{{ ansible_user }}/.bashrc && kubectl version
+      args:
+        executable: /bin/bash
+      register: kubectl_confirmation_version
+      changed_when: false
+      failed_when: kubectl_confirmation_version.rc != 0 and
+        "connection refused" not in kubectl_confirmation_version.stderr and
+        "no route to host" not in kubectl_confirmation_version.stderr and
+        "Unable to connect" not in kubectl_confirmation_version.stderr and
+        "dial tcp" not in kubectl_confirmation_version.stderr
+        

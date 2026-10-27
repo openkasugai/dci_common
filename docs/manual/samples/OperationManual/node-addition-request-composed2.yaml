@@ -1,0 +1,16 @@
+apiVersion: cluster.my.domain/v1alpha1
+kind: NodeScalingRequest
+metadata:
+  namespace: default
+  name: node-addition-request-cdi
+spec:
+  nodeRequestType: create
+  location: dc1
+  serverSpec:
+    type: ComposedServer
+    gpu:
+      model: NVIDIA-A100-PCIE-80GB
+      num: 1
+    nic:
+      model: NVIDIA-CONNECTX-6-DX
+      num: 1

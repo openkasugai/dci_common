@@ -1,0 +1,3 @@
+[dci_mgmt_k8s_control_plane]
+#DCI管理用クラスタのK8s Control Plane(冗長構成でも1台のみ記述)
+mgr-cp-1 ansible_host=192.168.1.1 ansible_user=admin

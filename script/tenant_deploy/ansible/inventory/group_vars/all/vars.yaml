@@ -1,0 +1,33 @@
+### OSS バージョン #####################################
+
+# Prometheusバージョン
+prometheus_version_major: 81.2
+prometheus_version_minor: 0
+
+### 環境に合わせて設定変更 ##############################
+# manager_software_deployの変数と同一値にすること
+manager_harbor_url: 192.168.100.30 # マネージャ用HarborサーバIPアドレス
+manager_harbor_port: 30003        # マネージャ用Harborサーバポート
+
+# Gateway LoadBalancerタイプのService用VIP (マネージャ側)
+#   マネージャ用NWのサブネットの空いているIPアドレスを設定すること
+mgr_gateway_loadbalancer_vip: 192.168.100.31
+
+smtp_server: smtp.example.com # SMTPサーバーのIPアドレス
+smtp_port: 25                 # SMTPサーバーのポート番号
+
+# プロキシ設定（テナントの外部通信にプロキシが必要な場合のみ true に設定すること）
+proxy_setup_enabled: false
+
+### 以下は編集不要 #####################################
+# 作業ディレクトリ
+ansible_work_dir: "/home/{{ ansible_user }}/auto_script_work"
+
+# DHRC関連変数
+dci_manager_path: "/home/{{ ansible_user }}/dci_manager" # dci_managerリポジトリパス
+
+# Promethes関連変数
+prometheus_chart_version: "{{ prometheus_version_major }}.{{ prometheus_version_minor }}"  # Prometheusチャートバージョン
+
+# firewall設定実施フラグ（firewalldがインストールされていない環境では false に設定すること）
+firewall_setup_enabled: true

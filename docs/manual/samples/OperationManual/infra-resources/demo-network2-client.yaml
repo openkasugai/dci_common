@@ -1,0 +1,34 @@
+# Client HostDevice Network 
+#   SR-IOV (SR-IOV Network Operator)
+apiVersion: nv-ipam.nvidia.com/v1alpha1
+kind: IPPool
+metadata:
+  name: ippool-demo
+  namespace: nvidia-network-operator
+spec:
+  subnet: 192.168.1.64/26
+  gateway: 192.168.1.65
+  perNodeBlockSize: 30    # Number of addresses allocated per node
+  nodeSelector:            # Specify the nodes to allocate the IPPool
+    nodeSelectorTerms:
+    - matchExpressions:
+      - key: node.cluster.x-k8s.io/appdata-interface-name
+        operator: Exists
+
+---
+apiVersion: mellanox.com/v1alpha1
+kind: HostDeviceNetwork
+metadata:
+   name: demo-network2
+spec:
+  networkNamespace: "dci"
+  resourceName: "sriov_rdma"     # Match the spec.resourceName of the SriovNetworkNodePolicy
+  ipam: |
+    {
+      "type": "nv-ipam",
+      "poolName" : "ippool-demo",
+      "poolType": "ippool",
+      "daemonSocket": "unix:///var/lib/cni/nv-ipam/daemon.sock",
+      "logFile": "/var/log/nv-ipam-cni.log",
+      "logLevel": "info"
+    }

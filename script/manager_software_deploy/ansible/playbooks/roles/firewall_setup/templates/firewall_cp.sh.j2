@@ -1,0 +1,112 @@
+#!/usr/bin/env bash
+# Control-plane ノード用 firewalld 設定スクリプト
+# このファイルは Ansible テンプレートから自動生成されます。手動編集禁止。
+# zone
+firewall-cmd --permanent --new-zone=k8s-node
+firewall-cmd --permanent --zone=k8s-node --add-forward
+firewall-cmd --permanent --zone=k8s-node --add-source={{ manager_subnet }}
+firewall-cmd --permanent --zone=k8s-node --add-source={{ dci_operator_subnet }}
+firewall-cmd --permanent --new-zone=k8s-pod
+firewall-cmd --permanent --zone=k8s-pod --add-forward
+firewall-cmd --permanent --zone=k8s-pod --add-source={{ pod_subnet }}
+# ssh
+firewall-cmd --permanent --zone=k8s-node --add-rich-rule="rule family=ipv4 source address={{ manager_subnet }} port port=22 protocol=tcp accept"
+firewall-cmd --permanent --zone=k8s-node --add-rich-rule="rule family=ipv4 source address={{ dci_operator_subnet }} port port=22 protocol=tcp accept"
+# kube-apiserver
+firewall-cmd --permanent --zone=k8s-node --add-rich-rule="rule family=ipv4 source address={{ manager_subnet }} port port=6443 protocol=tcp accept"
+firewall-cmd --permanent --zone=k8s-pod --add-rich-rule="rule family=ipv4 source address={{ pod_subnet }} port port=6443 protocol=tcp accept"
+# kubelet API
+firewall-cmd --permanent --zone=k8s-node --add-rich-rule="rule family=ipv4 source address={{ manager_subnet }} port port=10250 protocol=tcp accept"
+firewall-cmd --permanent --zone=k8s-pod --add-rich-rule="rule family=ipv4 source address={{ pod_subnet }} port port=10250 protocol=tcp accept"
+# kube-proxy
+firewall-cmd --permanent --zone=k8s-node --add-rich-rule="rule family=ipv4 source address={{ manager_subnet }} port port=10256 protocol=tcp accept"
+firewall-cmd --permanent --zone=k8s-pod --add-rich-rule="rule family=ipv4 source address={{ pod_subnet }} port port=10256 protocol=tcp accept"
+firewall-cmd --permanent --zone=k8s-node --add-rich-rule="rule family=ipv4 source address={{ manager_subnet }} port port=10249 protocol=tcp accept"
+firewall-cmd --permanent --zone=k8s-pod --add-rich-rule="rule family=ipv4 source address={{ pod_subnet }} port port=10249 protocol=tcp accept"
+# kube-controller-manager
+firewall-cmd --permanent --zone=k8s-node --add-rich-rule="rule family=ipv4 source address={{ manager_subnet }} port port=10257 protocol=tcp accept"
+firewall-cmd --permanent --zone=k8s-pod --add-rich-rule="rule family=ipv4 source address={{ pod_subnet }} port port=10257 protocol=tcp accept"
+# kube-scheduler
+firewall-cmd --permanent --zone=k8s-node --add-rich-rule="rule family=ipv4 source address={{ manager_subnet }} port port=10259 protocol=tcp accept"
+firewall-cmd --permanent --zone=k8s-pod --add-rich-rule="rule family=ipv4 source address={{ pod_subnet }} port port=10259 protocol=tcp accept"
+# etcd
+firewall-cmd --permanent --zone=k8s-node --add-rich-rule="rule family=ipv4 source address={{ manager_subnet }} port port=2379 protocol=tcp accept"
+firewall-cmd --permanent --zone=k8s-pod --add-rich-rule="rule family=ipv4 source address={{ pod_subnet }} port port=2379 protocol=tcp accept"
+firewall-cmd --permanent --zone=k8s-node --add-rich-rule="rule family=ipv4 source address={{ manager_subnet }} port port=2380 protocol=tcp accept"
+firewall-cmd --permanent --zone=k8s-pod --add-rich-rule="rule family=ipv4 source address={{ pod_subnet }} port port=2380 protocol=tcp accept"
+firewall-cmd --permanent --zone=k8s-node --add-rich-rule="rule family=ipv4 source address={{ manager_subnet }} port port=2381 protocol=tcp accept"
+firewall-cmd --permanent --zone=k8s-pod --add-rich-rule="rule family=ipv4 source address={{ pod_subnet }} port port=2381 protocol=tcp accept"
+# calico BGP
+firewall-cmd --permanent --zone=k8s-node --add-rich-rule="rule family=ipv4 source address={{ manager_subnet }} port port=179 protocol=tcp accept"
+firewall-cmd --permanent --zone=k8s-pod --add-rich-rule="rule family=ipv4 source address={{ pod_subnet }} port port=179 protocol=tcp accept"
+# calico IPIP
+firewall-cmd --permanent --zone=k8s-node --add-rich-rule="rule family=ipv4 source address={{ manager_subnet }} protocol value=4 accept"
+firewall-cmd --permanent --zone=k8s-pod --add-rich-rule="rule family=ipv4 source address={{ pod_subnet }} protocol value=4 accept"
+# calico Typha
+firewall-cmd --permanent --zone=k8s-node --add-rich-rule="rule family=ipv4 source address={{ manager_subnet }} port port=5473 protocol=tcp accept"
+firewall-cmd --permanent --zone=k8s-pod --add-rich-rule="rule family=ipv4 source address={{ pod_subnet }} port port=5473 protocol=tcp accept"
+# node-exporter
+firewall-cmd --permanent --zone=k8s-node --add-rich-rule="rule family=ipv4 source address={{ manager_subnet }} port port=9100 protocol=tcp accept"
+firewall-cmd --permanent --zone=k8s-pod --add-rich-rule="rule family=ipv4 source address={{ pod_subnet }} port port=9100 protocol=tcp accept"
+# vector (for receiving rsyslog)
+firewall-cmd --permanent --zone=k8s-node --add-rich-rule="rule family=ipv4 source address={{ manager_subnet }} port port=514 protocol=tcp accept"
+firewall-cmd --permanent --zone=k8s-pod --add-rich-rule="rule family=ipv4 source address={{ pod_subnet }} port port=514 protocol=tcp accept"
+firewall-cmd --permanent --zone=k8s-node --add-rich-rule="rule family=ipv4 source address={{ manager_subnet }} port port=514 protocol=udp accept"
+firewall-cmd --permanent --zone=k8s-pod --add-rich-rule="rule family=ipv4 source address={{ pod_subnet }} port port=514 protocol=udp accept"
+# NodePort type Service
+firewall-cmd --permanent --direct --add-rule ipv4 raw PREROUTING 0 \
+  -p tcp -s {{ manager_subnet }} -m addrtype --dst-type LOCAL \
+  -m multiport --dports 30001,30003,30100 -j ACCEPT
+firewall-cmd --permanent --direct --add-rule ipv4 raw PREROUTING 0 \
+  -p tcp -s {{ pod_subnet }} -m addrtype --dst-type LOCAL \
+  -m multiport --dports 30001,30003,30100 -j ACCEPT
+firewall-cmd --permanent --direct --add-rule ipv4 raw PREROUTING 0 \
+  -p tcp -s {{ dci_operator_subnet }} -m addrtype --dst-type LOCAL \
+  -m multiport --dports 30001,30003,30100 -j ACCEPT
+### Allow browser GUI access from bastion host to NodePort
+firewall-cmd --permanent --direct --add-rule ipv4 raw PREROUTING 0 \
+  -p tcp -s {{ bastion_ip }} -m addrtype --dst-type LOCAL \
+  -m multiport --dports 30001,30003,30100 -j ACCEPT
+firewall-cmd --permanent --direct --add-rule ipv4 raw PREROUTING 10 \
+  -p tcp -m addrtype --dst-type LOCAL --dport 30000:32767 -j DROP
+# LoadBalancer type Service
+firewall-cmd --permanent --direct --add-rule ipv4 raw PREROUTING 0 \
+  -p tcp -s {{ manager_subnet }} -d {{ gateway_loadbalancer_vip }} \
+  -m multiport --dports 8443 -j ACCEPT
+firewall-cmd --permanent --direct --add-rule ipv4 raw PREROUTING 0 \
+  -p tcp -s {{ pod_subnet }} -d {{ gateway_loadbalancer_vip }} \
+  -m multiport --dports 8443 -j ACCEPT
+firewall-cmd --permanent --direct --add-rule ipv4 raw PREROUTING 0 \
+  -p tcp -s {{ dci_operator_subnet }} -d {{ gateway_loadbalancer_vip }} \
+  -m multiport --dports 8443 -j ACCEPT
+firewall-cmd --permanent --direct --add-rule ipv4 raw PREROUTING 10 \
+  -p tcp -d {{ gateway_loadbalancer_vip }} -j DROP
+# Pod forward egress
+firewall-cmd --permanent --new-policy pod-fwd-egress
+firewall-cmd --permanent --policy pod-fwd-egress --set-target=ACCEPT
+firewall-cmd --permanent --policy pod-fwd-egress --add-ingress-zone=k8s-pod
+firewall-cmd --permanent --policy pod-fwd-egress --add-egress-zone=ANY
+firewall-cmd --permanent --new-policy k8s-node-to-pod
+firewall-cmd --permanent --policy k8s-node-to-pod --set-target=ACCEPT
+firewall-cmd --permanent --policy k8s-node-to-pod --add-ingress-zone=k8s-node
+firewall-cmd --permanent --policy k8s-node-to-pod --add-egress-zone=k8s-pod
+firewall-cmd --permanent --new-policy k8s-pod-to-node
+firewall-cmd --permanent --policy k8s-pod-to-node --set-target=ACCEPT
+firewall-cmd --permanent --policy k8s-pod-to-node --add-ingress-zone=k8s-pod
+firewall-cmd --permanent --policy k8s-pod-to-node --add-egress-zone=k8s-node
+firewall-cmd --permanent --new-policy k8s-pod-to-pod
+firewall-cmd --permanent --policy k8s-pod-to-pod --set-target=ACCEPT
+firewall-cmd --permanent --policy k8s-pod-to-pod --add-ingress-zone=k8s-pod
+firewall-cmd --permanent --policy k8s-pod-to-pod --add-egress-zone=k8s-pod
+firewall-cmd --permanent --new-policy k8s-node-to-node
+firewall-cmd --permanent --policy k8s-node-to-node --set-target=ACCEPT
+firewall-cmd --permanent --policy k8s-node-to-node --add-ingress-zone=k8s-node
+firewall-cmd --permanent --policy k8s-node-to-node --add-egress-zone=k8s-node
+# public disabled
+for i in interfaces sources services ports protocols; do
+  for v in $(firewall-cmd --zone=public --list-$i); do
+    firewall-cmd --permanent --zone=public --remove-${i/%?/}="$v"
+  done
+done
+# reload
+firewall-cmd --reload

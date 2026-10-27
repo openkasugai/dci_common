@@ -1,0 +1,138 @@
+- name: リソースプール管理の配備
+  hosts: all
+  vars:
+    play_description: |
+      事前準備(システム構築)
+      - 物理インフラgRPCのmTLS対応用のCA/Issuer作成
+      - リソースプール管理Pod、DCI物理インフラの配備
+        - リソースプール管理の配備
+    resource_pool_manager_path: "{{ dci_manager_path }}/resource-pool-manager"  # リソースプール管理リポジトリパス
+    resource_pool_manager_namespace: "dcirpm"
+    cloud_config_file: "{{ resource_pool_manager_path }}/cloud-config.yaml"
+    resource_pool_manager_values_file: "{{ resource_pool_manager_path }}/dist/chart/values.yaml"
+  environment:
+    KUBECONFIG: "/home/{{ ansible_user }}/.kube/config"
+  tasks:
+    # 物理インフラgRPCのmTLS対応用のCA/Issuer作成
+    - name: shared-root-ca用ディレクトリ作成
+      ansible.builtin.file:
+        path: "/home/{{ ansible_user }}/pki/shared-root-ca"
+        state: directory
+        mode: '0755'
+
+    - name: shared-root-ca秘密鍵を作成
+      ansible.builtin.command: openssl genrsa -out ca.key 4096
+      args:
+        chdir: "/home/{{ ansible_user }}/pki/shared-root-ca"
+        creates: "/home/{{ ansible_user }}/pki/shared-root-ca/ca.key"
+      register: ca_key_create_result
+      changed_when: ca_key_create_result.rc == 0
+
+    - name: shared-root-ca証明書を作成
+      ansible.builtin.command: >
+        openssl req -x509 -new -nodes -key ca.key -sha256 -days 3650
+        -subj /C=JP/ST=Tokyo/O=Example/OU=Platform/CN=shared-root-ca
+        -out ca.crt
+      args:
+        chdir: "/home/{{ ansible_user }}/pki/shared-root-ca"
+        creates: "/home/{{ ansible_user }}/pki/shared-root-ca/ca.crt"
+      register: ca_crt_create_result
+      changed_when: ca_crt_create_result.rc == 0
+
+    - name: shared-root-ca Secretを作成または更新
+      ansible.builtin.shell: >
+        kubectl -n cert-manager create secret tls shared-root-ca-keypair
+        --cert=/home/{{ ansible_user }}/pki/shared-root-ca/ca.crt
+        --key=/home/{{ ansible_user }}/pki/shared-root-ca/ca.key
+        --dry-run=client -o yaml | kubectl apply -f -
+      args:
+        executable: /bin/bash
+      register: shared_root_ca_secret_result
+      changed_when: >
+        'created' in shared_root_ca_secret_result.stdout
+        or 'configured' in shared_root_ca_secret_result.stdout
+      failed_when: shared_root_ca_secret_result.rc != 0
+
+    - name: shared-root-ca ClusterIssuerを作成または更新
+      ansible.builtin.shell: |
+        cat <<'EOF' | kubectl apply -f -
+        apiVersion: cert-manager.io/v1
+        kind: ClusterIssuer
+        metadata:
+          name: shared-root-ca
+        spec:
+          ca:
+            secretName: shared-root-ca-keypair
+        EOF
+      args:
+        executable: /bin/bash
+      register: shared_root_ca_issuer_result
+      changed_when: >
+        'created' in shared_root_ca_issuer_result.stdout
+        or 'configured' in shared_root_ca_issuer_result.stdout
+      failed_when: shared_root_ca_issuer_result.rc != 0
+
+    # リソースプール管理の配備
+    - name: cloud-config.yamlのvalue.yamlをテンプレートから生成
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/cloud-config.j2"
+        dest: "{{ cloud_config_file }}"
+        mode: '0644'
+      become: false
+
+    - name: dcirpm namespaceの作成
+      ansible.builtin.command: kubectl create namespace {{ resource_pool_manager_namespace }}
+      register: ns_create_result
+      changed_when: '"created" in ns_create_result.stdout'
+      failed_when: 
+        - ns_create_result.rc != 0
+        - '"already exists" not in ns_create_result.stderr'
+
+    - name: cloud-config.yamlを適用
+      ansible.builtin.command: kubectl apply -f {{ cloud_config_file }}
+      register: cloud_config_apply_result
+      changed_when: '"created" in cloud_config_apply_result.stdout or "configured" in cloud_config_apply_result.stdout'
+      failed_when: 
+        - cloud_config_apply_result.rc != 0
+
+    - name: Pythonスクリプトをターゲットにコピー
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/remove_phy2_from_values.py"
+        dest: "{{ ansible_work_dir }}/remove_phy2_from_values.py"
+        mode: '0755'
+
+    - name: Pythonスクリプトでphy2要素を削除
+      ansible.builtin.command: >
+        python3 {{ ansible_work_dir }}/remove_phy2_from_values.py
+        {{ resource_pool_manager_values_file }}
+      register: phy2_remove_result
+      changed_when: '"更新しました" in phy2_remove_result.stdout'
+      failed_when:
+        - phy2_remove_result.rc != 0
+        - '"phy2要素が見つかりませんでした" not in phy2_remove_result.stdout'
+
+    - name: resource-pool-managerをHelmでデプロイ（OCIレジストリ）
+      ansible.builtin.shell: |
+         /usr/local/bin/helm upgrade --install resource-pool-manager \
+         oci://{{ harbor_manager_url }}:{{ harbor_manager_port }}/dci_manager/resource-pool-manager \
+         -n resource-pool-manager-system --create-namespace \
+         -f {{ resource_pool_manager_values_file }} \
+         --set controllerManager.container.image.repository={{ harbor_manager_url }}:{{ harbor_manager_port }}/dci_manager/resource-pool-manager \
+         --set controllerManager.container.image.tag={{ tag_manager_version }} \
+         --set alertReceiver.container.image.repository={{ harbor_manager_url }}:{{ harbor_manager_port }}/dci_manager/rpm-alert-receiver \
+         --set alertReceiver.container.image.tag={{ tag_manager_version }} \
+         --version v{{ tag_manager_version }}
+      args:
+        executable: /bin/bash
+      register: helm_deploy_result
+      retries: 3
+      delay: 10
+      until: helm_deploy_result.rc == 0
+      changed_when: 
+        - helm_deploy_result.rc == 0
+        - '"has been upgraded" in helm_deploy_result.stdout or "has been installed" in helm_deploy_result.stdout'
+      failed_when:
+        - helm_deploy_result.rc != 0
+        - "'connection refused' not in helm_deploy_result.stderr | lower"
+        - "'timeout' not in helm_deploy_result.stderr | lower"
+        

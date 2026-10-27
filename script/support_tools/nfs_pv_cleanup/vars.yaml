@@ -1,0 +1,10 @@
+### 環境に合わせて設定変更 ##############################
+
+# 削除対象テナントのNFS設定
+# - tenant_namespace : テナント用namespace
+# - nfs_server_export_path : nfs-subdir-external-provisioner.yaml の path: に設定したNFSエクスポートパス
+#   例）/export/nfs/f01-tenant-1
+
+tenants:
+  - tenant_namespace: tenant-1
+    nfs_server_export_path: "/export/nfs"

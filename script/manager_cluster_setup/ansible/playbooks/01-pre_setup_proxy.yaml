@@ -1,0 +1,35 @@
+- name: プロキシ事前設定（全ノード）
+  hosts: all
+  become: true
+  vars:
+    play_description: |
+      事前準備（システム構築） - マネージャK8sクラスタ構築
+       - プロキシ事前設定
+  tasks:
+    - name: プロキシ設定（/etc/dnf/dnf.conf）
+      ansible.builtin.lineinfile:
+        path: /etc/dnf/dnf.conf
+        regexp: '^http_proxy='
+        insertafter: '^\[main\]'
+        line: "http_proxy={{ proxy_url }}"
+      when: proxy_setup_enabled
+
+    - name: CRI-Oプロキシ設定ディレクトリ作成
+      ansible.builtin.file:
+        path: /etc/systemd/system/crio.service.d
+        state: directory
+        mode: '0755'
+      when: proxy_setup_enabled
+
+    - name: CRI-Oプロキシ設定（/etc/systemd/system/crio.service.d/00-proxy.conf）
+      ansible.builtin.blockinfile:
+        path: /etc/systemd/system/crio.service.d/00-proxy.conf
+        create: yes
+        mode: '0644'
+        marker: "# {mark} ANSIBLE MANAGED BLOCK - CRI-Oプロキシ設定"
+        block: |
+          [Service]
+          Environment="HTTP_PROXY={{ proxy_url }}"
+          Environment="HTTPS_PROXY={{ proxy_url }}"
+          Environment="NO_PROXY={{ crio_no_proxy_list }}"
+      when: proxy_setup_enabled

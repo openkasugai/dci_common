@@ -1,0 +1,4 @@
+apiVersion: v2
+name: dci-tenant-infra
+version: 0.1.0
+description: Tenant specific CAPI + DCI infrastructure

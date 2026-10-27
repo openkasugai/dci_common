@@ -1,0 +1,14 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: vip-cert
+  namespace: nginx-gateway
+spec:
+  secretName: vip-tls
+  issuerRef:
+    name: gateway-ca-issuer
+    kind: Issuer
+  dnsNames:
+    - prometheus.{{ tenant_namespace }}.local
+  ipAddresses:
+    - {{ gateway_loadbalancer_vip }}

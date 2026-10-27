@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: gateway-lb
+  namespace: nginx-gateway
+  annotations:
+    kube-vip.io/loadbalancerIPs: "{{ gateway_loadbalancer_vip }}"
+spec:
+  type: LoadBalancer
+  loadBalancerIP: {{ gateway_loadbalancer_vip }}
+  selector:
+    app.kubernetes.io/name: gateway-nginx
+  ports:
+    - name: https
+      port: 8443
+      targetPort: 8443
+      protocol: TCP

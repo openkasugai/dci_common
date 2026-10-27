@@ -1,0 +1,17 @@
+- name: テナント運用者用ServiceAccount作成
+  hosts: all
+  gather_facts: false
+  vars:
+    play_description: |
+      事前準備(ServiceAccount作成手順)
+  tasks:
+    - name: テナント数分ループ
+      ansible.builtin.include_role:
+        name: create_service_acount_block
+      vars:
+        tenant_namespace: "{{ item.tenant_namespace }}"
+        tenant_name: "{{ item.tenant_name }}"
+        tenant_work_dir: "{{ ansible_work_dir }}/{{ item.tenant_namespace }}"
+        kubeconfig_file: "{{ item.kubeconfig_file }}"
+        sa_config_for_tenant: "{{ item.sa_config_for_tenant }}"
+      loop: "{{ tenants }}"

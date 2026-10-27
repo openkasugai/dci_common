@@ -1,0 +1,117 @@
+- name: Cluster APIインストール
+  hosts: all
+  vars:
+    play_description: |
+      事前準備(システム構築) - ClusterAPIのインストール
+  environment:
+    KUBECONFIG: "/home/{{ ansible_user }}/.kube/config"
+  tasks:
+    - name: clusterctlバイナリ存在確認
+      ansible.builtin.stat:
+        path: /usr/local/bin/clusterctl
+      register: clusterctl_binary_check
+      changed_when: false
+
+    - name: clusterctlバージョン確認
+      ansible.builtin.command:
+        cmd: clusterctl version --output short
+      register: clusterctl_version_check
+      changed_when: false
+      failed_when: false
+      when: clusterctl_binary_check.stat.exists
+
+    - name: clusterctlバイナリをダウンロード
+      ansible.builtin.get_url:
+        url: "{{ clusterctl_download_url }}"
+        dest: "{{ ansible_work_dir }}/clusterctl"
+        mode: '0755'
+        timeout: 120
+      register: clusterctl_download
+      retries: 3
+      delay: 5
+      until: clusterctl_download is succeeded
+      when: >
+        not clusterctl_binary_check.stat.exists or
+        (clusterctl_version_check is defined and
+         'v' ~ clusterctl_version not in (clusterctl_version_check.stdout | default('')))
+
+    - name: clusterctlを/usr/local/binにインストール
+      become: true
+      ansible.builtin.command:
+        cmd: install -o root -g root -m 0755 {{ ansible_work_dir }}/clusterctl /usr/local/bin/clusterctl
+      register: clusterctl_install
+      changed_when: clusterctl_install.rc == 0
+      when: clusterctl_download is defined and clusterctl_download.changed
+
+    - name: ダウンロードした一時ファイルの削除
+      ansible.builtin.file:
+        path: "{{ ansible_work_dir }}/clusterctl"
+        state: absent
+      when: clusterctl_download is defined and clusterctl_download.changed
+
+    # Cluster APIプロバイダのインストール
+    - name: Cluster API プロバイダ用の作業ディレクトリ作成
+      ansible.builtin.file:
+        path: "{{ ansible_work_dir }}/capi-providers"
+        state: directory
+        mode: '0755'
+
+    - name: プロバイダ情報の定義
+      ansible.builtin.set_fact:
+        capi_providers:
+          - name: core
+            type: "--core"
+            package: "cluster-api:v{{ clusterctl_version }}"
+            deployment: "capi-controller-manager"
+            namespace: "capi-system"
+          - name: bootstrap
+            type: "--bootstrap"
+            package: "kubeadm:v{{ clusterctl_version }}"
+            deployment: "capi-kubeadm-bootstrap-controller-manager"
+            namespace: "capi-system"
+          - name: controlplane
+            type: "--control-plane"
+            package: "kubeadm:v{{ clusterctl_version }}"
+            deployment: "capi-kubeadm-control-plane-controller-manager"
+            namespace: "capi-system"
+          - name: helm-addon
+            type: "--addon"
+            package: "helm:v{{ cluster_api_addon_version }}"
+            deployment: "caaph-controller-manager"
+            namespace: "caaph-system"
+
+    - name: プロバイダYAMLの生成
+      ansible.builtin.shell:
+        cmd: clusterctl generate provider {{ item.type }} {{ item.package }} > {{ ansible_work_dir }}/capi-providers/{{ item.name }}.yaml
+      loop: "{{ capi_providers }}"
+      loop_control:
+        label: "{{ item.name }}"
+      args:
+        creates: "{{ ansible_work_dir }}/capi-providers/{{ item.name }}.yaml"
+
+    - name: プロバイダDeployment編集（nodeSelector追加）
+      ansible.builtin.command:
+        cmd: >
+          yq -i 'select(.kind == "Deployment" and .metadata.name == "{{ item.deployment }}").spec.template.spec.nodeSelector |= (. // {} | . + {"node-role.kubernetes.io/control-plane": ""})' -i {{ ansible_work_dir }}/capi-providers/{{ item.name }}.yaml
+      loop: "{{ capi_providers }}"
+      loop_control:
+        label: "{{ item.name }}"
+      changed_when: true
+
+    - name: プロバイダDeployment編集（tolerations追加）
+      ansible.builtin.command:
+        cmd: >
+          yq -i 'select(.kind == "Deployment" and .metadata.name == "{{ item.deployment }}").spec.template.spec.tolerations |= (map(select(.key != "node-role.kubernetes.io/control-plane")) + [{"key": "node-role.kubernetes.io/control-plane", "operator": "Exists", "effect": "NoSchedule"}])' -i {{ ansible_work_dir }}/capi-providers/{{ item.name }}.yaml
+      loop: "{{ capi_providers }}"
+      loop_control:
+        label: "{{ item.name }}"
+      changed_when: true
+
+    - name: プロバイダの適用
+      ansible.builtin.command:
+        cmd: kubectl apply --server-side --force-conflicts -f {{ ansible_work_dir }}/capi-providers/{{ item.name }}.yaml
+      loop: "{{ capi_providers }}"
+      loop_control:
+        label: "{{ item.name }}"
+      register: provider_apply
+      changed_when: "'configured' in provider_apply.stdout or 'created' in provider_apply.stdout"

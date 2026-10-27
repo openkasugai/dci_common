@@ -1,0 +1,15 @@
+- name: Scaling Controller用LogicalServerアクセスRole設定
+  hosts: all
+  vars:
+    play_description: |
+      事前準備(システム構築) - Scaling Controllerの論理サーバリソースへのアクセス用Roleの作成
+    scale_controller_logicalserver_role_file: "{{ dci_manager_path }}/others/tenant-infrastructure-management/resources/accounts/scale-controller/scale-controller-rpm-role.yaml"  # LogicalServerアクセス用Roleマニフェストファイルパス
+  environment:
+    KUBECONFIG: "/home/{{ ansible_user }}/.kube/config"
+  tasks:
+    - name: LogicalServerアクセス用Role適用
+      ansible.builtin.command:
+        cmd: kubectl apply -f {{ scale_controller_logicalserver_role_file }}
+      register: role_apply_result
+      changed_when: '"created" in role_apply_result.stdout or "configured" in role_apply_result.stdout'
+      failed_when: role_apply_result.rc != 0

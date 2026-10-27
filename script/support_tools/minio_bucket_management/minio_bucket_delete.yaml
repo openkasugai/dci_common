@@ -1,0 +1,31 @@
+- name: MinIOバケット削除
+  hosts: minio_servers
+  vars:
+    play_description: |
+      MinIOサーバからバケットを削除する
+  tasks:
+    - name: MinIOバケットを削除
+      become: yes
+      ansible.builtin.shell: |
+        docker run --rm --network {{ minio_network }} \
+          --entrypoint sh {{ minio_image }} -c "
+            mc alias set {{ minio_alias }} {{ minio_endpoint }} {{ minio_user }} {{ minio_password }} && \
+            if mc ls {{ minio_alias }}/{{ item }} &>/dev/null; then
+              mc rb --force {{ minio_alias }}/{{ item }}
+              echo 'DELETED'
+            else
+              echo 'SKIPPED: バケットが存在しません: {{ item }}'
+            fi
+          "
+      args:
+        executable: /bin/bash
+      loop: "{{ buckets }}"
+      register: bucket_delete_result
+      changed_when: "'DELETED' in bucket_delete_result.stdout"
+
+    - name: 削除結果を表示
+      ansible.builtin.debug:
+        msg: "{{ item.item }}: {{ item.stdout_lines[-1] }}"
+      loop: "{{ bucket_delete_result.results }}"
+      loop_control:
+        label: "{{ item.item }}"

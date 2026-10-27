@@ -1,0 +1,51 @@
+- name: k8sインストール
+  hosts: all
+  become: true
+  vars:
+    play_description: |
+      環境構築手順書 - 構築手順1：基本部分 マネージャ用k8sクラスタ構築
+       - k8sインストール
+  tasks:
+    - name: 現在アクティブなスワップデバイスを確認
+      ansible.builtin.shell: "swapon --show | tail -n +2"
+      register: current_active_swaps
+      changed_when: false
+      failed_when: false
+
+    - name: swapを無効化
+      ansible.builtin.command: swapoff -a
+      register: swapoff_result
+      when: current_active_swaps.stdout | length > 0
+      changed_when: swapoff_result.rc == 0 and swapoff_result.stderr | length > 0
+      failed_when: swapoff_result.rc != 0
+
+    - name: /etc/fstabのswap行をコメントアウト
+      ansible.builtin.replace:
+        path: /etc/fstab
+        regexp: '^([^#\s].*\s+swap\s+.*)'
+        replace: '#\1'
+        backup: yes
+
+    - name: Kubernetesリポジトリ追加
+      ansible.builtin.copy:
+        dest: /etc/yum.repos.d/kubernetes.repo
+        content: |
+          [kubernetes]
+          name=Kubernetes
+          baseurl={{ k8s_repo_url }}
+          enabled=1
+          gpgcheck=1
+          gpgkey={{ k8s_repo_url }}/repodata/repomd.xml.key
+
+    - name: 指定バージョンのkubelet, kubeadm, kubectlをインストール
+      ansible.builtin.yum:
+        name:
+          - "{{ kubelet_package }}"
+          - "{{ kubeadm_package }}"
+          - "{{ kubectl_package }}"
+        state: present
+        disable_gpg_check: no
+      register: k8s_install_result
+      retries: 3
+      delay: 10
+      until: k8s_install_result is succeeded

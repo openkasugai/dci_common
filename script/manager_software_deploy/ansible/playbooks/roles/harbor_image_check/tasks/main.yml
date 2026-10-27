@@ -1,0 +1,18 @@
+- name: "Harbor上の{{ component_name }}イメージ存在確認"
+  ansible.builtin.shell: >
+    curl -k -s -X GET 
+    "https://{{ harbor_url }}:{{ harbor_port }}/api/v2.0/projects/{{ harbor_project }}/repositories/{{ repository_name }}/artifacts" 
+    -H "accept: application/json" 
+    -u "{{ harbor_user }}:{{ harbor_password }}"
+  register: harbor_check_result
+  changed_when: false
+  failed_when: false
+  when: not rebuild_flag | bool
+
+- name: "{{ component_name }}イメージバージョン存在判定"
+  ansible.builtin.set_fact:
+    "{{ fact_variable_name }}": "{{ harbor_check_result.stdout is defined and version_tag in harbor_check_result.stdout }}"
+  when: 
+    - not rebuild_flag | bool
+    - harbor_check_result is defined
+    - harbor_check_result.stdout is defined

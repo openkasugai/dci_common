@@ -1,0 +1,98 @@
+- name: k8sクラスタ構築事前準備2・3
+  hosts: all
+  become: true
+  vars:
+    play_description: |
+      環境構築手順書 - 構築手順1：基本部分 マネージャ用k8sクラスタ構築
+       - k8sクラスタ構築事前準備2
+       - k8sクラスタ構築事前準備3
+  tasks:
+    - name: 作業ディレクトリ作成
+      become: false
+      ansible.builtin.file:
+        path: "{{ ansible_work_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: calico.yamlファイルの存在確認
+      ansible.builtin.stat:
+        path: "{{ ansible_work_dir }}/calico.yaml"
+      register: calico_file_check
+
+    - name: calico.yamlダウンロード
+      ansible.builtin.get_url:
+        url: "{{ calico_yaml_url }}"
+        dest: "{{ ansible_work_dir }}/calico.yaml"
+        timeout: 120
+      register: download_result
+      retries: 3
+      delay: 5
+      until: download_result is succeeded
+      when:
+        - calico_file_check.stat.exists == false
+
+    - name: calico.yamlでIP_AUTODETECTION_METHODが既に設定済みかチェック
+      ansible.builtin.shell: | 
+        grep -q -E "^\s+- name: IP_AUTODETECTION_METHOD" "{{ ansible_work_dir }}/calico.yaml"
+      register: ip_autodetect_line_check
+      failed_when: false
+      changed_when: false
+      when:
+        - calico_autodetect_method is defined
+
+    - name: calico.yamlの既存IP_AUTODETECTION_METHOD設定を更新
+      ansible.builtin.replace:
+        path: "{{ ansible_work_dir }}/calico.yaml"
+        regexp: '(\s+- name: IP_AUTODETECTION_METHOD\s+value: ).*$'
+        replace: '\1"{{ calico_autodetect_method }}"'
+        backup: yes
+      when:
+        - calico_autodetect_method is defined
+        - ip_autodetect_line_check.rc == 0
+
+    - name: calico.yamlにIP_AUTODETECTION_METHODを追記
+      ansible.builtin.replace:
+        path: "{{ ansible_work_dir }}/calico.yaml"
+        regexp: '(\s+- name: IP\n\s+value: "autodetect")'
+        replace: |-
+          \1
+                      - name: IP_AUTODETECTION_METHOD
+                        value: "{{ calico_autodetect_method }}"
+        backup: yes
+      when:
+        - calico_autodetect_method is defined
+        - ip_autodetect_line_check.rc != 0
+        
+    - name: 現在のkubelet設定確認
+      ansible.builtin.shell: >
+        grep -o "\-\-node-ip={{ cni_address }}" /usr/lib/systemd/system/kubelet.service.d/10-kubeadm.conf || echo "not_found"
+      register: kubelet_nodeip_check
+      changed_when: false
+
+    - name: 複数NICを持つ環境では 10-kubeadm.confのKUBELET_CONFIG_ARGSに--node-ipを追記
+      ansible.builtin.replace:
+        path: /usr/lib/systemd/system/kubelet.service.d/10-kubeadm.conf
+        regexp: '^(Environment="KUBELET_CONFIG_ARGS=--config=/var/lib/kubelet/config.yaml)([^"]*)"'
+        replace: '\1 --node-ip={{ cni_address }}\2"'
+        backup: yes
+      when:
+        - kubelet_nodeip_check.stdout == "not_found"
+        - calico_autodetect_method != "kubernetes-internal-ip"
+      register: kubelet_config_modified
+
+    - name: systemctl daemon-reload
+      ansible.builtin.systemd:
+        daemon_reload: yes
+      when:
+        - kubelet_config_modified is defined
+        - kubelet_config_modified is changed
+      register: daemon_reload_result
+
+    - name: kubeletサービス再起動
+      ansible.builtin.systemd:
+        name: kubelet
+        state: restarted
+      when:
+        - kubelet_config_modified is defined
+        - kubelet_config_modified is changed
+      register: kubelet_restart_result

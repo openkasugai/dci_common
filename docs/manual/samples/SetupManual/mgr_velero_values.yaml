@@ -1,0 +1,26 @@
+～省略～
+
+configuration:
+  backupStorageLocation:
+    - name: default
+      provider: aws
+      bucket: ＜①バックアップストレージで作成したバケット名＞
+      config:
+        region: minio
+        s3ForcePathStyle: "true"
+        s3Url: http://＜②バックアップストレージのIP＞:＜③バックアップストレージのポート＞
+
+  uploaderType: kopia
+  snapshotsEnabled: false
+  volumeSnapshotLocation: []
+
+deployNodeAgent: true
+
+credentials:
+  secretContents:
+    velero-credentials: |
+      [default]
+      aws_access_key_id = ＜④MinIOのルートユーザ＞
+      aws_secret_access_key = ＜⑤MinIOのルートユーザのパスワード＞
+
+～省略～

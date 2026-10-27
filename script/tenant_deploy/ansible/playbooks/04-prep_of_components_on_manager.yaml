@@ -1,0 +1,31 @@
+- name: マネージャクラスタでコンポーネント準備
+  hosts: all
+  gather_facts: false
+  vars:
+    play_description: |
+      A1 - 構成品配備
+      - 構成品配備資材の準備(harborのセットアップ)
+      - NVIDIA Network Operator/Multus CNI/nv-ipam/SR-IOV CNIの配備/クラスタ固有のネットワーク設定
+      - GPU operator/DRAドライバの配備
+      - 監視関連OSSの配備
+      - 独自コンポーネントの配備
+      - Cluster Autoscalerの配備
+      - DCIアプリ監視コンポーネントの配備
+  environment:
+    KUBECONFIG: "/home/{{ ansible_user }}/.kube/config"
+  tasks:
+    - name: テナント数分ループ
+      ansible.builtin.include_role:
+        name: prep_of_components_block
+      vars:
+        tenant_namespace: "{{ item.tenant_namespace }}"
+        tenant_name: "{{ item.tenant_name }}"
+        tenant_work_dir: "{{ ansible_work_dir }}/{{ item.tenant_namespace }}"
+        kubeconfig_file: "{{ item.kubeconfig_file }}"
+        tenant_harbor_url: "{{ item.tenant_harbor_url }}"
+        tenant_harbor_port: "{{ item.tenant_harbor_port }}"
+        tenant_harbor_user: "{{ item.tenant_harbor_user }}"
+        tenant_harbor_password: "{{ item.tenant_harbor_password }}"
+        harbor_ca_file: "{{ item.harbor_ca_file }}"
+        harbor_private_key_file: "{{ item.harbor_private_key_file }}"
+      loop: "{{ tenants }}"

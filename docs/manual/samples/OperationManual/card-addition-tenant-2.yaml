@@ -1,0 +1,11 @@
+apiVersion: cluster.my.domain/v1alpha1
+kind: CardScalingRequest
+metadata:
+  name: my-add-card
+  namespace: default
+spec:
+  nodeName: test-pgcdi-compute01.maas
+  scalingParameter:
+    op: add
+    model: NVIDIA-BLACKWELL
+    num: 1

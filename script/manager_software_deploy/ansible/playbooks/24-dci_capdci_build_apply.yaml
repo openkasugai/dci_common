@@ -1,0 +1,40 @@
+- name: DCI独自Provider
+  hosts: all
+  vars:
+    play_description: |
+      事前準備(システム構築) - DCI独自Provider
+    capdci_namespace: capdci-system  # capdci namespace
+  environment:
+    KUBECONFIG: "/home/{{ ansible_user }}/.kube/config"
+  tasks:
+    # capdciのデプロイ（OCI Helmレジストリから）
+    - name: capdciのデプロイ（OCI Helmレジストリから）
+      ansible.builtin.command:
+        cmd: >
+          /usr/local/bin/helm upgrade --install capdci
+          oci://{{ harbor_manager_url }}:{{ harbor_manager_port }}/{{ harbor_project_manager }}/capdci
+          -n {{ capdci_namespace }}
+          --create-namespace
+          --set controllerManager.container.image.repository={{ harbor_manager_url }}:{{ harbor_manager_port }}/{{ harbor_project_manager }}/{{ capdci_image_repo }}
+          --set controllerManager.container.image.tag={{ tag_manager_version }}
+          --version v{{ tag_manager_version }}
+          --wait
+          --timeout 5m
+      register: helm_upgrade_result
+      retries: 3
+      delay: 10
+      until: helm_upgrade_result.rc == 0
+      changed_when:
+        - helm_upgrade_result.rc == 0
+        - ("has been upgraded" in helm_upgrade_result.stdout or "has been installed" in helm_upgrade_result.stdout)
+      failed_when:
+        - helm_upgrade_result.rc != 0
+        - "'connection refused' not in helm_upgrade_result.stderr | lower"
+
+    - name: リソースプール管理を再起動
+      ansible.builtin.command: >
+        kubectl rollout restart deployment -n resource-pool-manager-system resource-pool-manager-controller-manager
+      register: rollout_restart_result
+      changed_when: rollout_restart_result.rc == 0
+      failed_when:
+        - rollout_restart_result.rc != 0

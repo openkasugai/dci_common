@@ -1,0 +1,66 @@
+# テナントごとのHarbor Replication/Registry削除処理
+# --- マネージャHarborのpushレプリケーションポリシー削除 ---
+
+- name: マネージャHarborからpushレプリケーションポリシー一覧を取得 ({{ tenant_namespace }})
+  ansible.builtin.uri:
+    url: "https://{{ manager_harbor_url }}:{{ manager_harbor_port }}/api/v2.0/replication/policies?name=replicate-harbor-push-{{ tenant_namespace }}"
+    method: GET
+    url_username: "{{ manager_harbor_user }}"
+    url_password: "{{ manager_harbor_password }}"
+    force_basic_auth: true
+    validate_certs: false
+    return_content: true
+    status_code: [200]
+  register: push_policies_list
+  retries: 3
+  delay: 5
+  until: push_policies_list.status == 200
+
+- name: pushレプリケーションポリシーのリストをフィルタリング ({{ tenant_namespace }})
+  ansible.builtin.set_fact:
+    filtered_push_policies: "{{ push_policies_list.json | selectattr('name', 'equalto', 'replicate-harbor-push-' + tenant_namespace) | list }}"
+
+- name: マネージャHarborからpushレプリケーションポリシーを削除 ({{ tenant_namespace }})
+  ansible.builtin.uri:
+    url: "https://{{ manager_harbor_url }}:{{ manager_harbor_port }}/api/v2.0/replication/policies/{{ (filtered_push_policies | first).id }}"
+    method: DELETE
+    url_username: "{{ manager_harbor_user }}"
+    url_password: "{{ manager_harbor_password }}"
+    force_basic_auth: true
+    validate_certs: false
+    status_code: [200, 204, 404]
+  when: filtered_push_policies | length > 0
+  changed_when: true
+
+# --- マネージャHarborのpushレジストリ削除 ---
+
+- name: マネージャHarborからレジストリ一覧を取得 ({{ tenant_namespace }})
+  ansible.builtin.uri:
+    url: "https://{{ manager_harbor_url }}:{{ manager_harbor_port }}/api/v2.0/registries"
+    method: GET
+    url_username: "{{ manager_harbor_user }}"
+    url_password: "{{ manager_harbor_password }}"
+    force_basic_auth: true
+    validate_certs: false
+    return_content: true
+    status_code: [200]
+  register: registries_list
+  retries: 3
+  delay: 5
+  until: registries_list.status == 200
+
+- name: pushレジストリのリストをフィルタリング ({{ tenant_namespace }})
+  ansible.builtin.set_fact:
+    filtered_push_registries: "{{ registries_list.json | selectattr('name', 'equalto', 'replicate-harbor-push-' + tenant_namespace) | list }}"
+
+- name: マネージャHarborからpushレジストリを削除 ({{ tenant_namespace }})
+  ansible.builtin.uri:
+    url: "https://{{ manager_harbor_url }}:{{ manager_harbor_port }}/api/v2.0/registries/{{ (filtered_push_registries | first).id }}"
+    method: DELETE
+    url_username: "{{ manager_harbor_user }}"
+    url_password: "{{ manager_harbor_password }}"
+    force_basic_auth: true
+    validate_certs: false
+    status_code: [200, 204, 404]
+  when: filtered_push_registries | length > 0
+  changed_when: true

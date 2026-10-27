@@ -1,0 +1,171 @@
+
+- name: Control Plane 2台目以降のjoin
+  hosts: all
+  become: true
+  vars:
+    play_description: |
+      環境構築手順書 - 構築手順1：基本部分 マネージャ用k8sクラスタ構築
+       - k8sクラスタ構築 (冗長化 CP2台目以降を対象とする手順)
+  tasks:
+    # ----------------------------------------------------------------
+    # HA構成確認
+    # ----------------------------------------------------------------
+    - name: HA構成確認
+      ansible.builtin.set_fact:
+        is_ha_config: "{{ groups['dci_mgmt_k8s_control_plane'] | length >= 2 }}"
+        cp_group_size: "{{ groups['dci_mgmt_k8s_control_plane'] | length }}"
+        is_additional_control_plane: >-
+          {{
+            (groups['dci_mgmt_k8s_control_plane'] | length > 1) and
+            (inventory_hostname in groups['dci_mgmt_k8s_control_plane'][1:])
+          }}
+
+    - name: HA構成でない場合はスキップメッセージを表示
+      ansible.builtin.debug:
+        msg: "Control Planeが1台のため、このPlaybookをスキップします"
+      when: not is_ha_config
+
+    - name: HA構成でない場合は後続処理をスキップ
+      ansible.builtin.meta: end_play
+      when: not is_ha_config
+
+    - name: Control Plane ノード情報デバッグ
+      ansible.builtin.debug:
+        msg:
+          - "Control Plane グループサイズ: {{ cp_group_size }}"
+          - "現在のホスト: {{ inventory_hostname }}"
+          - "追加Control Planeノード: {{ is_additional_control_plane }}"
+
+    # ----------------------------------------------------------------
+    # kube-vip設定
+    # ----------------------------------------------------------------
+    - name: Ensure /etc/kubernetes/manifests directory exists
+      ansible.builtin.file:
+        path: /etc/kubernetes/manifests
+        state: directory
+        mode: '0755'
+        owner: root
+        group: root
+
+    - name: kube-vip.yamlを/etc/kubernetes/manifests/に作成
+      ansible.builtin.template:
+        src: kube-vip.yaml.j2
+        dest: /etc/kubernetes/manifests/kube-vip.yaml
+        owner: root
+        group: root
+        mode: '0644'
+
+    # ----------------------------------------------------------------
+    # joinコマンド取得・実行
+    # ----------------------------------------------------------------
+    - name: ローカルファイルに保存したコントロールプレーン用joinコマンドを取得
+      ansible.builtin.slurp:
+        src: "{{ playbook_dir }}/kubeadm_control_plane_join_command_{{ inventory_hostname }}.txt"
+      register: join_command_file
+      delegate_to: localhost
+      become: false
+      ignore_errors: yes
+      failed_when: false
+
+    - name: クラスタ参加状態確認（kubelet設定）
+      ansible.builtin.stat:
+        path: /etc/kubernetes/kubelet.conf
+      register: kubelet_conf_status
+
+    - name: クラスタ参加状態確認（admin設定）
+      ansible.builtin.stat:
+        path: /etc/kubernetes/admin.conf
+      register: admin_conf_status
+
+    - name: クラスタ参加状態判定
+      ansible.builtin.set_fact:
+        already_joined_cluster: >-
+          {{
+            (kubelet_conf_status.stat.exists) or
+            (admin_conf_status.stat.exists)
+          }}
+
+    - name: クラスタ参加状態デバッグ
+      ansible.builtin.debug:
+        msg:
+          - "kubelet.conf exists: {{ kubelet_conf_status.stat.exists }}"
+          - "admin.conf exists: {{ admin_conf_status.stat.exists }}"
+          - "already_joined_cluster: {{ already_joined_cluster }}"
+
+    - name: joinコマンドにapiserver-advertise-addressを付与
+      ansible.builtin.set_fact:
+        safe_join_command: "{{ join_command_file.content | b64decode | trim }} --apiserver-advertise-address={{ cni_address }}"
+      when:
+        - is_additional_control_plane
+        - join_command_file is defined
+        - not join_command_file.failed
+        - join_command_file.content is defined
+        - not already_joined_cluster
+
+    - name: kubeadm joinの実行(2、3台目のcontrol plane用)
+      ansible.builtin.shell: "{{ safe_join_command }}"
+      register: join_output
+      when:
+        - is_additional_control_plane
+        - safe_join_command is defined
+        - not already_joined_cluster
+      failed_when:
+        - join_output is defined
+        - join_output.rc is defined
+        - join_output.rc != 0
+
+    - name: joinコマンドファイルの削除
+      ansible.builtin.file:
+        path: "{{ playbook_dir }}/kubeadm_control_plane_join_command_{{ inventory_hostname }}.txt"
+        state: absent
+      delegate_to: localhost
+      become: false
+      when:
+        - join_output is defined
+        - join_output.rc is defined
+        - join_output.rc == 0
+
+    # ----------------------------------------------------------------
+    # kubeconfigセットアップ
+    # ----------------------------------------------------------------
+    - name: .kubeディレクトリ存在確認
+      become: false
+      ansible.builtin.stat:
+        path: "/home/{{ ansible_user }}/.kube"
+      register: kube_dir_status
+
+    - name: kubeconfigファイル存在確認
+      become: false
+      ansible.builtin.stat:
+        path: "/home/{{ ansible_user }}/.kube/config"
+      register: kubeconfig_status
+
+    - name: 既存kubeconfigの内容確認
+      become: false
+      ansible.builtin.shell: |
+        if [ -f "/home/{{ ansible_user }}/.kube/config" ]; then
+          sudo diff -q /etc/kubernetes/admin.conf "/home/{{ ansible_user }}/.kube/config" >/dev/null 2>&1
+          echo $?
+        else
+          echo "1"
+        fi
+      register: kubeconfig_diff
+      changed_when: false
+
+    - name: .kubeディレクトリ作成
+      become: false
+      ansible.builtin.file:
+        path: "/home/{{ ansible_user }}/.kube"
+        state: directory
+        mode: '0755'
+      when: not kube_dir_status.stat.exists
+
+    - name: kubeconfigファイルコピー
+      ansible.builtin.copy:
+        src: /etc/kubernetes/admin.conf
+        dest: "/home/{{ ansible_user }}/.kube/config"
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: '0600'
+        remote_src: yes
+      when: kubeconfig_diff.stdout != '0'

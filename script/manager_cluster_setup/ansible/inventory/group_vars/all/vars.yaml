@@ -1,0 +1,52 @@
+### OSS バージョン #####################################
+
+# Kubernetesバージョン
+k8s_version_major: 1.34
+k8s_version_minor: 2
+
+# CRI-Oバージョン
+crio_version_major: 1.34
+crio_version_minor: 2
+
+# Calicoバージョン
+calico_version_major: 3.29
+calico_version_minor: 2
+
+### 環境に合わせて設定変更 ##############################
+
+# プロキシ設定（外部通信にプロキシが必要な場合のみ設定）
+proxy_setup_enabled: false
+proxy_url: "http://192.168.1.1:8080/"   # プロキシURL（例: "http://192.168.1.1:8080/"）
+
+# ネットワークCIDR設定（proxy_setup_enabled: true の場合のみ参照）
+kube_vip_address: 192.168.2.30  # kube-vipのIPアドレス
+manager_subnet: "{{ kube_vip_address | regex_replace('(\\d+\\.\\d+\\.\\d+)\\.\\d+', '\\1.0') }}/24" # マネージャ用ネットワークCIDR（kube_vip_addressの/24サブネット）
+host_network_subnet: "192.168.2.0/24"  # 管理クラスタのホストNW CIDR
+cni_network_subnet: "192.168.2.0/24"   # 管理クラスタのCNI NW CIDR
+pod_subnet: 10.244.0.0/16        # PodネットワークのCIDR
+service_subnet: 192.168.20.0/24  # ServiceネットワークのCIDR
+
+### 以下は編集不要 #####################################
+# 作業ディレクトリ
+ansible_work_dir: "/home/{{ ansible_user }}/auto_script_work"
+
+# k8sリポジトリ、パッケージ名
+k8s_version: "{{ k8s_version_major }}.{{ k8s_version_minor }}"
+k8s_repo_url: https://pkgs.k8s.io/core:/stable:/v{{ k8s_version_major }}/rpm # KubernetesリポジトリURL
+kubelet_package: kubelet-{{ k8s_version }}-150500.1.1.x86_64 # kubeletパッケージ
+kubeadm_package: kubeadm-{{ k8s_version }}-150500.1.1.x86_64 # kubeadmパッケージ
+kubectl_package: kubectl-{{ k8s_version }}-150500.1.1.x86_64 # kubectlパッケージ
+
+# CRI-Oリポジトリ、パッケージ名
+crio_version: "{{ crio_version_major }}.{{ crio_version_minor }}"
+crio_repo_url: https://download.opensuse.org/repositories/isv:/cri-o:/stable:/v{{ crio_version_major }}/rpm # CRI-OリポジトリURL
+crio_package: cri-o-{{ crio_version }}-150500.1.1.x86_64 # CRI-Oパッケージ
+
+# CalicoのURL
+calico_version: "{{ calico_version_major }}.{{ calico_version_minor }}"
+calico_yaml_url: https://raw.githubusercontent.com/projectcalico/calico/v{{ calico_version }}/manifests/calico.yaml  # calico.yamlのURL
+
+# CRI-O用プロキシ除外リスト（proxy_setup_enabled: true の場合のみ参照）
+crio_no_proxy_list: "localhost,127.0.0.1,{{ manager_subnet }},{{ host_network_subnet }},{{ cni_network_subnet }},{{ pod_subnet }},{{ service_subnet }},.cluster.local"
+
+

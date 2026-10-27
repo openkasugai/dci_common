@@ -1,0 +1,138 @@
+---
+- name: Kubernetes Node & Pod Summary
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    log_base_path: "./ansible_log"
+
+  tasks:
+    ######################################################################
+    # Node Summary
+    ######################################################################
+    - name: Get nodes summary
+      ansible.builtin.command: kubectl get nodes --no-headers
+      register: nodes_raw
+      changed_when: false
+
+    - name: Build node summary
+      ansible.builtin.set_fact:
+        node_summary: >-
+          {{
+            node_summary | default([])
+            + [
+                {
+                  'name': item.split()[0],
+                  'status': item.split()[1]
+                }
+              ]
+          }}
+      loop: "{{ nodes_raw.stdout_lines }}"
+
+    ######################################################################
+    # Pod Summary
+    ######################################################################
+    - name: Get all pods in JSON format
+      ansible.builtin.command: kubectl get pods -A -o json
+      register: pods_raw
+      changed_when: false
+
+    - name: Build pod summary
+      ansible.builtin.set_fact:
+        pod_summary: "{{ pod_summary | default([]) + [pod_item] }}"
+      vars:
+        pod: "{{ item }}"
+        phase: "{{ pod.status.phase | default('Unknown') }}"
+
+        # container waiting reason (CrashLoopBackOff, ImagePullBackOff, etc.)
+        waiting_reason: >-
+          {{
+            (
+              pod.status.containerStatuses | default([])
+              | map(attribute='state.waiting')
+              | select('defined')
+              | map(attribute='reason')
+              | select('defined')
+              | list
+              | first
+            ) | default('')
+          }}
+
+        # pod-level reason (Pending, Evicted, etc.)
+        pod_reason: "{{ pod.status.reason | default('') }}"
+
+        # final reason
+        reason: >-
+          {{
+            waiting_reason
+            if waiting_reason != ''
+            else (
+              pod_reason
+              if pod_reason != ''
+              else phase
+            )
+          }}
+
+        # Running 以外は Failed とする
+        status: "{{ 'Running' if phase == 'Running' else 'Failed' }}"
+
+        # nodeName が無ければ NotScheduled
+        node: "{{ pod.spec.nodeName | default('NotScheduled') }}"
+
+        pod_item:
+          pod: "{{ pod.metadata.name }}"
+          image: "{{ pod.spec.containers[0].image }}"
+          status: "{{ status }}"
+          reason: "{{ reason }}"
+          namespace: "{{ pod.metadata.namespace }}"
+          node: "{{ node }}"
+
+      loop: "{{ (pods_raw.stdout | from_json)['items'] }}"
+
+    ######################################################################
+    # Create log directory
+    ######################################################################
+    - name: Ensure log directory exists
+      ansible.builtin.file:
+        path: "{{ log_base_path }}"
+        state: directory
+        mode: '0755'
+
+    ######################################################################
+    # Write result.log
+    ######################################################################
+    - name: Write summary to log file
+      ansible.builtin.copy:
+        dest: "{{ log_base_path }}/result.log"
+        content: |
+          ==== Node Summary ====
+          {% for n in node_summary %}
+          {{ n.name }}: {{ n.status }}
+          {% endfor %}
+
+          ==== Pod Summary ====
+          {% for p in pod_summary %}
+          pod: {{ p.pod }}
+          image: {{ p.image }}
+          status: {{ p.status }}
+          reason: {{ p.reason }}
+          namespace: {{ p.namespace }}
+          node: {{ p.node }}
+
+          {% endfor %}
+      changed_when: false
+
+    ######################################################################
+    # Fail if any pod is Failed
+    ######################################################################
+    - name: Fail if any pod is Failed
+      ansible.builtin.fail:
+        msg: "One or more pods are not Running. See {{ log_base_path }}/result.log"
+      when: >
+        (
+          pod_summary
+          | selectattr('status', 'equalto', 'Failed')
+          | list
+          | length
+        ) > 0

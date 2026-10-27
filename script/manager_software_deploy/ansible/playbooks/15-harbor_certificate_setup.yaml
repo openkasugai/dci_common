@@ -1,0 +1,82 @@
+- name: Harbor証明書の認証設定
+  hosts: all
+  vars:
+    play_description: |
+      事前準備(システム構築) - Harborへの資材格納
+      - 証明書の認証(全ノードを対象とする手順)
+    harbor_namespace: harbor  # Harbor namespace
+    harbor_nginx_secret_name: harbor-nginx  # Harbor nginx secret名
+    harbor_cert_system_path: /etc/ssl/certs/harbor_mng.crt  # Harbor証明書システムパス（/etc/ssl/certs/）
+    harbor_cert_anchors_path: /etc/pki/ca-trust/source/anchors/harbor_mng.crt  # Harbor証明書アンカーパス（/etc/pki/ca-trust/source/anchors/）
+  environment:
+    KUBECONFIG: "/home/{{ ansible_user }}/.kube/config"
+  tasks:
+    - name: Harbor証明書の取得
+      ansible.builtin.shell:
+        cmd: kubectl get secrets -n {{ harbor_namespace }} {{ harbor_nginx_secret_name }} -o jsonpath='{.data.ca\.crt}' | base64 -d
+      register: harbor_cert_content
+      changed_when: false
+
+    - name: Harbor証明書をローカルに保存
+      ansible.builtin.copy:
+        content: "{{ harbor_cert_content.stdout }}"
+        dest: "{{ ansible_work_dir }}/harbor_mng.crt"
+        mode: '0644'
+
+    # 手順1: /etc/ssl/certs/への配置とCA証明書更新
+    - name: Harbor証明書を/etc/ssl/certs/にコピー
+      become: true
+      ansible.builtin.copy:
+        src: "{{ ansible_work_dir }}/harbor_mng.crt"
+        dest: "{{ harbor_cert_system_path }}"
+        mode: '0644'
+        remote_src: yes
+      register: cert_ssl_copy
+
+    - name: CA証明書の更新（update-ca-trust）
+      become: true
+      ansible.builtin.command:
+        cmd: update-ca-trust
+      when: cert_ssl_copy.changed
+      register: update_ca_trust_result
+      changed_when: true
+
+    - name: CRI-O再起動
+      become: true
+      ansible.builtin.systemd:
+        name: crio
+        state: restarted
+      when: cert_ssl_copy.changed
+      register: crio_restart_result
+
+    - name: CRI-O再起動後の待機
+      ansible.builtin.pause:
+        seconds: 10
+      when: cert_ssl_copy.changed
+
+    - name: CRI-Oサービスの起動確認
+      become: true
+      ansible.builtin.systemd:
+        name: crio
+        state: started
+      register: crio_status_check
+      until: crio_status_check.status.ActiveState == "active"
+      retries: 12
+      delay: 5
+      when: cert_ssl_copy.changed
+
+    - name: Harbor証明書を/etc/pki/ca-trust/source/anchors/にコピー
+      become: true
+      ansible.builtin.copy:
+        src: "{{ ansible_work_dir }}/harbor_mng.crt"
+        dest: "{{ harbor_cert_anchors_path }}"
+        mode: '0644'
+        remote_src: yes
+      register: cert_anchors_copy
+
+    - name: CA証明書の抽出（update-ca-trust extract）
+      become: true
+      ansible.builtin.command:
+        cmd: update-ca-trust extract
+      when: cert_anchors_copy.changed
+      changed_when: true

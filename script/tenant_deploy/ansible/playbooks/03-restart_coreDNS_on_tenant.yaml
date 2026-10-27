@@ -1,0 +1,21 @@
+- name: テナントクラスタでCoreDNS再起動
+  hosts: all
+  vars:
+    play_description: |
+      A1 - 構成品配備
+      - CoreDNS再起動
+  tasks:
+    - name: CoreDNS deploymentを再起動
+      ansible.builtin.shell: |
+        kubectl rollout restart deployment coredns -n kube-system
+      register: coredns_restart_result
+      changed_when: true
+      failed_when: coredns_restart_result.rc != 0 or "error" in coredns_restart_result.stderr | lower
+
+    - name: CoreDNS rollout完了を待機
+      ansible.builtin.shell: |
+        kubectl rollout status deployment/coredns -n kube-system --timeout=300s
+      register: coredns_rollout_status_result
+      changed_when: false 
+      failed_when: coredns_rollout_status_result.rc != 0 or "error" in coredns_rollout_status_result.stderr | lower
+      

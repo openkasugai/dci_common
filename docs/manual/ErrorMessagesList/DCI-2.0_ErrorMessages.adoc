@@ -1,0 +1,1121 @@
+= DCI-2.0 エラーメッセージ一覧
+:toc: macro
+:toclevels: 4
+:sectnums:
+:sectnumlevels: 4
+:figure-caption: 図
+:table-caption: 表
+:docinfo: shared
+:source-highlighter: highlight.js
+:highlightjs-theme: vs2015
+
+第1.0版
+
+2026年11月5日
+
+NTT株式会社
+
+
+.目次
+toc::[]
+
+
+== はじめに
+
+本書は、DCI-2.0コントローラの各要素(DCI物理インフラ, DCIマネージャ, DCIテナント論理インフラ)が出力するエラーメッセージの一覧を示したものです。
+システム内で使用しているOSS(Open Source Software)が出力するエラーメッセージは対象外になります。
+
+
+== DCI物理インフラ(dci_physical_infrastructure)が出力するエラーメッセージ一覧
+DCI物理インフラは5つのコンポーネント(cdi, exporter, log, maas, network)で構成されている。各コンポーネントが出力するエラーメッセージを以下に示す。
+
+=== cdiコンポーネントが出力するエラーメッセージ
+[cols="1,4,3,2",options="header"]
+|===
+| # | エラーメッセージ / パターン | 概要（日本語） | 備考
+
+| 1 | `CDI_SERVER_PORT is required` | 環境変数の設定初期化（`InitializeConfig`）に失敗。必須環境変数未設定または値が不正 | 
+| 2 | `LOG_LEVEL is required` | 環境変数の設定初期化（`InitializeConfig`）に失敗。必須環境変数未設定または値が不正 | 
+| 3 | `SSH_KEY is required` | 環境変数の設定初期化（`InitializeConfig`）に失敗。必須環境変数未設定または値が不正 | 
+| 4 | `TLS_ENABLE is required` | 環境変数の設定初期化（`InitializeConfig`）に失敗。必須環境変数未設定または値が不正 | 
+| 5 | `TLS_CERT_PATH is required` | 環境変数の設定初期化（`InitializeConfig`）に失敗。必須環境変数未設定または値が不正 | 
+| 6 | `invalid serverPort of configuration: value must be integer and between 1 ～ 65535, inclusive` | 環境変数の設定初期化（`InitializeConfig`）に失敗。必須環境変数未設定または値が不正 | 
+| 7 | `invalid logLevel of configuration: value must be integer string and between 0 ～ 9, inclusive` | 環境変数の設定初期化（`InitializeConfig`）に失敗。必須環境変数未設定または値が不正 | 
+| 8 | `invalid tlsEnable of configuration: value must be boolean (true or false)` | 環境変数の設定初期化（`InitializeConfig`）に失敗。必須環境変数未設定または値が不正 | 
+| 9 | `listen tcp :<PORT>: bind: address already in use` | gRPC サーバーの TCP ポートリッスン開始に失敗（`net.Listen` の標準エラー） | 
+| 10 | `Failed to load TLS certificates` | TLS 証明書（`tls.crt` / `tls.key`）のロードに失敗 | 
+| 11 | `Failed to load CA certificate` | CA 証明書（`ca.crt`）のロードに失敗 | 
+| 12 | `Failed to append CA certificate to pool` | CA 証明書を証明書プールへの追加に失敗 | 
+| 13 | `accept tcp :<PORT>: use of closed network connection` | gRPC サーバーの Serve（リクエスト受付）実行に失敗（gRPC/net の標準エラー） | 
+| 14 | `json: unsupported type: <type>` | ErrorMessage を JSON にマーシャルする処理に失敗（`json.Marshal` の標準エラー） | 
+|===
+
+'''
+
+
+=== exporterコンポーネントが出力するエラーメッセージ
+[cols="1,4,3,2",options="header"]
+|===
+| # | エラーメッセージ / パターン | 概要（日本語） | 備考
+
+| 1 | `LOG_LEVEL is required` | 環境変数の設定初期化（`InitializeConfig`）に失敗。必須環境変数未設定または値が不正 | 
+| 2 | `INTERVAL is required` | 環境変数の設定初期化（`InitializeConfig`）に失敗。必須環境変数未設定または値が不正 | 
+| 3 | `P2P_ENABLE is required` | 環境変数の設定初期化（`InitializeConfig`）に失敗。必須環境変数未設定または値が不正 | 
+| 4 | `P2P_INTERVAL is required` | 環境変数の設定初期化（`InitializeConfig`）に失敗。必須環境変数未設定または値が不正 | 
+| 5 | `SSH_KEY is required` | 環境変数の設定初期化（`InitializeConfig`）に失敗。必須環境変数未設定または値が不正 | 
+| 6 | `METRICS_PORT is required` | 環境変数の設定初期化（`InitializeConfig`）に失敗。必須環境変数未設定または値が不正 | 
+| 7 | `METRICS_ENDPOINT is required` | 環境変数の設定初期化（`InitializeConfig`）に失敗。必須環境変数未設定または値が不正 | 
+| 8 | `DB_URL is required` | 環境変数の設定初期化（`InitializeConfig`）に失敗。必須環境変数未設定または値が不正 | 
+| 9 | `invalid logLevel of configuration: value must be integer string and between 0 ～ 9, inclusive` | 環境変数の設定初期化（`InitializeConfig`）に失敗。必須環境変数未設定または値が不正 | 
+| 10 | `invalid interval of configuration: value must be integer and between 1 ～ 3600, inclusive` | 環境変数の設定初期化（`InitializeConfig`）に失敗。必須環境変数未設定または値が不正 | 
+| 11 | `invalid p2pInterval of configuration: value must be integer and between 1 ～ 3600, inclusive` | 環境変数の設定初期化（`InitializeConfig`）に失敗。必須環境変数未設定または値が不正 | 
+| 12 | `invalid P2P_ENABLE of configuration: value must be boolean` | 環境変数の設定初期化（`InitializeConfig`）に失敗。必須環境変数未設定または値が不正 | 
+| 13 | `invalid metrics.port of configuration: value must be integer  and between 0 ～ 65535,  inclusive` | 環境変数の設定初期化（`InitializeConfig`）に失敗。必須環境変数未設定または値が不正 | 
+| 14 | `failed to retrieve JWT: failed to get in-cluster config: <err>` | データベースの初期化（`database.Init`）に失敗。Kubernetes Secret から JWT 取得不可 | 
+| 15 | `failed to retrieve JWT: failed to create kubernetes client: <err>` | データベースの初期化（`database.Init`）に失敗。Kubernetes Secret から JWT 取得不可 | 
+| 16 | `failed to retrieve JWT: failed to get secret postgrest/postgrest-jwt: <err>` | データベースの初期化（`database.Init`）に失敗。Kubernetes Secret から JWT 取得不可 | 
+| 17 | `failed to retrieve JWT: key 'jwt' not found in secret postgrest/postgrest-jwt` | データベースの初期化（`database.Init`）に失敗。Kubernetes Secret から JWT 取得不可 | 
+| 18 | `<prometheus registration error>` | サーバーの初期化（`server.Init`）に失敗。Prometheus メトリクスの登録失敗 | 
+| 19 | `<prometheus registration error>` | ネットワークの初期化（`network.Init`）に失敗。Prometheus メトリクスの登録失敗 | 
+| 20 | `listen tcp :<PORT>: bind: address already in use` | HTTP サーバー（メトリクス用）の起動（`ListenAndServe`）に失敗（net の標準エラー） | 
+| 21 | `<HTTP/API error>` | ネットワークスイッチ情報のDB取得（`SelectNwSwitchTable`）に失敗。PostgREST API 呼び出しまたはレスポンスパースエラー | 
+| 22 | `<HTTP/API error>` | サーバー情報のDB取得（`SelectServerTable`）に失敗（通常監視ループ）。PostgREST API 呼び出しまたはレスポンスパースエラー | 
+| 23 | `<HTTP/API error>` | サーバー情報のDB取得（`SelectServerTable`）に失敗（追加監視ループ）。PostgREST API 呼び出しまたはレスポンスパースエラー | 
+|===
+
+'''
+
+
+=== logコンポーネントが出力するエラーメッセージ
+[cols="1,4,3,2",options="header"]
+|===
+| # | エラーメッセージ / パターン | 概要（日本語） | 備考
+
+| 1 | `LOG_LEVEL is required` | 環境変数の設定初期化（`InitializeConfig`）に失敗。必須環境変数未設定または値が不正 | 
+| 2 | `INTERVAL is required` | 環境変数の設定初期化（`InitializeConfig`）に失敗。必須環境変数未設定または値が不正 | 
+| 3 | `IPMI_LOGFILE is required` | 環境変数の設定初期化（`InitializeConfig`）に失敗。必須環境変数未設定または値が不正 | 
+| 4 | `IPMI_LOGPATH is required` | 環境変数の設定初期化（`InitializeConfig`）に失敗。必須環境変数未設定または値が不正 | 
+| 5 | `IPMI_MAXSIZE is required` | 環境変数の設定初期化（`InitializeConfig`）に失敗。必須環境変数未設定または値が不正 | 
+| 6 | `IPMI_MAXBACKUPS is required` | 環境変数の設定初期化（`InitializeConfig`）に失敗。必須環境変数未設定または値が不正 | 
+| 7 | `IPMI_MAXAGE is required` | 環境変数の設定初期化（`InitializeConfig`）に失敗。必須環境変数未設定または値が不正 | 
+| 8 | `CDI_LOGFILE is required` | 環境変数の設定初期化（`InitializeConfig`）に失敗。必須環境変数未設定または値が不正 | 
+| 9 | `CDI_LOGPATH is required` | 環境変数の設定初期化（`InitializeConfig`）に失敗。必須環境変数未設定または値が不正 | 
+| 10 | `CDI_MAXSIZE is required` | 環境変数の設定初期化（`InitializeConfig`）に失敗。必須環境変数未設定または値が不正 | 
+| 11 | `CDI_MAXBACKUPS is required` | 環境変数の設定初期化（`InitializeConfig`）に失敗。必須環境変数未設定または値が不正 | 
+| 12 | `CDI_MAXAGE is required` | 環境変数の設定初期化（`InitializeConfig`）に失敗。必須環境変数未設定または値が不正 | 
+| 13 | `DB_URL is required` | 環境変数の設定初期化（`InitializeConfig`）に失敗。必須環境変数未設定または値が不正 | 
+| 14 | `invalid logLevel of configuration: value must be integer string and between 0 ～ 9, inclusive` | 環境変数の設定初期化（`InitializeConfig`）に失敗。必須環境変数未設定または値が不正 | 
+| 15 | `invalid interval of configuration: value must be integer and between 1 ～ 3600, inclusive` | 環境変数の設定初期化（`InitializeConfig`）に失敗。必須環境変数未設定または値が不正 | 
+| 16 | `invalid ipmi.maxSize of configuration: value must be integer and between 1 ～ 10240, inclusive` | 環境変数の設定初期化（`InitializeConfig`）に失敗。必須環境変数未設定または値が不正 | 
+| 17 | `invalid ipmi.maxBackups of configuration: value must be integer and between 1 ～ 31, inclusive` | 環境変数の設定初期化（`InitializeConfig`）に失敗。必須環境変数未設定または値が不正 | 
+| 18 | `invalid ipmi.maxAge of configuration: value must be integer and between 1 ～ 31, inclusive` | 環境変数の設定初期化（`InitializeConfig`）に失敗。必須環境変数未設定または値が不正 | 
+| 19 | `invalid cdi.maxSize of configuration: value must be integer and between 1 ～ 10240, inclusive` | 環境変数の設定初期化（`InitializeConfig`）に失敗。必須環境変数未設定または値が不正 | 
+| 20 | `invalid cdi.maxBackups of configuration: value must be integer and between 1 ～ 31, inclusive` | 環境変数の設定初期化（`InitializeConfig`）に失敗。必須環境変数未設定または値が不正 | 
+| 21 | `invalid cdi.maxAge of configuration: value must be integer and between 1 ～ 31, inclusive` | 環境変数の設定初期化（`InitializeConfig`）に失敗。必須環境変数未設定または値が不正 | 
+| 22 | `failed to retrieve JWT: failed to get in-cluster config: <err>` | データベースの初期化（`database.Init`）に失敗。Kubernetes Secret から JWT 取得不可 | 
+| 23 | `failed to retrieve JWT: failed to create kubernetes client: <err>` | データベースの初期化（`database.Init`）に失敗。Kubernetes Secret から JWT 取得不可 | 
+| 24 | `failed to retrieve JWT: failed to get secret postgrest/postgrest-jwt: <err>` | データベースの初期化（`database.Init`）に失敗。Kubernetes Secret から JWT 取得不可 | 
+| 25 | `failed to retrieve JWT: key 'jwt' not found in secret postgrest/postgrest-jwt` | データベースの初期化（`database.Init`）に失敗。Kubernetes Secret から JWT 取得不可 | 
+| 26 | `<logging init error>` | IPMI の初期化（`ipmi.Init`）に失敗。ロギング（lumberjack）初期化エラー | 
+| 27 | `<logging init error>` | CDI の初期化（`cdi.Init`）に失敗。ロギング（lumberjack）初期化エラー | 
+| 28 | `<logging init error>` | CDISoft の初期化（`cdiSoft.Init`）に失敗。ロギング（lumberjack）初期化エラー | 
+| 29 | `<logging init error>` | MaaS サーバーの初期化（`maasServer.Init`）に失敗。ロギング（lumberjack）初期化エラー | 
+| 30 | `<HTTP/API error>` | CDI ターゲットのDB取得（`SelectCDITable`）に失敗。PostgREST API 呼び出しまたはレスポンスパースエラー | 
+| 31 | `<HTTP/API error>` | サーバー（IPMI）ターゲットのDB取得（`SelectServerTable`）に失敗。PostgREST API 呼び出しまたはレスポンスパースエラー | 
+| 32 | `<HTTP/API error>` | MaaS サーバーターゲットのDB取得（`SelectMaasTable`）に失敗。PostgREST API 呼び出しまたはレスポンスパースエラー | 
+| 33 | `invalid Guest IP response format` | CDIログ収集（PG-CDI v2.0）においてAnsible実行結果からGuest IPの抽出に失敗。レスポンス形式が不正 | 
+| 34 | `GUEST_IP not found in ansible result` | CDIログ収集（PG-CDI v2.0）においてAnsible実行結果にGuest IPが含まれていない | 
+| 35 | `invalid type for system_id` | DB スキャン処理でLogicalServerテーブルの `system_id` カラムの型変換に失敗 | 
+|===
+
+'''
+
+
+=== maasコンポーネントが出力するエラーメッセージ
+[cols="1,4,3,2",options="header"]
+|===
+| # | エラーメッセージ / パターン | 概要（日本語） | 備考
+
+| 1 | `LOG_LEVEL is required` | 環境変数の設定初期化（`InitializeConfig`）に失敗。必須環境変数未設定または値が不正 | 
+| 2 | `MAAS_SERVER_PORT is required` | 環境変数の設定初期化（`InitializeConfig`）に失敗。必須環境変数未設定または値が不正 | 
+| 3 | `VM_HOST_DISK is required` | 環境変数の設定初期化（`InitializeConfig`）に失敗。必須環境変数未設定または値が不正 | 
+| 4 | `LXD_PORT is required` | 環境変数の設定初期化（`InitializeConfig`）に失敗。必須環境変数未設定または値が不正 | 
+| 5 | `SSH_KEY is required` | 環境変数の設定初期化（`InitializeConfig`）に失敗。必須環境変数未設定または値が不正 | 
+| 6 | `TLS_ENABLE is required` | 環境変数の設定初期化（`InitializeConfig`）に失敗。必須環境変数未設定または値が不正 | 
+| 7 | `TLS_CERT_PATH is required` | 環境変数の設定初期化（`InitializeConfig`）に失敗。必須環境変数未設定または値が不正 | 
+| 8 | `invalid logLevel of configuration: value must be integer string and between 0 ～ 9, inclusive` | 環境変数の設定初期化（`InitializeConfig`）に失敗。必須環境変数未設定または値が不正 | 
+| 9 | `invalid serverPort of configuration: value must be integer  and between 0 ～ 65535,  inclusive` | 環境変数の設定初期化（`InitializeConfig`）に失敗。必須環境変数未設定または値が不正 | 
+| 10 | `invalid vmHostDisk of configuration: value must be integer and 5 (GiB) or greater` | 環境変数の設定初期化（`InitializeConfig`）に失敗。必須環境変数未設定または値が不正 | 
+| 11 | `invalid lxdListenPort of configuration: value must be integer  and between 0 ～ 65535,  inclusive` | 環境変数の設定初期化（`InitializeConfig`）に失敗。必須環境変数未設定または値が不正 | 
+| 12 | `invalid tlsEnable of configuration: value must be boolean (true or false)` | 環境変数の設定初期化（`InitializeConfig`）に失敗。必須環境変数未設定または値が不正 | 
+| 13 | `listen tcp :<PORT>: bind: address already in use` | gRPC サーバーの TCP ポートリッスン開始に失敗（`net.Listen` の標準エラー） | 
+| 14 | `Failed to load TLS certificates` | TLS 証明書（`tls.crt` / `tls.key`）のロードに失敗 | 
+| 15 | `Failed to load CA certificate` | CA 証明書（`ca.crt`）のロードに失敗 | 
+| 16 | `Failed to append CA certificate to pool` | CA 証明書を証明書プールへの追加に失敗 | 
+| 17 | `accept tcp :<PORT>: use of closed network connection` | gRPC サーバーの Serve（リクエスト受付）実行に失敗（gRPC/net の標準エラー） | 
+| 18 | `<extracted ansible error>` | Ansible コマンド実行（`CmdExecute`）に失敗。Ansible 出力からエラーメッセージを抽出してログ出力 | 
+| 19 | `<err.Error()>` | Ansible コマンド実行（`CmdExecute`）に失敗。Ansible 出力からエラーメッセージを抽出してログ出力 | Ansible 出力からエラーが抽出できない場合
+| 20 | `Failed to create HTTP request` | MaaS API への HTTP リクエスト作成に失敗 | 
+| 21 | `HTTP request execution failed` | MaaS API への HTTP リクエスト送信に失敗 | 
+| 22 | `Failed to read response body` | MaaS API のレスポンスボディの読み取りに失敗 | 
+| 23 | `K8S_JOB_WORKER_IMAGE is required` | 環境変数の設定初期化（`InitializeConfig`）に失敗。必須環境変数未設定または値が不正 | 
+| 24 | `K8S_JOB_SERVICE_ACCOUNT is required` | 環境変数の設定初期化（`InitializeConfig`）に失敗。必須環境変数未設定または値が不正 | 
+| 25 | `K8S_JOB_SSH_SECRET_NAME is required` | 環境変数の設定初期化（`InitializeConfig`）に失敗。必須環境変数未設定または値が不正 | 
+| 26 | `K8S_JOB_BACKOFF_LIMIT is required` | 環境変数の設定初期化（`InitializeConfig`）に失敗。必須環境変数未設定または値が不正 | 
+| 27 | `K8S_JOB_TTL_SECONDS is required` | 環境変数の設定初期化（`InitializeConfig`）に失敗。必須環境変数未設定または値が不正 | 
+| 28 | `K8S_JOB_ACTIVE_DEADLINE_SECONDS is required` | 環境変数の設定初期化（`InitializeConfig`）に失敗。必須環境変数未設定または値が不正 | 
+| 29 | `MAAS_API_RETRY_COUNT is required` | 環境変数の設定初期化（`InitializeConfig`）に失敗。必須環境変数未設定または値が不正 | 
+| 30 | `MAAS_API_RETRY_INTERVAL_SECONDS is required` | 環境変数の設定初期化（`InitializeConfig`）に失敗。必須環境変数未設定または値が不正 | 
+| 31 | `invalid K8S_JOB_BACKOFF_LIMIT: must be integer` | 環境変数の設定初期化（`InitializeConfig`）に失敗。必須環境変数の値が不正（整数値でない） | 
+| 32 | `invalid K8S_JOB_TTL_SECONDS: must be integer` | 環境変数の設定初期化（`InitializeConfig`）に失敗。必須環境変数の値が不正（整数値でない） | 
+| 33 | `invalid K8S_JOB_ACTIVE_DEADLINE_SECONDS: must be integer` | 環境変数の設定初期化（`InitializeConfig`）に失敗。必須環境変数の値が不正（整数値でない） | 
+| 34 | `invalid MAAS_API_RETRY_COUNT: must be integer` | 環境変数の設定初期化（`InitializeConfig`）に失敗。必須環境変数の値が不正（整数値でない） | 
+| 35 | `invalid MAAS_API_RETRY_INTERVAL_SECONDS: must be integer` | 環境変数の設定初期化（`InitializeConfig`）に失敗。必須環境変数の値が不正（整数値でない） | 
+| 36 | `MAAS_JOB_TYPE is required in worker mode` | ワーカーモード（`MAAS_RUN_MODE=worker`）での起動時、必須環境変数 `MAAS_JOB_TYPE` が未設定 | 
+| 37 | `MAAS_JOB_PAYLOAD is required in worker mode` | ワーカーモード（`MAAS_RUN_MODE=worker`）での起動時、必須環境変数 `MAAS_JOB_PAYLOAD` が未設定 | 
+| 38 | `unsupported MAAS_JOB_TYPE: <type>` | ワーカーモードでの非同期ジョブ実行に失敗。未対応の `MAAS_JOB_TYPE` が指定された | 
+| 39 | `failed to decode MachineRegister payload: <err>` | 非同期ジョブ（MachineRegister）のペイロードデコードに失敗 | 
+| 40 | `failed to create MaaS controller for MachineRegister` | 非同期ジョブ（MachineRegister）用の MaaS コントローラー作成に失敗 | 
+| 41 | `failed to decode VmCompose payload: <err>` | 非同期ジョブ（VMCompose）のペイロードデコードに失敗 | 
+| 42 | `failed to create MaaS controller for VMCompose` | 非同期ジョブ（VMCompose）用の MaaS コントローラー作成に失敗 | 
+| 43 | `failed to decode KubeadmJoin payload: <err>` | 非同期ジョブ（KubeadmJoin）のペイロードデコードに失敗 | 
+| 44 | `failed to create MaaS controller for KubeadmJoin` | 非同期ジョブ（KubeadmJoin）用の MaaS コントローラー作成に失敗 | 
+| 45 | `k8s worker image is empty` | K8s Job 作成に失敗。ワーカーコンテナイメージが未設定 | 
+| 46 | `failed to create in-cluster config: <err>` | K8s Job 作成時の In-Cluster 設定の取得に失敗 | 
+| 47 | `failed to create kubernetes clientset: <err>` | K8s Job 作成時の Kubernetes クライアントセット作成に失敗 | 
+| 48 | `failed to create k8s job: <err>` | K8s Job の作成に失敗 | 
+| 49 | `failed to list jobs for cancel: <err>` | K8s Job のキャンセル処理でジョブ一覧の取得に失敗 | 
+| 50 | `failed to list jobs for duplication check: <err>` | K8s Job の重複確認でジョブ一覧の取得に失敗 | 
+| 51 | `failed to list jobs for request-id duplication check: <err>` | K8s Job のリクエスト ID 重複確認でジョブ一覧の取得に失敗 | 
+| 52 | `failed to delete active job <name>: <err>` | K8s Job のキャンセル処理でアクティブジョブの削除に失敗 | 
+| 53 | `ssh is not reachable consecutively for 3 checks` | MachineRegister 処理中に SSH 接続確認が連続3回失敗 | 
+|===
+
+'''
+
+=== networkコンポーネントが出力するエラーメッセージ
+[cols="1,4,3,2",options="header"]
+|===
+| # | エラーメッセージ / パターン | 概要（日本語） | 備考
+
+| 1 | `NW_SERVER_PORT is required` | 環境変数の設定初期化（`InitializeConfig`）に失敗。必須環境変数未設定または値が不正 | 
+| 2 | `LOG_LEVEL is required` | 環境変数の設定初期化（`InitializeConfig`）に失敗。必須環境変数未設定または値が不正 | 
+| 3 | `SSH_KEY is required` | 環境変数の設定初期化（`InitializeConfig`）に失敗。必須環境変数未設定または値が不正 | 
+| 4 | `TLS_ENABLE is required` | 環境変数の設定初期化（`InitializeConfig`）に失敗。必須環境変数未設定または値が不正 | 
+| 5 | `TLS_CERT_PATH is required` | 環境変数の設定初期化（`InitializeConfig`）に失敗。必須環境変数未設定または値が不正 | 
+| 6 | `invalid serverPort of configuration: value must be integer and between 1 ～ 65535, inclusive` | 環境変数の設定初期化（`InitializeConfig`）に失敗。必須環境変数未設定または値が不正 | 
+| 7 | `invalid logLevel of configuration: value must be integer string and between 0 ～ 9, inclusive` | 環境変数の設定初期化（`InitializeConfig`）に失敗。必須環境変数未設定または値が不正 | 
+| 8 | `invalid tlsEnable of configuration: value must be boolean (true or false)` | 環境変数の設定初期化（`InitializeConfig`）に失敗。必須環境変数未設定または値が不正 | 
+| 9 | `listen tcp :<PORT>: bind: address already in use` | gRPC サーバーの TCP ポートリッスン開始に失敗（`net.Listen` の標準エラー） | 
+| 10 | `Failed to load TLS certificates` | TLS 証明書（`tls.crt` / `tls.key`）のロードに失敗 | 
+| 11 | `Failed to load CA certificate` | CA 証明書（`ca.crt`）のロードに失敗 | 
+| 12 | `Failed to append CA certificate to pool` | CA 証明書を証明書プールへの追加に失敗 | 
+| 13 | `accept tcp :<PORT>: use of closed network connection` | gRPC サーバーの Serve（リクエスト受付）実行に失敗（gRPC/net の標準エラー） | 
+| 14 | `<extracted ansible error>` | Ansible コマンド実行（`CmdExecute`）に失敗。Ansible 出力からエラーメッセージを抽出してログ出力 | 
+| 15 | `<err.Error()>` | Ansible コマンド実行（`CmdExecute`）に失敗。Ansible 出力からエラーメッセージを抽出してログ出力 | Ansible 出力からエラーが抽出できない場合
+| 16 | `json: unsupported type: <type>` | ErrorMessage を JSON にマーシャルする処理に失敗（`json.Marshal` の標準エラー） | 
+|===
+
+
+
+== DCIマネージャ(dci_manager)が出力するエラーメッセージ一覧
+DCI物理インフラは3つのコンポーネント(resource-pool-manager, cluster-api-provider-dci, others)で構成されている。各コンポーネントが出力するエラーメッセージを以下に示す。
+
+=== resource-pool-managerが出力するエラーメッセージ
+[cols="1,4,3,2",options="header"]
+|===
+| # | エラーメッセージ / パターン | 概要（日本語） | 備考
+
+| 1 | `failed to initialize webhook certificate watcher` | Webhook 証明書ウォッチャーの初期化に失敗 | 
+| 2 | `to initialize metrics certificate watcher` | メトリクス証明書ウォッチャーの初期化に失敗 | 
+| 3 | `unable to start manager` | コントローラーマネージャーの起動に失敗 | 
+| 4 | `unable to parse config` | 設定ファイルの解析に失敗 | 
+| 5 | `failed to set up database` | データベースのセットアップに失敗 | 
+| 6 | `failed to get sql.DB` | sql.DB オブジェクトの取得に失敗 | 
+| 7 | `failed to close database connection` | データベース接続のクローズに失敗 | 
+| 8 | `failed to connect to MAAS` | MAAS クライアントへの接続に失敗 | 
+| 9 | `failed to close MAAS client` | MAAS クライアントのクローズに失敗 | 
+| 10 | `failed to connect to network` | ネットワーククライアントへの接続に失敗 | 
+| 11 | `failed to close Network client` | ネットワーククライアントのクローズに失敗 | 
+| 12 | `failed to connect to CDI` | CDI クライアントへの接続に失敗 | 
+| 13 | `failed to close CDI client` | CDI クライアントのクローズに失敗 | 
+| 14 | `failed to find physical infra by name` | 名前による物理インフラの検索に失敗 | 
+| 15 | `unable to create controller` (controller: `LogicalServer`) | LogicalServer コントローラーの作成に失敗 | 
+| 16 | `unable to create controller` (controller: `TenantLogicalInfra`) | TenantLogicalInfra コントローラーの作成に失敗 | 
+| 17 | `unable to create controller` (controller: `DeviceAlert`) | DeviceAlert コントローラーの作成に失敗 | 
+| 18 | `unable to create controller` (controller: `MachineAlert`) | MachineAlert コントローラーの作成に失敗 | 
+| 19 | `unable to create webhook` (webhook: `LogicalServer`) | LogicalServer Webhook の作成に失敗 | 
+| 20 | `unable to add metrics certificate watcher to manager` | メトリクス証明書ウォッチャーのマネージャーへの追加に失敗 | 
+| 21 | `unable to add webhook certificate watcher to manager` | Webhook 証明書ウォッチャーのマネージャーへの追加に失敗 | 
+| 22 | `unable to set up health check` | ヘルスチェックのセットアップに失敗 | 
+| 23 | `unable to set up ready check` | 準備完了チェックのセットアップに失敗 | 
+| 24 | `problem running manager` | コントローラーマネージャーの実行中に問題が発生 | 
+| 25 | `Failed to setup alert receiver` | アラートレシーバーのセットアップに失敗 | 
+| 26 | `Stopped alert receiver` | アラートレシーバーが停止した（想定外の停止） | 
+| 27 | `failed to encode messages for GET response` | GET レスポンスのメッセージエンコードに失敗 | 
+| 28 | `failed to decode message` | リクエストメッセージのデコードに失敗 | 
+| 29 | `failed to create RPMAlert resource` | RPMAlert リソースの作成に失敗 | 
+| 30 | `expected labels are missing in alert` | アラートに必要なラベル（ホスト名・サーバーID）が欠落 | 
+| 31 | `expected labels are missing in alert` | アラートに必要なラベル（GPU モデル・GPU UUID）が欠落 | 
+| 32 | `error encoding messages for getHandler` | dump getHandler のメッセージエンコードエラー | 
+| 33 | `failed to decode message` | dump HTTP メソッドのリクエストメッセージデコードに失敗 | 
+| 34 | `error encoding messages for getHandler` | ヘルスチェック HTTP メソッドのメッセージエンコードエラー | 
+| 35 | `Server stopped` | アラートレシーバーサーバーが停止した（想定外の停止） | 
+| 36 | `no available CDI resource found` | 利用可能な CDI リソースが見つからない | 
+| 37 | `another logical server is securing CDI resource` | 別の LogicalServer が CDI リソースを確保中 | 
+| 38 | `VM host is being provisioned` | VM ホストがプロビジョニング中 | 
+| 39 | `failed to get logical server: <req>: <err>` | LogicalServer リソースの取得に失敗 | 
+| 40 | `failed to init patch helper: <err>` | パッチヘルパーの初期化に失敗 | 
+| 41 | `failed to patch logical server: <err>` | LogicalServer へのパッチ適用に失敗 | 
+| 42 | `unhandled LogicalServer state: <state>` | 未対応の LogicalServer 状態 | 
+| 43 | `invalid server type` | 不正なサーバータイプ | 
+| 44 | `failed to register COTS server: <err>` | COTS サーバー登録に失敗 | 
+| 45 | `failed to register VM server: <err>` | VM サーバー登録に失敗 | 
+| 46 | `failed to create composed server: <err>` | Composed サーバー作成に失敗 | 
+| 47 | `invalid server spec in status: <spec>` | ステータス内のサーバースペックが不正 | 
+| 48 | `failed to retrieve machine info: <err>` | マシン情報の取得に失敗 | 
+| 49 | `failed to request OS deployment: <err>` | OS デプロイメントリクエストに失敗 | 
+| 50 | `failed to set IP addresses in status: <err>` | ステータスへの IP アドレス設定に失敗 | 
+| 51 | `failed to update logical server network: <err>` | LogicalServer ネットワーク更新に失敗 | 
+| 52 | `failed to retrieve cdi machine information: <err>` | CDI マシン情報の取得に失敗 | 
+| 53 | `failed to register composed server: <err>` | Composed サーバーの登録に失敗 | 
+| 54 | `failed to power off maas machine: <err>` | MAAS マシンの電源 OFF に失敗 | 
+| 55 | `only worker role can detach from tenant logical infra` | Worker ロールのみがテナント論理インフラからデタッチ可能 | 
+| 56 | `only composed server can detach from tenant logical infra` | Composed サーバーのみがテナント論理インフラからデタッチ可能 | 
+| 57 | `failed to kubeadm reset: <err>` | kubeadm リセットに失敗 | 
+| 58 | `failed to get applied GPU spec: <err>` | 適用済み GPU スペックの取得に失敗 | 
+| 59 | `failed to check for existing securing CDI resource: <err>` | 既存の CDI リソース確保チェックに失敗 | 
+| 60 | `failed to reconfigure GPUs: <err>` | GPU 再設定に失敗 | 
+| 61 | `unsupported GPU spec change: <type>, old=<old>, new=<new>` | 未対応の GPU スペック変更タイプ | 
+| 62 | `failed to power on maas machine: <err>` | MAAS マシンの電源 ON に失敗 | 
+| 63 | `tenant logical infra ref must not be nil` | TenantLogicalInfra 参照が nil であってはならない | 
+| 64 | `failed to power on server: <err>` | サーバーの電源 ON に失敗 | 
+| 65 | `failed to find CDI management: <err>` | CDI 管理エントリの検索に失敗 | 
+| 66 | `.status.requestedSpec is nil` | .status.requestedSpec が nil | 
+| 67 | `.status.appliedSpec is nil` | .status.appliedSpec が nil | 
+| 68 | `failed to build GPU commit parameter: old=<old>, new=<new>: <err>` | GPU コミットパラメーターのビルドに失敗 | 
+| 69 | `failed to scale GPU cards: <params>: <err>` | GPU カードのスケーリングに失敗 | 
+| 70 | `GPU resource not found for name: <name>` | 指定名の GPU リソースが見つからない | 
+| 71 | `.status.requestedSpec or .status.requestedSpec.TenantLogicalInfraRef is nil` | requestedSpec または TenantLogicalInfraRef が nil | 
+| 72 | `failed to build NWInterfaces after spare join: <err>` | スペア参加後の NW インターフェースビルドに失敗 | 
+| 73 | `failed to request VLAN addition: <err>` | VLAN 追加リクエストに失敗 | 
+| 74 | `failed to request network update: <err>` | ネットワーク更新リクエストに失敗 | 
+| 75 | `TenantLogicalInfraRefs do not match: requested=<req>, previous=<prev>` | TenantLogicalInfraRef が一致しない | 
+| 76 | `failed to request kubeadm join: <err>` | kubeadm join リクエストに失敗 | 
+| 77 | `current tenant logical infra ref is nil` | 現在の TenantLogicalInfra 参照が nil | 
+| 78 | `failed to delete logical server record: <err>` | LogicalServer レコードの削除に失敗 | 
+| 79 | `failed to update logical server status: <err>` | LogicalServer ステータス更新に失敗 | 
+| 80 | `appliedSpec is nil, cannot proceed with deletion` | appliedSpec が nil のため削除処理を続行不可 | 
+| 81 | `invalid server type in status: <type>` | ステータスのサーバータイプが不正 | 
+| 82 | `failed to cancel machine request: <err>` | マシンリクエストのキャンセルに失敗 | 
+| 83 | `cannot delete machine in status: <status>` | マシンが削除不可なステータス状態 | 
+| 84 | `failed to request OS release: <err>` | OS リリースリクエストに失敗 | 
+| 85 | `failed to check if this is the last VM on the host: <err>` | ホスト上の最後の VM かどうかのチェックに失敗 | 
+| 86 | `cannot delete host for VM while there are still VMs` | VM が残存しているためホストを削除不可 | 
+| 87 | `failed to request machine destroy: <err>` | マシン破棄リクエストに失敗 | 
+| 88 | `failed to find CDI NIC record: <err>` | CDI NIC レコードの検索に失敗 | 
+| 89 | `failed to find CDI NIC by ResUUID: <err>` | ResUUID による CDI NIC の検索に失敗 | 
+| 90 | `failed to find CDI GPU by ResUUID: <err>` | ResUUID による CDI GPU の検索に失敗 | 
+| 91 | `failed to find CDI record` | CDI レコードの検索に失敗 | 
+| 92 | `failed to find CDI compute pool: <err>` | CDI コンピュートプールの検索に失敗 | 
+| 93 | `failed to find cdi compute pool: <err>` | CDI コンピュートプール検索に失敗（別パス） | 
+| 94 | `failed to find cdi client for physical infra ID <id>` | 物理インフラ ID に対応する CDI クライアントが見つからない | 
+| 95 | `failed to find CDI box by ID: <err>` | ID による CDI ボックスの検索に失敗 | 
+| 96 | `failed to find COTS server record: <err>` | COTS サーバーレコードの検索に失敗 | 
+| 97 | `failed to find COTS server: <err>` | COTS サーバーの検索に失敗 | 
+| 98 | `failed to find VLAN record: <err>` | VLAN レコードの検索に失敗 | 
+| 99 | `failed to find host logical server for VM: <err>` | VM のホスト LogicalServer の検索に失敗 | 
+| 100 | `failed to find machine for logical server: <err>` | LogicalServer に対応するマシンの検索に失敗 | 
+| 101 | `failed to get maas machine: <err>` | MAAS マシンの取得に失敗 | 
+| 102 | `failed to get machine for LogicalServer: <err>` | LogicalServer のマシン取得に失敗 | 
+| 103 | `failed to get machine record: <err>` | マシンレコードの取得に失敗 | 
+| 104 | `failed to get tenant logical infra: <err>` | TenantLogicalInfra の取得に失敗 | 
+| 105 | `failed to get IP address of: <err>` | IP アドレスの取得に失敗 | 
+| 106 | `failed to get lease: <err>` | リース情報の取得に失敗 | 
+| 107 | `failed to get cloud-config ConfigMap for role: <err>` | ロール用 cloud-config ConfigMap の取得に失敗 | 
+| 108 | `failed to get cloud-config Secret for role: <err>` | ロール用 cloud-config Secret の取得に失敗 | 
+| 109 | `failed to list CDI managements: <err>` | CDI 管理エントリ一覧の取得に失敗 | 
+| 110 | `failed to list logical servers: <err>` | LogicalServer 一覧の取得に失敗 | 
+| 111 | `failed to list VM LogicalServers: <err>` | VM LogicalServer 一覧の取得に失敗 | 
+| 112 | `failed to create record for logical server: <err>` | LogicalServer レコードの作成に失敗 | 
+| 113 | `failed to create VLAN record: <err>` | VLAN レコードの作成に失敗 | 
+| 114 | `failed to create host LogicalServer: <err>` | ホスト LogicalServer の作成に失敗 | 
+| 115 | `failed to create logical server for host for VM: <err>` | VM ホスト用 LogicalServer の作成に失敗 | 
+| 116 | `failed to create patch helper: <err>` | パッチヘルパーの作成に失敗 | 
+| 117 | `failed to delete VLAN record: <err>` | VLAN レコードの削除に失敗 | 
+| 118 | `failed to delete host LogicalServer: <err>` | ホスト LogicalServer の削除に失敗 | 
+| 119 | `failed to update cdi machine name for logical server: <err>` | LogicalServer の CDI マシン名更新に失敗 | 
+| 120 | `failed to update logical server system ID: <err>` | LogicalServer のシステム ID 更新に失敗 | 
+| 121 | `failed to decode existing vms annotation: <err>` | 既存 VMs アノテーションのデコードに失敗 | 
+| 122 | `failed to encode vms annotation: <err>` | VMs アノテーションのエンコードに失敗 | 
+| 123 | `failed to add VM annotation to host: <err>` | ホストへの VM アノテーション追加に失敗 | 
+| 124 | `failed to extract namespace and name from logical server name: <err>` | LogicalServer 名からの namespace/name 抽出に失敗 | 
+| 125 | `failed to apply common fields to cdi request: <err>` | CDI リクエストへの共通フィールド適用に失敗 | 
+| 126 | `failed to apply common fields to maas request: <err>` | MAAS リクエストへの共通フィールド適用に失敗 | 
+| 127 | `failed to apply common fields to network request: <err>` | ネットワークリクエストへの共通フィールド適用に失敗 | 
+| 128 | `failed to build MAAS network information list: <err>` | MAAS ネットワーク情報リストのビルドに失敗 | 
+| 129 | `failed to build NWInterfaces for composed server: <err>` | Composed サーバー用 NW インターフェースビルドに失敗 | 
+| 130 | `failed to build NWInterfaces for COTS: <err>` | COTS 用 NW インターフェースビルドに失敗 | 
+| 131 | `failed to build NWInterfaces for VM server: <err>` | VM サーバー用 NW インターフェースビルドに失敗 | 
+| 132 | `failed to request CDI compose: <err>` | CDI コンポーズリクエストに失敗 | 
+| 133 | `failed to request CDI NIC modification: <err>` | CDI NIC 変更リクエストに失敗 | 
+| 134 | `failed to request machine registration: <err>` | マシン登録リクエストに失敗 | 
+| 135 | `failed to request VLAN delete: <err>` | VLAN 削除リクエストに失敗 | 
+| 136 | `failed to request VM Compose: <err>` | VM コンポーズリクエストに失敗 | 
+| 137 | `failed to request VM delete: <err>` | VM 削除リクエストに失敗 | 
+| 138 | `failed to request vSW-VLAN addition: <err>` | vSW-VLAN 追加リクエストに失敗 | 
+| 139 | `failed to request Vsw VLAN addition: <err>` | Vsw VLAN 追加リクエストに失敗 | 
+| 140 | `failed to request vSW-VLAN delete: <err>` | vSW-VLAN 削除リクエストに失敗 | 
+| 141 | `failed to request Vsw VLAN delete: <err>` | Vsw VLAN 削除リクエストに失敗 | 
+| 142 | `failed to decide on COTS server: <err>` | COTS サーバーの決定処理に失敗 | 
+| 143 | `failed to decide on composed server: <err>` | Composed サーバーの決定処理に失敗 | 
+| 144 | `failed to decide on VM server: <err>` | VM サーバーの決定処理に失敗 | 
+| 145 | `failed to search CDI devices: <err>` | CDI デバイスの検索に失敗 | 
+| 146 | `failed to search CDI resources: <err>` | CDI リソースの検索に失敗 | 
+| 147 | `failed to select best COTS server: <err>` | 最適な COTS サーバーの選択に失敗 | 
+| 148 | `failed to select CDI resource for adding GPUs: model=<model>, num=<num>: <err>` | GPU 追加用 CDI リソース選択に失敗 | 
+| 149 | `failed to select closest COTS server: <err>` | 最近接 COTS サーバーの選択に失敗 | 
+| 150 | `failed to sort CDI compute servers by closest: <err>` | CDI コンピュートサーバーの近接順ソートに失敗 | 
+| 151 | `failed to retrieve resource information: <err>` | リソース情報の取得に失敗 | 
+| 152 | `failed to check CDI box status: <err>` | CDI ボックスステータスのチェックに失敗 | 
+| 153 | `failed to check if host is capable for VM: <err>` | VM 用ホストの適合チェックに失敗 | 
+| 154 | `failed to check if host logical server status is normal: <err>` | ホスト LogicalServer ステータスの正常確認に失敗 | 
+| 155 | `failed to unmarshal cloud-configs: <err>` | cloud-configs の JSON デシリアライズに失敗 | 
+| 156 | `failed to unmarshal ProductInfo from JSON: <err>` | ProductInfo の JSON デシリアライズに失敗 | 
+| 157 | `no CDI compute server found matching the specifications: exclude-NIC=<nics>: <err>` | スペックに一致する CDI コンピュートサーバーが見つからない | 
+| 158 | `no control plane logical server found in the TenantLogicalInfra: <infra>` | TenantLogicalInfra にコントロールプレーン LogicalServer が見つからない | 
+| 159 | `no COTS servers found matching the specifications` | スペックに一致する COTS サーバーが見つからない | 
+| 160 | `no IP address found in machine interface <iface> that matches CIDR <cidr>` | CIDR に一致する IP アドレスが NIC に見つからない | 
+| 161 | `no MaasMachineID found in control planes in TenantLogicalInfra: <infra>` | TenantLogicalInfra のコントロールプレーンに MaasMachineID が見つからない | 
+| 162 | `no sufficient CDI resources found: <err>` | 十分な CDI リソースが見つからない | 
+| 163 | `not enough CDI resources: required=<req>, storages=<s>, GPUs=<g>, NICs=<n>: <err>` | CDI リソースが不足 | 
+| 164 | `not found cloud-config for the specified location and role: location=<loc>, role=<role>` | 指定ロケーション・ロールの cloud-config が見つからない | 
+| 165 | `not found manager interface in joining cluster <cluster>` | 参加クラスターのマネージャーインターフェースが見つからない | 
+| 166 | `required host network interfaces not found: ifaces=<ifaces>` | 必要なホストネットワークインターフェースが見つからない | 
+| 167 | `selected GPU count mismatch: expected=<exp>, got=<got>` | 選択 GPU 数が不一致 | 
+| 168 | `cdiID is nil` | CDI ID が nil | 
+| 169 | `logical server reference is nil` | LogicalServer 参照が nil | 
+| 170 | `tenant logical infra reference is nil` | TenantLogicalInfra 参照が nil | 
+| 171 | `AppliedSpec is nil for VM LogicalServer: <name>` | VM LogicalServer の AppliedSpec が nil | 
+| 172 | `CPU, Memory, Storage specs must be specified for VM LogicalServer: <name>` | VM LogicalServer に CPU/Memory/Storage スペックの指定が必要 | 
+| 173 | `COTS server does not have NIC for application data: tCots=<cots>` | COTS サーバーにアプリケーションデータ用 NIC がない | 
+| 174 | `apldata NIC info not found in CDI compute server: tCdiComp=<cdi>` | CDI コンピュートサーバーにアプリデータ NIC 情報が見つからない | 
+| 175 | `MAC address <mac> not found in machine interfaces` | マシンインターフェースに MAC アドレスが見つからない | 
+| 176 | `CIDR is nil for network type <type> in tenant <tenant>` | テナントのネットワークタイプの CIDR が nil | 
+| 177 | `CNI CIDR is nil in tenant <tenant>` | テナントの CNI CIDR が nil | 
+| 178 | `CNI CIDR or VLAN ID is nil in tenant <tenant>` | テナントの CNI CIDR または VLAN ID が nil | 
+| 179 | `host CIDR is nil in tenant <tenant>` | テナントのホスト CIDR が nil | 
+| 180 | `host CIDR or VLAN ID is nil in tenant <tenant>` | テナントのホスト CIDR または VLAN ID が nil | 
+| 181 | `manager CIDR is nil in tenant <tenant>` | テナントのマネージャー CIDR が nil | 
+| 182 | `VLAN ID is nil for network type <type> in tenant <tenant>` | テナントのネットワークタイプの VLAN ID が nil | 
+| 183 | `application data CIDR is nil in tenant <tenant>` | テナントのアプリケーションデータ CIDR が nil | 
+| 184 | `invalid logical server name format: <name>` | LogicalServer 名のフォーマットが不正 | 
+| 185 | `invalid role for cloud-config retrieval: role=<role>` | cloud-config 取得のロールが不正 | 
+| 186 | `invalid role for cloud-init user data retrieval: role=<role>` | cloud-init ユーザーデータ取得のロールが不正 | 
+| 187 | `invalid role for COTS server: <role>` | COTS サーバーのロールが不正 | 
+| 188 | `invalid role type for composed server: <type>` | Composed サーバーのロールタイプが不正 | 
+| 189 | `invalid role type for VM server: <type>` | VM サーバーのロールタイプが不正 | 
+| 190 | `invalid role type: <type>` | ロールタイプが不正 | 
+| 191 | `invalid server type for COTS server: <type>` | COTS サーバーのサーバータイプが不正 | 
+| 192 | `invalid server type in status: <type>` | ステータスのサーバータイプが不正（削除フロー） | 
+| 193 | `unsupported applied server type: <type>` | 未対応の適用済みサーバータイプ | 
+| 194 | `unsupported applied server type for spare join: <type>` | スペア参加での未対応の適用済みサーバータイプ | 
+| 195 | `unsupported CDI request type` | 未対応の CDI リクエストタイプ | 
+| 196 | `unsupported MAAS request type` | 未対応の MAAS リクエストタイプ | 
+| 197 | `unsupported Network request type` | 未対応のネットワークリクエストタイプ | 
+| 198 | `location must be specified for cloud-config retrieval` | cloud-config 取得にはロケーション指定が必要 | 
+| 199 | `consumerRef must be specified when bootstrap.dataSecretName is set` | bootstrap.dataSecretName 設定時は consumerRef の指定が必要 | 
+| 200 | `'cloud-configs' key does not exist in ConfigMap: <cm>` | ConfigMap に 'cloud-configs' キーが存在しない | 
+| 201 | `'value' key does not exist in Secret: <secret>` | Secret に 'value' キーが存在しない | 
+| 202 | `unable to get ConfigMap of cloud-init user data: <err>` | cloud-init ユーザーデータの ConfigMap 取得に失敗 | 
+| 203 | `unable to get Secret of cloud-init user data: <err>` | cloud-init ユーザーデータの Secret 取得に失敗 | 
+| 204 | `capable host for VM is not found, but undecided host <host> exists: <err>` | VM 対応ホストが見つからないが、未決定ホストが存在 | 
+| 205 | `capable host for VM is not found, create new LogicalServer <name>: <err>` | VM 対応ホストが見つからず、新しい LogicalServer を作成 | 
+| 206 | `capable host <host> is not provisioned: <err>` | 対応ホストがプロビジョニングされていない | 
+| 207 | `expected mgr is not nil, but got nil` | mgr が nil であってはならない（初期化チェック） | 
+| 208 | `expected query is set, but may not be set correctly` | クエリが正しく設定されていない | 
+| 209 | `expected TenantLogicalInfra spec to match a found Tenant records, but mismatch occurred` | TenantLogicalInfra スペックとテナントレコードが不一致 | 
+| 210 | `expected TenantLogicalInfra spec to match inserted record, but mismatch occurred` | TenantLogicalInfra スペックと挿入レコードが不一致 | 
+| 211 | `failed to add finalizer: <err>` | ファイナライザーの追加に失敗 | 
+| 212 | `failed to count LogicalServer records: <err>` | LogicalServer レコードのカウントに失敗 | 
+| 213 | `failed to create TenantLogicalInfra: <err>` | TenantLogicalInfra の作成に失敗 | 
+| 214 | `failed to delete the Tenant records: <err>` | テナントレコードの削除に失敗 | 
+| 215 | `failed to fetch TenantLogicalInfra: <err>` | TenantLogicalInfra の取得に失敗 | 
+| 216 | `failed to fetch the Tenant records: <err>` | テナントレコードの取得に失敗 | 
+| 217 | `failed to finalize TenantLogicalInfra: <err>` | TenantLogicalInfra のファイナライズに失敗 | 
+| 218 | `failed to initialize TenantLogicalInfra: <err>` | TenantLogicalInfra の初期化に失敗 | 
+| 219 | `failed to insert for TenantLogicalInfra: <err>` | TenantLogicalInfra のレコード挿入に失敗 | 
+| 220 | `failed to patch TenantLogicalInfra status.state: <err>` | TenantLogicalInfra の status.state パッチに失敗 | 
+| 221 | `failed to patch TenantLogicalInfra status: <err>` | TenantLogicalInfra のステータスパッチに失敗 | 
+| 222 | `failed to patch TenantLogicalInfra to add finalizer: <err>` | TenantLogicalInfra へのファイナライザー追加パッチに失敗 | 
+| 223 | `failed to patch TenantLogicalInfra to remove Finalizer: <err>` | TenantLogicalInfra のファイナライザー削除パッチに失敗 | 
+| 224 | `invalid state(<state>) for TenantLogicalInfra` | TenantLogicalInfra の状態が不正 | 
+| 225 | `expected CompletedTime is not nil in completed, but got nil` | 完了状態で CompletedTime が nil | 
+| 226 | `expected mgr is not nil, but got nil` | mgr が nil であってはならない | 
+| 227 | `expected query is set, but may not be set correctly` | クエリが正しく設定されていない | 
+| 228 | `failed to delete expired DeviceAlert: <err>` | 期限切れ DeviceAlert の削除に失敗 | 
+| 229 | `failed to execute Finalizer process for state '<state>': <err>` | 指定状態のファイナライザー処理実行に失敗 | 
+| 230 | `failed to execute Reconcile process for state '<state>': <err>` | 指定状態の Reconcile 処理実行に失敗 | 
+| 231 | `failed to fetch DeviceAlert: <err>` | DeviceAlert の取得に失敗 | 
+| 232 | `failed to finalize DeviceAlert: <err>` | DeviceAlert のファイナライズに失敗 | 
+| 233 | `failed to find CDI GPU record by UUID(<uuid>): <err>` | UUID による CDI GPU レコードの検索に失敗 | 
+| 234 | `failed to find COTS server GPU record by UUID(<uuid>): <err>` | UUID による COTS サーバー GPU レコードの検索に失敗 | 
+| 235 | `failed to init patch helper: <err>` | パッチヘルパーの初期化に失敗 | 
+| 236 | `failed to patch DeviceAlert for addFinalizer: <err>` | DeviceAlert へのファイナライザー追加パッチに失敗 | 
+| 237 | `failed to patch DeviceAlert for removeFinalizer: <err>` | DeviceAlert のファイナライザー削除パッチに失敗 | 
+| 238 | `failed to patch DeviceAlert resource: <err>` | DeviceAlert リソースのパッチに失敗 | 
+| 239 | `failed to patch DeviceAlert status on Finalize: <err>` | Finalize 時の DeviceAlert ステータスパッチに失敗 | 
+| 240 | `failed to patch DeviceAlert status on Reconcile: <err>` | Reconcile 時の DeviceAlert ステータスパッチに失敗 | 
+| 241 | `failed to reconcile DeviceAlert: <err>` | DeviceAlert の Reconcile に失敗 | 
+| 242 | `failed to set fault flag for CDI GPU table: <err>` | CDI GPU テーブルの障害フラグ設定に失敗 | 
+| 243 | `failed to set fault flag for COTS GPU table: <err>` | COTS GPU テーブルの障害フラグ設定に失敗 | 
+| 244 | `failed to update status for CDI GPU: <err>` | CDI GPU ステータスの更新に失敗 | 
+| 245 | `failed to update status for COTS server GPU: <err>` | COTS サーバー GPU ステータスの更新に失敗 | 
+| 246 | `failed to update status in CDI GPU record by UUID(<uuid>): <err>` | UUID 指定の CDI GPU レコードステータス更新に失敗 | 
+| 247 | `failed to update status in COTS server GPU record by UUID(<uuid>): <err>` | UUID 指定の COTS サーバー GPU レコードステータス更新に失敗 | 
+| 248 | `unexpected state(<state>) is detected in doFinalize` | doFinalize で想定外の状態を検出 | 
+| 249 | `unexpected state(<state>) is detected in doReconcile` | doReconcile で想定外の状態を検出 | 
+| 250 | `expected CompletedTime is not nil in completed, but got nil` | 完了状態で CompletedTime が nil | 
+| 251 | `expected mgr is not nil, but got nil` | mgr が nil であってはならない | 
+| 252 | `expected query is set, but may not be set correctly` | クエリが正しく設定されていない | 
+| 253 | `failed to delete expired MachineAlert: <err>` | 期限切れ MachineAlert の削除に失敗 | 
+| 254 | `failed to execute Finalizer process for state '<state>': <err>` | 指定状態のファイナライザー処理実行に失敗 | 
+| 255 | `failed to execute Reconcile process for state '<state>': <err>` | 指定状態の Reconcile 処理実行に失敗 | 
+| 256 | `failed to fetch MachineAlert: <err>` | MachineAlert の取得に失敗 | 
+| 257 | `failed to finalize MachineAlert: <err>` | MachineAlert のファイナライズに失敗 | 
+| 258 | `failed to get DCIMachine : <err>` | DCIMachine の取得に失敗 | 
+| 259 | `failed to get LogicalServer from serverRef: <err>` | serverRef からの LogicalServer 取得に失敗 | 
+| 260 | `failed to get LogicalServer: <name>: <err>` | LogicalServer の取得に失敗 | 
+| 261 | `failed to get Machine from LogicalServer: <err>` | LogicalServer からの Machine 取得に失敗 | 
+| 262 | `failed to get ownerMachine: <err>` | オーナー Machine の取得に失敗 | 
+| 263 | `failed to handle machine alert: <err>` | マシンアラートの処理に失敗 | 
+| 264 | `failed to init patch helper: <err>` | パッチヘルパーの初期化に失敗 | 
+| 265 | `failed to patch MachineAlert for addFinalizer: <err>` | MachineAlert へのファイナライザー追加パッチに失敗 | 
+| 266 | `failed to patch MachineAlert for removeFinalizer: <err>` | MachineAlert のファイナライザー削除パッチに失敗 | 
+| 267 | `failed to patch MachineAlert resource: <err>` | MachineAlert リソースのパッチに失敗 | 
+| 268 | `failed to patch MachineAlert status on Finalize: <err>` | Finalize 時の MachineAlert ステータスパッチに失敗 | 
+| 269 | `failed to patch MachineAlert status on Reconcile: <err>` | Reconcile 時の MachineAlert ステータスパッチに失敗 | 
+| 270 | `failed to patch machine annotations: <err>` | マシンアノテーションのパッチに失敗 | 
+| 271 | `failed to reconcile MachineAlert: <err>` | MachineAlert の Reconcile に失敗 | 
+| 272 | `failed to remediate Machine: <err>` | マシンのリメディエーション（修復）に失敗 | 
+| 273 | `failed to set fault flag for Machine to Database: <err>` | マシンの障害フラグ DB 設定に失敗 | 
+| 274 | `failed to update status for CDI compute pool: <err>` | CDI コンピュートプールステータスの更新に失敗 | 
+| 275 | `failed to update status for COTS server pool: <err>` | COTS サーバープールステータスの更新に失敗 | 
+| 276 | `failed to update status in CDI compute pool record by ServerID(<id>): <err>` | ServerID 指定の CDI コンピュートプールレコードステータス更新に失敗 | 
+| 277 | `failed to update status in COTS server pool record by ServerID(<id>): <err>` | ServerID 指定の COTS サーバープールレコードステータス更新に失敗 | 
+| 278 | `got unexpected source(<source>)` | 想定外のアラートソースを受信 | 
+| 279 | `unexpected LogicalServer type: <type>` | 想定外の LogicalServer タイプ | 
+| 280 | `unexpected nil AppliedSpec in LogicalServer status` | LogicalServer ステータスの AppliedSpec が nil | 
+| 281 | `unexpected nil ServerID in LogicalServer status` | LogicalServer ステータスの ServerID が nil | 
+| 282 | `unexpected state(<state>) is detected in doFinalize` | doFinalize で想定外の状態を検出 | 
+| 283 | `unexpected state(<state>) is detected in doReconcile` | doReconcile で想定外の状態を検出 | 
+| 284 | `failed to patch object: <err>` | オブジェクトへのパッチ適用に失敗 | 
+| 285 | `failed to patch status of object: <err>` | オブジェクトのステータスパッチに失敗 | 
+| 286 | `expected Alerts HTTP method handler to be not nil, but got nil` | Alerts HTTP メソッドハンドラーが nil | 
+| 287 | `expected HTTP method handler to be not nil, but got nil` | HTTP メソッドハンドラーが nil | 
+| 288 | `expected Logger has a non-nil sink, but got nil` | Logger の sink が nil | 
+| 289 | `expected Logger in options to be not nil, but got nil` | options の Logger が nil | 
+| 290 | `expected Logger to be not nil, but got nil` | Logger が nil | 
+| 291 | `expected options and Logger in options to be not nil, but got nil` | options と Logger が nil | 
+| 292 | `failed to create alerts handler: <err>` | アラートハンドラーの作成に失敗 | 
+| 293 | `failed to create handler for alert receiver: <err>` | アラートレシーバー用ハンドラーの作成に失敗 | 
+| 294 | `failed to create healthz handler: <err>` | ヘルスチェックハンドラーの作成に失敗 | 
+| 295 | `failed to create Healthz HTTP method: <err>` | ヘルスチェック HTTP メソッドの作成に失敗 | 
+| 296 | `no servers to select from` | 選択可能なサーバーが存在しない | 
+| 297 | `server spec is smaller than target spec: <spec> vs <target>` | サーバースペックがターゲットスペックより小さい | 
+| 298 | `spec is nil` | スペックが nil | 
+| 299 | `failed to select GPUs to reserve: old=<old>, new=<new>: <err>` | 確保する GPU の選択に失敗 | 
+| 300 | `failed to get VMs annotation of <name>: <err>` | ホスト LogicalServer の VMs アノテーションの取得に失敗 | 
+| 301 | `failed to remove VM annotation from host <name>: <err>` | ホスト LogicalServer からの VM アノテーション削除に失敗 | 
+| 302 | `failed to remove VM annotation from host: <err>` | ホスト LogicalServer からの VM アノテーション削除に失敗（ホスト名なし） | 
+| 303 | `CNI IP address is not set in logical server's status: <nwinterfaces>` | LogicalServer のステータスに CNI IP アドレスが設定されていない | 
+| 304 | `failed to remove VM annotation from host or delete host: <err>` | ホスト LogicalServer からの VM アノテーション削除またはホスト LogicalServer の削除に失敗 | 
+|===
+
+'''
+
+
+=== cluster-api-provider-dciが出力するエラーメッセージ
+[cols="1,4,3,2",options="header"]
+|===
+| # | エラーメッセージ / パターン | 概要（日本語） | 備考
+
+| 1 | `Failed to initialize webhook certificate watcher` | Webhook 証明書ウォッチャーの初期化に失敗 | 
+| 2 | `to initialize metrics certificate watcher` | メトリクス証明書ウォッチャーの初期化に失敗 | 
+| 3 | `unable to start manager` | コントローラーマネージャーの起動に失敗 | 
+| 4 | `Unable to create secret caching client` | シークレットキャッシュクライアントの作成に失敗 | 
+| 5 | `Unable to create ClusterCache` | ClusterCache の作成に失敗 | 
+| 6 | `unable to create controller` (controller: `DCICluster`) | DCICluster コントローラーの作成に失敗 | 
+| 7 | `unable to create controller` (controller: `DCIMachine`) | DCIMachine コントローラーの作成に失敗 | 
+| 8 | `unable to add metrics certificate watcher to manager` | メトリクス証明書ウォッチャーのマネージャーへの追加に失敗 | 
+| 9 | `unable to add webhook certificate watcher to manager` | Webhook 証明書ウォッチャーのマネージャーへの追加に失敗 | 
+| 10 | `unable to set up health check` | ヘルスチェックのセットアップに失敗 | 
+| 11 | `unable to set up ready check` | 準備完了チェックのセットアップに失敗 | 
+| 12 | `problem running manager` | コントローラーマネージャーの実行中に問題が発生 | 
+| 13 | `existing resource is used by another DCICluster` | 既存リソースが別の DCICluster に使用されている | 
+| 14 | `failed to clean up on finalize: <err>` | ファイナライズ時のクリーンアップに失敗 | 
+| 15 | `failed to CreateOrPatch TenantLogicalInfra: <err>` | TenantLogicalInfra の CreateOrPatch に失敗 | 
+| 16 | `failed to create scope instance: <err>` | スコープインスタンスの作成に失敗 | 
+| 17 | `failed to delete expired TenantLogicalInfra: <err>` | 期限切れ TenantLogicalInfra の削除に失敗 | 
+| 18 | `failed to do finalize: <err>` | ファイナライズ処理に失敗 | 
+| 19 | `failed to fetch DCICluster: <err>` | DCICluster の取得に失敗 | 
+| 20 | `failed to generate ObjectReference using DCICluster: <err>` | DCICluster を使った ObjectReference 生成に失敗 | 
+| 21 | `failed to generate ObjectReference using tenantLogicalInfra: <err>` | TenantLogicalInfra を使った ObjectReference 生成に失敗 | 
+| 22 | `failed to get owner cluster: <err>` | オーナークラスターの取得に失敗 | 
+| 23 | `failed to get related TenantLogicalInfra: <err>` | 関連 TenantLogicalInfra の取得に失敗 | 
+| 24 | `failed to get TenantLogicalInfra: <err>` | TenantLogicalInfra の取得に失敗 | 
+| 25 | `failed to match tenantLogicalInfra uid: <err>` | TenantLogicalInfra UID のマッチングに失敗 | 
+| 26 | `failed to patch DCICluster: <err>` | DCICluster へのパッチ適用に失敗 | 
+| 27 | `failed to remove finalizer: <err>` | ファイナライザーの削除に失敗 | 
+| 28 | `failed to setup finalizer: <err>` | ファイナライザーのセットアップに失敗 | 
+| 29 | `related TenantLogicalInfra not found` | 関連する TenantLogicalInfra が見つからない | 
+| 30 | `unexpected DCICluster state: <state>` | 想定外の DCICluster 状態 | 
+| 31 | `failed to get GVKs of object: <err>` | オブジェクトの GVK 取得に失敗 | 
+| 32 | `related LogicalServer not found` | 関連する LogicalServer が見つからない | 
+| 33 | `card scaling add failed: requested GPU num (<req>) must be greater than current (<cur>)` | カードスケーリング追加失敗：要求 GPU 数が現在値より大きくなければならない | 
+| 34 | `card scaling delete failed: specified UUID '<uuid>' does not exist in LogicalServer assignments` | カードスケーリング削除失敗：指定 UUID が割り当てに存在しない | 
+| 35 | `card scaling delete failed: inconsistent GPU num after deletion (deleteNum=<d>, requested=<req>, current=<cur>)` | カードスケーリング削除失敗：削除後の GPU 数が不整合 | 
+| 36 | `card scaling delete failed: requested GPU num (<req>) must be less than current (<cur>)` | カードスケーリング削除失敗：要求 GPU 数が現在値より小さくなければならない | 
+| 37 | `card scaling replace failed: UUID list must be specified` | カードスケーリング置換失敗：UUID リストの指定が必要 | 
+| 38 | `expected Name and IPAddress in NWInterfaces are not nil, but got Name:<name>, IPAddress:<ip>` | NWInterfaces の Name/IPAddress が nil | 
+| 39 | `failed to clean up on finalize: <err>` | ファイナライズ時のクリーンアップに失敗 | 
+| 40 | `failed to Create LogicalServer: <err>` | LogicalServer の作成に失敗 | 
+| 41 | `failed to create machine scope: <err>` | マシンスコープの作成に失敗 | 
+| 42 | `failed to delete expired LogicalServer: <err>` | 期限切れ LogicalServer の削除に失敗 | 
+| 43 | `failed to do finalize: <err>` | ファイナライズ処理に失敗 | 
+| 44 | `failed to generate ObjectReference using DCIMachine: <err>` | DCIMachine を使った ObjectReference 生成に失敗 | 
+| 45 | `failed to generate ObjectReference using LogicalServer: <err>` | LogicalServer を使った ObjectReference 生成に失敗 | 
+| 46 | `failed to get ClusterCR: <err>` | Cluster カスタムリソースの取得に失敗 | 
+| 47 | `failed to get DCIClusterCR: <err>` | DCICluster カスタムリソースの取得に失敗 | 
+| 48 | `failed to get dciMachine: <err>` | DCIMachine の取得に失敗 | 
+| 49 | `failed to get LogicalServer: <err>` | LogicalServer の取得に失敗 | 
+| 50 | `failed to get Node's ProviderID: <err>` | ノードの ProviderID 取得に失敗 | 
+| 51 | `failed to get ownerMachine: <err>` | オーナー Machine の取得に失敗 | 
+| 52 | `failed to get related LogicalServer for checking provisioned: <err>` | プロビジョニング確認用 LogicalServer の取得に失敗 | 
+| 53 | `failed to get related LogicalServer: <err>` | 関連 LogicalServer の取得に失敗 | 
+| 54 | `failed to list LogicalServers: <err>` | LogicalServer 一覧の取得に失敗 | 
+| 55 | `failed to match LogicalServer uid: <err>` | LogicalServer UID のマッチングに失敗 | 
+| 56 | `failed to patch card scaling to LogicalServer: <err>` | LogicalServer へのカードスケーリングパッチに失敗 | 
+| 57 | `failed to patch dciMachine status: <err>` | DCIMachine ステータスのパッチに失敗 | 
+| 58 | `failed to patch LogicalServer for card scaling: <err>` | カードスケーリング用 LogicalServer パッチに失敗 | 
+| 59 | `failed to patch LogicalServer for spare pattern: <err>` | スペアパターン用 LogicalServer パッチに失敗 | 
+| 60 | `failed to remove finalizer: <err>` | ファイナライザーの削除に失敗 | 
+| 61 | `failed to select closest LogicalServer: <err>` | 最近接 LogicalServer の選択に失敗 | 
+| 62 | `failed to set label to Machine resource: <err>` | Machine リソースへのラベル設定に失敗 | 
+| 63 | `failed to set LogicalServer for card scaling: unexpected case` | カードスケーリング用 LogicalServer 設定失敗（想定外ケース） | 
+| 64 | `failed to set LogicalServer for card scaling: <err>` | カードスケーリング用 LogicalServer 設定に失敗 | 
+| 65 | `failed to set LogicalServer for spare node: unexpected case` | スペアノード用 LogicalServer 設定失敗（想定外ケース） | 
+| 66 | `failed to set LogicalServer for spare node: <err>` | スペアノード用 LogicalServer 設定に失敗 | 
+| 67 | `failed to set Node's ProviderID: <err>` | ノードの ProviderID 設定に失敗 | 
+| 68 | `failed to setup finalizer: <err>` | ファイナライザーのセットアップに失敗 | 
+| 69 | `invalid dcimachine.status.state(<state>)` | DCIMachine の status.state が不正 | 
+| 70 | `invalid operation in card scaling annotation: op=<op>` | カードスケーリングアノテーションの操作が不正 | 
+| 71 | `lack of DCIMachine ProviderID` | DCIMachine の ProviderID が欠如 | 
+| 72 | `lack of HostName in LogicalServer status` | LogicalServer ステータスにホスト名が欠如 | 
+| 73 | `lack of NW interface information in LogicalServer status` | LogicalServer ステータスに NW インターフェース情報が欠如 | 
+| 74 | `location is empty, cannot set label to Machine resource` | ロケーションが空のため Machine リソースへのラベル設定不可 | 
+| 75 | `parsing card scaling annotation failed: <err>` | カードスケーリングアノテーションの解析に失敗 | 
+| 76 | `server-type is empty, cannot set label to Machine resource` | サーバータイプが空のため Machine リソースへのラベル設定不可 | 
+| 77 | `unexpected ProviderID found in Node. expect <exp>, but got <got>` | ノードに想定外の ProviderID が存在 | 
+| 78 | `expected Hostname found in DCIMachine.Status.Addresses as Type, but got no valid data` | DCIMachine.Status.Addresses にホスト名が見つからない | 
+| 79 | `failed to patch Node for setting ProviderID: <err>` | ProviderID 設定のためのノードパッチに失敗 | 
+| 80 | `fail to generate new scope from nil Cluster` | nil Cluster からのスコープ生成に失敗 | 
+| 81 | `fail to generate new scope from nil Machine` | nil Machine からのスコープ生成に失敗 | 
+| 82 | `fail to init patch helper` | パッチヘルパーの初期化に失敗 | 
+|===
+
+'''
+
+
+
+
+== DCIテナントインフラ(dci_tenant_infrastructure)が出力するエラーメッセージ一覧
+DCIテナントインフラを構成するコンポーネントのうち、エラーメッセージを出力するのは scale-controller, app-conn-control-info-manager-dci, app-conn-info-maker-dci, app-monitor-dci である。
+各コンポーネントが出力するエラーメッセージを以下に示す。
+
+=== scale-controllerが出力するエラーメッセージ
+[cols="1,4,3,2",options="header"]
+|===
+| # | エラーメッセージ / パターン | 概要（日本語） | 備考
+
+| 1 | `Failed to initialize webhook certificate watcher` | Webhook 証明書ウォッチャーの初期化に失敗 | 
+| 2 | `Failed to initialize metrics certificate watcher` | メトリクス証明書ウォッチャーの初期化に失敗 | 
+| 3 | `unable to start manager` | コントローラーマネージャーの起動に失敗 | 
+| 4 | `unable to setup manager` | コントローラーマネージャーのセットアップに失敗 | 
+| 5 | `problem running manager` | コントローラーマネージャーの実行中に問題が発生 | 
+| 6 | `Failed to setup alert receiver` | アラートレシーバーのセットアップに失敗 | 
+| 7 | `Stopped alert receiver` | アラートレシーバーが停止した（想定外の停止） | 
+| 8 | `failed to encode messages for GET response` | GET レスポンスのメッセージエンコードに失敗 | 
+| 9 | `failed to decode message` | リクエストメッセージのデコードに失敗 | 
+| 10 | `failed to create CardAlert resource` | CardAlert リソースの作成に失敗 | 
+| 11 | `expected labels are missing in alert` | アラートに必要なラベルが欠落 | 
+| 12 | `error encoding messages for healthzHTTPMethod` | ヘルスチェック HTTP メソッドのメッセージエンコードエラー | 
+| 13 | `error encoding messages for getHandler` | dump getHandler のメッセージエンコードエラー | 
+| 14 | `failed to decode message` | dump HTTP メソッドのリクエストメッセージデコードに失敗 | 
+| 15 | `Server stopped` | アラートレシーバーサーバーが停止した（想定外の停止） | 
+| 16 | `expected options or Logger in options is not nil, but got nil` | options または Logger が nil | 
+| 17 | `expected CardAlertNamespace in options to be not empty, but got empty` | CardAlertNamespace が空 | 
+| 18 | `failed to add scale-controller scheme: <err>` | scale-controller スキームの追加に失敗 | 
+| 19 | `failed to add corev1 scheme: <err>` | corev1 スキームの追加に失敗 | 
+| 20 | `failed to get in-cluster config: <err>` | In-Cluster 設定の取得に失敗 | 
+| 21 | `failed to create client for In-Cluster: <err>` | In-Cluster クライアントの作成に失敗 | 
+| 22 | `failed to create CardAlert deviceInfo['<node>']='<info>': <err>` | CardAlert リソースの作成に失敗（デバイス情報付き） | 
+| 23 | `expected options or Logger is not nil, but got nil` | options または Logger が nil | 
+| 24 | `failed to create AlertsHTTPMethod for CardAlert: <err>` | CardAlert 用 AlertsHTTPMethod の作成に失敗 | 
+| 25 | `failed to create AlertReceiver for CardAlert: <err>` | CardAlert 用 AlertReceiver の作成に失敗 | 
+| 26 | `failed to create namespace for CardAlert: <err>` | CardAlert 用 Namespace の作成に失敗 | 
+| 27 | `failed to get CardAlert: <err>` | CardAlert の取得に失敗 | 
+| 28 | `failed to finalize CardAlert: <err>` | CardAlert のファイナライズに失敗 | 
+| 29 | `failed to reconcile CardAlert: <err>` | CardAlert の Reconcile に失敗 | 
+| 30 | `expected mgr is not nil, but got nil` | mgr が nil であってはならない | 
+| 31 | `expected true or false, but got <val> for <envvar>` | 環境変数の値が true/false でない | 
+| 32 | `expected <envvar> to be set, but got empty value` | 必須環境変数が空 | 
+| 33 | `expected NoExecute or NoSchedule, but got <val> for <envvar>` | taint ポリシー環境変数の値が不正 | 
+| 34 | `failed to get TTL configuration from environment variable: <err>` | TTL 設定の環境変数取得に失敗 | 
+| 35 | `expected ClientHelper is not nil, but got nil` | ClientHelper が nil | 
+| 36 | `unexpected state(<state>) is detected in doReconcile` | doReconcile で想定外の状態を検出 | 
+| 37 | `failed to update CardAlert status: <err>` | CardAlert ステータスの更新に失敗 | 
+| 38 | `failed to execute Reconcile process for state '<state>': <err>` | 指定状態の Reconcile 処理実行に失敗 | 
+| 39 | `failed to patch CardAlert status: <err>` | CardAlert ステータスのパッチに失敗 | 
+| 40 | `failed to synchronize cached resource version of CardAlert <ns>/<name>: <err>` | CardAlert のリソースバージョン同期に失敗 | 
+| 41 | `failed to list CardScalingRequests: <err>` | CardScalingRequest 一覧の取得に失敗 | 
+| 42 | `failed to add finalizer to CardAlert: <err>` | CardAlert へのファイナライザー追加に失敗 | 
+| 43 | `failed to get other running CardAlerts: <err>` | 他の実行中 CardAlert の取得に失敗 | 
+| 44 | `failed to list CardAlerts: <err>` | CardAlert 一覧の取得に失敗 | 
+| 45 | `failed to get Node: <err>` | ノードの取得に失敗 | 
+| 46 | `failed to get Cluster Namespace from Node: <err>` | ノードからのクラスターネームスペース取得に失敗 | 
+| 47 | `failed to get Machine from Node: <err>` | ノードからの Machine 取得に失敗 | 
+| 48 | `failed to get DCIMachine from Machine: <err>` | Machine からの DCIMachine 取得に失敗 | 
+| 49 | `failed to get LogicalServer name and namespace from DCIMachine: <err>` | DCIMachine からの LogicalServer 名/namespace 取得に失敗 | 
+| 50 | `failed to get LogicalServer: <err>` | LogicalServer の取得に失敗 | 
+| 51 | `failed to create CardScalingRequest: <err>` | CardScalingRequest の作成に失敗 | 
+| 52 | `failed to create MachineAlert: <err>` | MachineAlert の作成に失敗 | 
+| 53 | `node created by VM is not supported for auto replacement` | VM 作成ノードは自動交換非対応 | 
+| 54 | `unexpected server type in LogicalServer: <type>` | LogicalServer の想定外サーバータイプ | 
+| 55 | `failed to set controller reference to CardScalingRequest: <err>` | CardScalingRequest へのコントローラー参照設定に失敗 | 
+| 56 | `failed to list MachineAlerts: <err>` | MachineAlert 一覧の取得に失敗 | 
+| 57 | `failed to get CardScalingRequest: <err>` | CardScalingRequest の取得に失敗 | 
+| 58 | `failed CardAlert because auto replacement by CardScalingRequest failed with phase: <phase>` | CardScalingRequest による自動交換が失敗した | 
+| 59 | `failed to get MachineAlert: <err>` | MachineAlert の取得に失敗 | 
+| 60 | `failed to get MachineAlert for deletion: <err>` | 削除用 MachineAlert の取得に失敗 | 
+| 61 | `failed to delete MachineAlert: <err>` | MachineAlert の削除に失敗 | 
+| 62 | `failed to create DeviceTaintRule: <err>` | DeviceTaintRule の作成に失敗 | 
+| 63 | `failed to list DeviceTaintRules: <err>` | DeviceTaintRule 一覧の取得に失敗 | 
+| 64 | `expected .status.completedTime is set when state is Completed, but not set` | Completed 状態で completedTime が未設定 | 
+| 65 | `failed to delete expired CardAlert: <err>` | 期限切れ CardAlert の削除に失敗 | 
+| 66 | `unexpected state(<state>) is detected in doFinalize` | doFinalize で想定外の状態を検出 | 
+| 67 | `failed to patch CardAlert status: <err>` | Finalize 時の CardAlert ステータスパッチに失敗 | 
+| 68 | `failed to execute Finalizer process for state '<state>': <err>` | 指定状態のファイナライザー処理実行に失敗 | 
+| 69 | `failed to remove finalizer from CardAlert: <err>` | CardAlert からのファイナライザー削除に失敗 | 
+| 70 | `failed to get CardScalingRequest: <req>: <err>` | CardScalingRequest の取得に失敗 | 
+| 71 | `failed to finalize CardScalingRequest: <err>` | CardScalingRequest のファイナライズに失敗 | 
+| 72 | `failed to reconcile CardScalingRequest: <err>` | CardScalingRequest の Reconcile に失敗 | 
+| 73 | `expected mgr is not nil, but got nil` | mgr が nil であってはならない | 
+| 74 | `failed to get TTL configuration from environment variable: <err>` | TTL 設定の環境変数取得に失敗 | 
+| 75 | `expected ClientHelper is not nil, but got nil` | ClientHelper が nil | 
+| 76 | `unexpected phase(<phase>) is detected in doReconcile` | doReconcile で想定外のフェーズを検出 | 
+| 77 | `failed to update CardScalingRequest status: <err>` | CardScalingRequest ステータスの更新に失敗 | 
+| 78 | `failed to execute Reconcile process for state '<state>': <err>` | 指定状態の Reconcile 処理実行に失敗 | 
+| 79 | `failed to patch CardScalingRequest status: <err>` | CardScalingRequest ステータスのパッチに失敗 | 
+| 80 | `failed to synchronize cached resource version of CardScalingRequest <ns>/<name>: <err>` | CardScalingRequest のリソースバージョン同期に失敗 | 
+| 81 | `failed to list CardScalingRequests: <err>` | CardScalingRequest 一覧の取得に失敗 | 
+| 82 | `failed to add finalizer to CardScalingRequest: <err>` | CardScalingRequest へのファイナライザー追加に失敗 | 
+| 83 | `failed to get other running CardScalingRequests: <err>` | 他の実行中 CardScalingRequest の取得に失敗 | 
+| 84 | `failed to get Node resource: <err>` | ノードリソースの取得に失敗 | 
+| 85 | `failed to get Cluster info from Node resource: <err>` | ノードリソースからのクラスター情報取得に失敗 | 
+| 86 | `failed to get Machine resource from Node resource: <err>` | ノードリソースからの Machine リソース取得に失敗 | 
+| 87 | `failed to get MachineDeployment resource from Machine resource: <err>` | Machine リソースからの MachineDeployment 取得に失敗 | 
+| 88 | `failed to get DCIMachineTemplate resource from MachineDeployment resource: <err>` | MachineDeployment からの DCIMachineTemplate 取得に失敗 | 
+| 89 | `failed to get DCIMachine resource from Machine resource: <err>` | Machine リソースからの DCIMachine 取得に失敗 | 
+| 90 | `failed to get LogicalServer resource from DCIMachine resource: <err>` | DCIMachine からの LogicalServer 取得に失敗 | 
+| 91 | `expected DCIMachine is not annotated for card scaling, but already annotated` | DCIMachine がカードスケーリング用にすでにアノテーション済み | 
+| 92 | `failed to generate expected DCIMachineSpec after scaling: <err>` | スケーリング後 DCIMachineSpec の生成に失敗 | 
+| 93 | `failed to get valid DCIMachineTemplate after scaling: <err>` | スケーリング後の有効な DCIMachineTemplate 取得に失敗 | 
+| 94 | `failed to get valid MachineDeployment after scaling: <err>` | スケーリング後の有効な MachineDeployment 取得に失敗 | 
+| 95 | `expected OldDCIMachineInfo and NewDCIMachineInfo are not nil, but got nil` | OldDCIMachineInfo/NewDCIMachineInfo が nil | 
+| 96 | `failed to get old DCIMachineTemplate resource from management cluster: <err>` | 管理クラスターから旧 DCIMachineTemplate の取得に失敗 | 
+| 97 | `failed to create new DCIMachineTemplate instance: <err>` | 新しい DCIMachineTemplate インスタンスの作成に失敗 | 
+| 98 | `failed to create DCIMachineTemplate resource in management cluster: <err>` | 管理クラスターへの DCIMachineTemplate 作成に失敗 | 
+| 99 | `failed to create unique name for DCIMachineTemplate: <err>` | DCIMachineTemplate の一意名生成に失敗 | 
+| 100 | `retry to create a new DCIMachineTemplate with new name(<name>): <err>` | 新名での DCIMachineTemplate 再作成を試行中 | 
+| 101 | `failed to get new MachineDeployment after scaled resource from management cluster: <err>` | 管理クラスターからスケール後 MachineDeployment の取得に失敗 | 
+| 102 | `failed to add annotation to new MachineDeployment after scaled resource: <err>` | スケール後 MachineDeployment へのアノテーション追加に失敗 | 
+| 103 | `failed to get old MachineDeployment resource from management cluster: <err>` | 管理クラスターから旧 MachineDeployment の取得に失敗 | 
+| 104 | `failed to create new MachineDeployment instance: <err>` | 新しい MachineDeployment インスタンスの作成に失敗 | 
+| 105 | `failed to create MachineDeployment resource in management cluster: <err>` | 管理クラスターへの MachineDeployment 作成に失敗 | 
+| 106 | `failed to get DCIMachineTemplate resource from management cluster: <err>` | 管理クラスターからの DCIMachineTemplate 取得に失敗 | 
+| 107 | `failed to get NodeScalingRequest: <req>: <err>` | NodeScalingRequest の取得に失敗 | 
+| 108 | `failed to finalize NodeScalingRequest: <err>` | NodeScalingRequest のファイナライズに失敗 | 
+| 109 | `failed to initialize reconcile: <err>` | Reconcile の初期化に失敗 | 
+| 110 | `failed to scale up node: <err>` | ノードのスケールアップに失敗 | 
+| 111 | `failed to scale down node: <node>: <err>` | ノードのスケールダウンに失敗 | 
+| 112 | `nodeRequestType is invalid: NodeRequestType is <type>` | NodeRequestType が不正 | 
+| 113 | `failed to proceed scale up node: <err>` | ノードスケールアップ処理の継続に失敗 | 
+| 114 | `failed to proceed scale down node: <node>: <err>` | ノードスケールダウン処理の継続に失敗 | 
+| 115 | `failed to delete expired NodeScalingRequest: <err>` | 期限切れ NodeScalingRequest の削除に失敗 | 
+| 116 | `phase is invalid: <phase>` | フェーズが不正 | 
+| 117 | `failed to patch NodeScalingRequest status: <err>` | NodeScalingRequest ステータスのパッチに失敗 | 
+| 118 | `failed to synchronize cached resource version of NodeScalingRequest <ns>/<name>: <err>` | NodeScalingRequest のリソースバージョン同期に失敗 | 
+| 119 | `expected manager is not nil, but got nil` | マネージャーが nil であってはならない | 
+| 120 | `failed to get provider type from environment variable: <err>` | プロバイダータイプの環境変数取得に失敗 | 
+| 121 | `failed to get TTL configuration from environment variable: <err>` | TTL 設定の環境変数取得に失敗 | 
+| 122 | `expected ManagementClusterClient is not nil, but got nil` | ManagementClusterClient が nil | 
+| 123 | `failed to list NodeScalingRequests` | NodeScalingRequest 一覧の取得に失敗 | 
+| 124 | `failed to get other NodeScalingRequest is running: <err>` | 他の実行中 NodeScalingRequest の確認に失敗 | 
+| 125 | `failed to get cluster namespace: no node found with annotations <ann1> and <ann2>` | クラスターネームスペース取得失敗：アノテーション付きノードが見つからない | 
+| 126 | `failed to add finalizer: <err>` | ファイナライザーの追加に失敗 | 
+| 127 | `failed to list NodeScalingRequests: <err>` | NodeScalingRequest 一覧の取得に失敗 | 
+| 128 | `parameter is nil: .spec.location(<loc>) .spec.serverSpec(<spec>)` | location または serverSpec が nil | 
+| 129 | `failed to get valid MachineDeployment list to scale up: <err>` | スケールアップ対象 MachineDeployment リスト取得に失敗 | 
+| 130 | `MachineDeployment (<md>) is in progress by other NodeScalingRequest (UID=<uid>)` | MachineDeployment が別の NodeScalingRequest 処理中 | 
+| 131 | `progress condition (<cond>) is invalid` | 進行状況コンディションが不正 | 
+| 132 | `failed to patch pre-request status: <err>` | 事前リクエストステータスのパッチに失敗 | 
+| 133 | `valid MachineDeployment(<md>) found, but failed to scale up: clusterName(<name>), clusterNamespace(<ns>): <err>` | 有効な MachineDeployment が見つかったがスケールアップに失敗 | 
+| 134 | `failed to request DCIMachineTemplate list in clusterNamespace(<ns>) through client: <err>` | クライアント経由の DCIMachineTemplate リスト取得に失敗 | 
+| 135 | `failed to request DockerMachineTemplate list in clusterNamespace(<ns>) through client: <err>` | クライアント経由の DockerMachineTemplate リスト取得に失敗 | 
+| 136 | `provider type(<type>) is invalid` | プロバイダータイプが不正 | 
+| 137 | `parameter is nil: mdBase(<md>)` | mdBase パラメーターが nil | 
+| 138 | `failed to create DCIMachineTemplate(<name>) in clusterNamespace(<ns>): <err>` | DCIMachineTemplate の作成に失敗 | 
+| 139 | `failed to create DockerMachineTemplate(<name>) in clusterNamespace(<ns>): <err>` | DockerMachineTemplate の作成に失敗 | 
+| 140 | `failed to create MachineDeployment(<name>) in clusterNamespace(<ns>): <err>` | MachineDeployment の作成に失敗 | 
+| 141 | `failed to get Information to scale down: <err>` | スケールダウン情報の取得に失敗 | 
+| 142 | `failed to check if valid MachineDeployment exist or not: <err>` | 有効な MachineDeployment の存在確認に失敗 | 
+| 143 | `failed to scale down by deleting MachineDeployment(<md>) in Namespace(<ns>): <err>` | MachineDeployment 削除によるスケールダウンに失敗 | 
+| 144 | `parameter is nil: .spec.node(<node>)` | spec.node が nil | 
+| 145 | `failed to request Node list to WorkloadCluster: <err>` | ワークロードクラスターへのノードリストリクエストに失敗 | 
+| 146 | `failed to request Machine resource in clusterNamespace(<ns>) through client: <err>` | クライアント経由の Machine リソースリクエストに失敗 | 
+| 147 | `failed to request MachineDeployment in clusterNamespace(<ns>) through client: <err>` | クライアント経由の MachineDeployment リクエストに失敗 | 
+| 148 | `not found valid clusterName(<name>) for MachineDeployment(<md>)` | MachineDeployment に有効なクラスター名が見つからない | 
+| 149 | `not found valid Replicas for MachineDeployment(<md>): Replicas is nil` | MachineDeployment の Replicas が nil | 
+| 150 | `not found valid Replicas for MachineDeployment(<md>), Replicas=<n>` | MachineDeployment の Replicas が無効な値 | 
+| 151 | `failed to patch annotation(<ann>) to true through client: <err>` | クライアント経由のアノテーションパッチに失敗 | 
+| 152 | `failed to scale down MachineDeployment(<md>) in Namespace(<ns>): <err>` | MachineDeployment のスケールダウンに失敗 | 
+| 153 | `failed to delete Machine(<machine>) in Namespace(<ns>): <err>` | Machine の削除に失敗 | 
+| 154 | `parameter is nil: .status.desiredReplicas(<replicas>)` | desiredReplicas が nil | 
+| 155 | `not found target MachineDeployment(<md>) in clusterNamespace(<ns>): <err>` | 対象 MachineDeployment が見つからない | 
+| 156 | `failed to remove in-progress labels from MachineDeployment: <md>: <err>` | MachineDeployment から進行中ラベルの削除に失敗 | 
+| 157 | `spec.node is nil` | spec.node が nil | 
+| 158 | `not match clusterName(<name1>) with clusterName(<name2>) in MachineDeployment(<md>)` | MachineDeployment のクラスター名が一致しない | 
+| 159 | `failed to get Node(<node>) for reasons other than 'not found': <err>` | ノードの取得に失敗（not found 以外） | 
+| 160 | `failed to get valid MachineSet with MachineDeployment UID(<uid>) in namespace(<ns>): <err>` | MachineDeployment UID に対応する MachineSet の取得に失敗 | 
+| 161 | `failed to remove paused annotation from MachineSet binding MachineDeployment UID(<uid>) in namespace(<ns>): <err>` | MachineSet からの pause アノテーション削除に失敗 | 
+| 162 | `failed to remove in-progress labels from MachineDeployment: <md>: <err>` | MachineDeployment から進行中ラベルの削除に失敗 | 
+| 163 | `failed to delete <type>MachineTemplate for MachineDeployment(<md>) in Namespace(<ns>): <err>` | MachineDeployment 用 MachineTemplate の削除に失敗 | 
+| 164 | `failed to delete MachineDeployment(<md>) in Namespace(<ns>): <err>` | MachineDeployment の削除に失敗 | 
+| 165 | `invalid NodeScalingRequest: should contain Condition with 'Completed'` | NodeScalingRequest に 'Completed' Condition が含まれていない | 
+| 166 | `failed to delete expired NodeScalingRequest: <err>` | 期限切れ NodeScalingRequest の削除に失敗 | 
+| 167 | `failed to clean up on finalize: <err>` | ファイナライズ時のクリーンアップに失敗 | 
+| 168 | `failed to remove finalizer: <err>` | ファイナライザーの削除に失敗 | 
+| 169 | `failed to clean up MachineSet: <err>` | MachineSet のクリーンアップに失敗 | 
+| 170 | `failed to clean up MachineDeployment: <err>` | MachineDeployment のクリーンアップに失敗 | 
+| 171 | `failed to get MachineDeployment (<md>) in namespace (<ns>): <err>` | MachineDeployment の取得に失敗 | 
+| 172 | `failed to patch MachineDeployment (<md>) in namespace (<ns>): <err>` | MachineDeployment へのパッチに失敗 | 
+| 173 | `failed to get MachineSet binding MachineDeployment UID (<uid>) in namespace (<ns>): <err>` | MachineDeployment に紐付く MachineSet の取得に失敗 | 
+| 174 | `failed to patch MachineSet (<ms>) in namespace (<ns>): <err>` | MachineSet へのパッチに失敗 | 
+| 175 | `expected object to be CardScalingRequest but got <type>` | 対象オブジェクトが CardScalingRequest でない | 
+| 176 | `expected CardScalingRequest not to be nil, but got nil` | CardScalingRequest が nil | 
+| 177 | `expected a CardScalingRequest object for the newObj but got <type>` | newObj が CardScalingRequest でない | 
+| 178 | `expected a CardScalingRequest object but got <type>` | オブジェクトが CardScalingRequest でない | 
+| 179 | `failed to get Node(<node>): <err>` | ノードの取得に失敗 | 
+| 180 | `failed to get cluster info from node(<node>): <err>` | ノードからのクラスター情報取得に失敗 | 
+| 181 | `failed to get Machine from node(<node>): <err>` | ノードからの Machine 取得に失敗 | 
+| 182 | `failed to get MachineDeployment from Machine(<ns>/<machine>): <err>` | Machine からの MachineDeployment 取得に失敗 | 
+| 183 | `expected MachineDeployment(<ns>/<md>) has no annotations for ClusterAutoscaler, but it has them` | MachineDeployment に ClusterAutoscaler アノテーションが存在する | 
+| 184 | `failed to get DCIMachine from Machine(<ns>/<machine>): <err>` | Machine からの DCIMachine 取得に失敗 | 
+| 185 | `failed to get LogicalServer from DCIMachine(<ns>/<dci>): <err>` | DCIMachine からの LogicalServer 取得に失敗 | 
+| 186 | `expected applied spec type of LogicalServer(<ns>/<ls>) to be '<type>', but got spec '<spec>'` | LogicalServer の適用済みスペックタイプが不一致 | 
+| 187 | `expected LogicalServer(<ns>/<ls>) status.state to be '<state>', but got '<got>'` | LogicalServer の status.state が期待値と不一致 | 
+| 188 | `failed to generate expected serverSpec after scaling: <err>` | スケーリング後 serverSpec の生成に失敗 | 
+| 189 | `failed to validate GPU UUIDs in scaling parameters: <err>` | スケーリングパラメーターの GPU UUID 検証に失敗 | 
+| 190 | `expected all UUIDs in CardScalingRequest to exist in LogicalServer(<ns>/<ls>), but some do not. GPUSpec: <spec>` | CardScalingRequest の全 UUID が LogicalServer に存在しない | 
+| 191 | `expected a NodeScalingRequest object but got <type>` | オブジェクトが NodeScalingRequest でない | 
+| 192 | `expected a NodeScalingRequest is not nil, but got nil` | NodeScalingRequest が nil | 
+| 193 | `expected a NodeScalingRequest object for the newObj but got <type>` | newObj が NodeScalingRequest でない | 
+| 194 | `expected a NodeScalingRequest object but got <type>` | オブジェクトが NodeScalingRequest でない | 
+| 195 | `expected node name is not nil, but got nil` | ノード名が nil | 
+| 196 | `failed to get Node(<node>): <err>` | ノードの取得に失敗 | 
+| 197 | `failed to get Cluster namespace from Node(<node>): <err>` | ノードからのクラスターネームスペース取得に失敗 | 
+| 198 | `failed to get Machine from Node(<node>): <err>` | ノードからの Machine 取得に失敗 | 
+| 199 | `failed to get MachineDeployment from Machine(<ns>/<machine>): <err>` | Machine からの MachineDeployment 取得に失敗 | 
+| 200 | `expected the MachineDeployment(<ns>/<md>) associated with the Node(<node>) has auto-scaling disabled, but it has auto-scaling enabled` | MachineDeployment の自動スケーリングが有効になっている | 
+| 201 | `failed to get management cluster client: <err>` | 管理クラスタークライアントの取得に失敗 | 
+| 202 | `environment variable <var> is not set` | 環境変数が未設定 | 
+| 203 | `failed to build config from kubeconfig path: <path>: <err>` | kubeconfig パスからの設定ビルドに失敗 | 
+| 204 | `failed to add Cluster API scheme: <err>` | Cluster API スキームの追加に失敗 | 
+| 205 | `failed to add DCI provider scheme: <err>` | DCI プロバイダースキームの追加に失敗 | 
+| 206 | `failed to add Resource Pool Manager scheme: <err>` | Resource Pool Manager スキームの追加に失敗 | 
+| 207 | `failed to add Docker provider scheme: <err>` | Docker プロバイダースキームの追加に失敗 | 
+| 208 | `failed to create client for management cluster: <err>` | 管理クラスタークライアントの作成に失敗 | 
+| 209 | `expected machine is not nil, but got nil` | machine が nil | 
+| 210 | `expected InfrastructureRef kind for Machine(<ns>/<machine>) is <expected>, but got <got>` | Machine の InfrastructureRef kind が不一致 | 
+| 211 | `failed to get DCIMachine name from Machine: <err>` | Machine からの DCIMachine 名取得に失敗 | 
+| 212 | `failed to get DCIMachine resource: <err>` | DCIMachine リソースの取得に失敗 | 
+| 213 | `expected MachineDeployment is not nil, but got nil` | MachineDeployment が nil | 
+| 214 | `failed to get DCIMachineTemplate name from MachineDeployment(<md>) spec` | MachineDeployment スペックからの DCIMachineTemplate 名取得に失敗 | 
+| 215 | `failed to get DCIMachineTemplate name from MachineDeployment: <err>` | MachineDeployment からの DCIMachineTemplate 名取得に失敗 | 
+| 216 | `failed to get DCIMachineTemplate resource: <err>` | DCIMachineTemplate リソースの取得に失敗 | 
+| 217 | `failed to list DCIMachineTemplate resources to get allocatable DCIMachineTemplates: <err>` | 割り当て可能 DCIMachineTemplate リストの取得に失敗 | 
+| 218 | `failed to create name for DCIMachineTemplate: <err>` | DCIMachineTemplate の名前生成に失敗 | 
+| 219 | `failed to create DCIMachineTemplate spec from NodeScalingRequest: <err>` | NodeScalingRequest からの DCIMachineTemplate スペック作成に失敗 | 
+| 220 | `failed to create DCIMachineTemplate(<name>) in clusterNamespace(<ns>): <err>` | DCIMachineTemplate の作成に失敗 | 
+| 221 | `failed to get DCIMachineTemplate(<name>) in Namespace(<ns>): <err>` | DCIMachineTemplate の取得に失敗 | 
+| 222 | `failed to check whether the DCIMachineTemplate(<name>) is free or not: <err>` | DCIMachineTemplate の空き状態確認に失敗 | 
+| 223 | `failed to delete DCIMachineTemplate(<name>) in Namespace(<ns>): <err>` | DCIMachineTemplate の削除に失敗 | 
+| 224 | `failed to get MachineDeployment List through client: <err>` | クライアント経由の MachineDeployment リスト取得に失敗 | 
+| 225 | `failed to list DeviceTaintRules: <err>` | DeviceTaintRule 一覧の取得に失敗 | 
+| 226 | `failed to create DeviceTaintRule: <err>` | DeviceTaintRule の作成に失敗 | 
+| 227 | `failed to list DockerMachineTemplate resources to get allocatable DockerMachineTemplates: <err>` | 割り当て可能 DockerMachineTemplate リストの取得に失敗 | 
+| 228 | `failed to create DockerMachineTemplate spec from NodeScalingRequest: <err>` | NodeScalingRequest からの DockerMachineTemplate スペック作成に失敗 | 
+| 229 | `failed to create DockerMachineTemplate(<name>) in clusterNamespace(<ns>): <err>` | DockerMachineTemplate の作成に失敗 | 
+| 230 | `failed to get DockerMachineTemplate(<name>) in Namespace(<ns>): <err>` | DockerMachineTemplate の取得に失敗 | 
+| 231 | `failed to check whether DockerMachineTemplate(<name>) is referred by other MachineDeployment: <err>` | DockerMachineTemplate の他 MachineDeployment 参照確認に失敗 | 
+| 232 | `failed to delete DockerMachineTemplate(<name>) in Namespace(<ns>): <err>` | DockerMachineTemplate の削除に失敗 | 
+| 233 | `failed to request MachineDeployment List through client: <err>` | クライアント経由の MachineDeployment リストリクエストに失敗 | 
+| 234 | `expected DCIMachine is not nil, but got nil` | DCIMachine が nil | 
+| 235 | `failed to get name and namespace of LogicalServer from dciMachine: <err>` | DCIMachine からの LogicalServer 名/namespace 取得に失敗 | 
+| 236 | `failed to get LogicalServer resource: <err>` | LogicalServer リソースの取得に失敗 | 
+| 237 | `expected machine is not nil, but got nil` | machine が nil | 
+| 238 | `expected Machine(<machine>) labels is not nil, but got nil` | Machine のラベルが nil | 
+| 239 | `failed to get MachineDeployment name from Machine(<machine>) labels` | Machine ラベルからの MachineDeployment 名取得に失敗 | 
+| 240 | `failed to get MachineDeployment name from Machine: <err>` | Machine からの MachineDeployment 名取得に失敗 | 
+| 241 | `failed to get MachineDeployment resource from management cluster: <err>` | 管理クラスターからの MachineDeployment 取得に失敗 | 
+| 242 | `failed to list MachineDeployment resources to get allocatable MachineDeployments: <err>` | 割り当て可能 MachineDeployment リストの取得に失敗 | 
+| 243 | `expected at least one MachineDeployment in the target cluster(<ns>/<name>), but got none` | 対象クラスターに MachineDeployment が存在しない | 
+| 244 | `failed to create name for MachineDeployment: <err>` | MachineDeployment の名前生成に失敗 | 
+| 245 | `failed to list MachineDeployment resources to get used MachineDeployments: <err>` | 使用中 MachineDeployment リストの取得に失敗 | 
+| 246 | `failed to create MachineDeployment spec from NodeScalingRequest: <err>` | NodeScalingRequest からの MachineDeployment スペック作成に失敗 | 
+| 247 | `failed to create MachineDeployment(<md>): <err>` | MachineDeployment の作成に失敗 | 
+| 248 | `failed to list MachineDeployment resources to check last MachineDeployment: <err>` | 最終 MachineDeployment 確認のリスト取得に失敗 | 
+| 249 | `failed to find the target MachineDeployment in the List(<list>)` | リスト中の対象 MachineDeployment が見つからない | 
+| 250 | `expected node is not nil, but got nil` | ノードが nil | 
+| 251 | `expected Node(<node>) annotations is not nil, but got nil` | ノードのアノテーションが nil | 
+| 252 | `failed to get Machine name from Node(<node>) annotations` | ノードアノテーションからの Machine 名取得に失敗 | 
+| 253 | `failed to get Machine name from Node: <err>` | ノードからの Machine 名取得に失敗 | 
+| 254 | `failed to get Cluster info from Node: <err>` | ノードからのクラスター情報取得に失敗 | 
+| 255 | `failed to get Machine resource: <err>` | Machine リソースの取得に失敗 | 
+| 256 | `failed to get MachineSet owned by MachineDeployment with UID <uid>: <err>` | MachineDeployment UID が所有する MachineSet の取得に失敗 | 
+| 257 | `failed to get Node resource: <name>: <err>` | ノードリソースの取得に失敗 | 
+| 258 | `expected node is not nil, but got nil` | ノードが nil | 
+| 259 | `expected Node(<node>) annotations is not nil, but got nil` | ノードのアノテーションが nil | 
+| 260 | `failed to get Cluster info from Node(<node>) annotations: Namespace(<ns>), Name(<name>)` | ノードアノテーションからのクラスター情報取得に失敗 | 
+| 261 | `failed to list Nodes: <err>` | ノード一覧の取得に失敗 | 
+| 262 | `failed to list Node resources to get Cluster info: <err>` | クラスター情報取得のためのノードリスト取得に失敗 | 
+| 263 | `failed to get Cluster info from any Node annotations` | いずれのノードアノテーションからもクラスター情報を取得できない | 
+| 264 | `expected object to get resource is not nil, but got nil` | 取得対象オブジェクトが nil | 
+| 265 | `failed to get resource(<key>) of kind <kind>: <err>` | 指定リソースの取得に失敗 | 
+| 266 | `expected object list to list resources is not nil, but got nil` | リスト対象オブジェクトが nil | 
+| 267 | `failed to list resources of kind <kind> in namespace <ns>: <err>` | 指定種別のリソース一覧取得に失敗 | 
+| 268 | `expected object to create resource is not nil, but got nil` | 作成対象オブジェクトが nil | 
+| 269 | `failed to create resource(<ns>/<name>) of kind <kind>: <err>` | 指定リソースの作成に失敗 | 
+| 270 | `expected object to delete resource is not nil, but got nil` | 削除対象オブジェクトが nil | 
+| 271 | `failed to delete resource(<ns>/<name>) of kind <kind>: <err>` | 指定リソースの削除に失敗 | 
+| 272 | `expected object to patch resource is not nil, but got nil` | パッチ対象オブジェクトが nil | 
+| 273 | `failed to patch resource(<ns>/<name>) of kind <kind>: <err>` | 指定リソースへのパッチに失敗 | 
+| 274 | `failed to convert to valid type <type>` | 有効な型への変換に失敗 | 
+| 275 | `failed to create a valid name` | 有効な名前の生成に失敗 | 
+| 276 | `provider type is empty: available(<dci>,<docker>)` | プロバイダータイプが空 | 
+| 277 | `provider type(<type>) is invalid: available(<dci>,<docker>)` | プロバイダータイプが不正 | 
+| 278 | `argument for setting TTL seconds is empty` | TTL 秒設定の引数が空 | 
+| 279 | `argument for setting TTL seconds cannot convert into int32: <err>` | TTL 秒設定の引数が int32 に変換できない | 
+| 280 | `argument for setting TTL seconds is invalid(<val>)` | TTL 秒設定の引数が無効な値 | 
+| 281 | `failed to marshal annotation info: <err>` | アノテーション情報のマーシャルに失敗 | 
+| 282 | `expected CardScalingRequest and DCIMachineSpec are not nil, but got nil` | CardScalingRequest または DCIMachineSpec が nil | 
+| 283 | `expected NodeScalingRequest and ServerSpec is not nil, but got nil` | NodeScalingRequest または ServerSpec が nil | 
+| 284 | `expected NodeScalingRequest and Location is not nil, but got nil` | NodeScalingRequest または Location が nil | 
+| 285 | `expected ServerSpec and ScalingParameter are not nil, but got nil` | ServerSpec または ScalingParameter が nil | 
+| 286 | `expected scaling parameter model(<model>) is the same as ServerSpec GPU(<gpu>), but different` | スケーリングパラメーターのモデルと ServerSpec GPU が不一致 | 
+| 287 | `expected either Num or UUIDs is specified in scaling parameter, but both are not specified` | Num または UUIDs のいずれかをスケーリングパラメーターに指定する必要がある | 
+| 288 | `expected the number of GPUs to replace(<n>) is less than or equal to the current number of GPUs(<cur>), but greater` | 置換 GPU 数が現在の GPU 数を超えている | 
+| 289 | `unsupported scaling parameter operation(<op>)` | 未対応のスケーリングパラメーター操作 | 
+| 290 | `expected the number of GPUs after scaling is greater than or equal to 0, but got <n>` | スケーリング後の GPU 数が 0 未満 | 
+| 291 | `expected DCIMachineSpec is not nil, but got nil` | DCIMachineSpec が nil | 
+| 292 | `failed to generate ServerSpec after scaling: <err>` | スケーリング後 ServerSpec の生成に失敗 | 
+| 293 | `expected Logger in options to be not nil, but got nil` | options の Logger が nil | 
+| 294 | `expected Alerts HTTP method handler to be not nil, but got nil` | Alerts HTTP メソッドハンドラーが nil | 
+| 295 | `expected Logger in options to be not nil, but got nil` | options の Logger が nil | 
+| 296 | `failed to create Healthz HTTP method: <err>` | ヘルスチェック HTTP メソッドの作成に失敗 | 
+| 297 | `expected Logger has a non-nil sink, but got nil` | Logger の sink が nil | 
+| 298 | `expected HTTP method handler to be not nil, but got nil` | HTTP メソッドハンドラーが nil | 
+| 299 | `expected options and Logger in options to be not nil, but got nil` | options と Logger が nil | 
+| 300 | `failed to create handler for alert receiver: <err>` | アラートレシーバー用ハンドラーの作成に失敗 | 
+| 301 | `failed to create alerts handler: <err>` | アラートハンドラーの作成に失敗 | 
+| 302 | `failed to create healthz handler: <err>` | ヘルスチェックハンドラーの作成に失敗 | 
+| 303 | `failed to get provider type from environment variable: <err>` | プロバイダータイプの環境変数取得に失敗 | 
+| 304 | `provider type(<type>) is invalid` | プロバイダータイプが不正 | 
+| 305 | `unable to create NodeScalingRequest controller: <err>` | NodeScalingRequest コントローラーの作成に失敗 | 
+| 306 | `unable to create NodeScalingRequest webhook: <err>` | NodeScalingRequest Webhook の作成に失敗 | 
+| 307 | `unable to create CardScalingRequest controller: <err>` | CardScalingRequest コントローラーの作成に失敗 | 
+| 308 | `unable to create CardScalingRequest webhook: <err>` | CardScalingRequest Webhook の作成に失敗 | 
+| 309 | `unable to create CardAlert controller: <err>` | CardAlert コントローラーの作成に失敗 | 
+| 310 | `failed to get client helper option: <err>` | クライアントヘルパーオプションの取得に失敗 | 
+| 311 | `failed to create management cluster client helper: <err>` | 管理クラスタークライアントヘルパーの作成に失敗 | 
+| 312 | `failed to setup NodeScalingRequest with manager: <err>` | NodeScalingRequest のマネージャーへのセットアップに失敗 | 
+| 313 | `failed to setup CardScalingRequest with manager: <err>` | CardScalingRequest のマネージャーへのセットアップに失敗 | 
+| 314 | `failed to setup CardAlert with manager: <err>` | CardAlert のマネージャーへのセットアップに失敗 | 
+| 315 | `unable to add metrics certificate watcher to manager: <err>` | メトリクス証明書ウォッチャーのマネージャーへの追加に失敗 | 
+| 316 | `unable to add webhook certificate watcher to manager: <err>` | Webhook 証明書ウォッチャーのマネージャーへの追加に失敗 | 
+| 317 | `unable to set up health check: <err>` | ヘルスチェックのセットアップに失敗 | 
+| 318 | `unable to set up ready check: <err>` | 準備完了チェックのセットアップに失敗 | 
+| 319 | `failed to initialize <type> certificate watcher: <err>` | 証明書ウォッチャーの初期化に失敗 | 
+| 320 | `expected NodeScalingRequest is not nil, but got nil` | NodeScalingRequest が nil であってはならない | 
+| 321 | `expected CardScalingRequest and its NewDCIMachineInfo are not nil, but got nil: <err>` | CardScalingRequest または NewDCIMachineInfo が nil | 
+| 322 | `expected MachineDeployment and its parameters are not nil, but got nil: <err>` | MachineDeployment またはそのパラメーターが nil | 
+| 323 | `failed to deep copy MachineDeployment template` | MachineDeployment テンプレートのディープコピーに失敗 | 
+|===
+
+'''
+
+
+=== app-conn-control-info-manager-dciが出力するエラーメッセージ
+[cols="1,4,3,2",options="header"]
+|===
+| # | エラーメッセージ / パターン | 概要（日本語） | 備考
+
+| 1  | `Failed to start manager` | コントローラーマネージャーの起動に失敗 | 
+| 2  | `Failed to create controller` (controller: `connectendpoint`) | ConnectEndpoint コントローラーの作成に失敗 | 
+| 3  | `Failed to create controller` (controller: `dciappstate`) | DCIAppState コントローラーの作成に失敗 | 
+| 4  | `Failed to set up health check` | ヘルスチェックのセットアップに失敗 | 
+| 5  | `Failed to set up ready check` | 準備完了チェックのセットアップに失敗 | 
+| 6  | `Failed to run manager` | コントローラーマネージャーの実行中に問題が発生 | 
+| 7  | `<func> could not find DCIAppStateCR, but it will not requeue.` | DCIAppStateCR が見つからない（リキュー不要） | 「”sendSignal”を含まない　かつ　"err="を含まない」場合はエラーでは無い。
+| 8  | `<func> is unable to fetch the DCIAppStateCR.` | DCIAppStateCR の取得に失敗 | 
+| 9  | `<func> could not find ConnectEndpointCR and failed to retrieve it.` | ConnectEndpointCR が見つからず取得にも失敗 | 「”sendSignal”を含まない　かつ　"err="を含まない」場合はエラーでは無い。
+| 10 | `<func> is unable to fetch ConnectEndpointCR.` | ConnectEndpointCR の取得に失敗 | 
+| 11 | `<func> failed to update the ConnectEndpointCR.` | ConnectEndpointCR の更新に失敗 | 
+| 12 | `<func> found a DeletionTimestamp on the DCIAppStateCR.` | DCIAppStateCR に DeletionTimestamp が付与されている |  「”sendSignal”を含まない　かつ　"err="を含まない」場合はエラーでは無い。
+| 13 | `<func> found that the DCIAppStateCR. labels did not match.` | DCIAppStateCR のラベルが一致しない |  「”sendSignal”を含まない　かつ　"err="を含まない」場合はエラーでは無い。
+| 14 | `<func> failed to update the DCIAppStateCR.` | DCIAppStateCR の更新に失敗 | 
+| 15 | `<func> could not find ConnectEndpointCR, but it will not requeue.` | ConnectEndpointCR が見つからない（リキュー不要） | 「”sendSignal”を含まない　かつ　"err="を含まない」場合はエラーでは無い。
+| 16 | `<func> is unable to fetch the ConnectEndpointCR.` | ConnectEndpointCR の取得に失敗 | 
+| 17 | `<func> failed to get my pod name from the environment variable, so it will not requeue.` | Pod 名の環境変数取得に失敗（リキュー不要） | 「”sendSignal”を含まない　かつ　"err="を含まない」場合はエラーでは無い。
+| 18 | `<func> failed to get my pod namespace from the environment variable, so it will not requeue.` | Pod ネームスペースの環境変数取得に失敗（リキュー不要） |  「”sendSignal”を含まない　かつ　"err="を含まない」場合はエラーでは無い。
+| 19 | `<func> could not find DCIAppStateCR.` | DCIAppStateCR が見つからない |    「”sendSignal”を含まない　かつ　"err="を含まない」場合はエラーでは無い。
+| 20 | `<func> is unable to fetch DCIAppStateCR.` | DCIAppStateCR の取得に失敗 | 
+| 21 | `<func> could not found <name>` | 対象リソースが見つからない | 
+| 22 | `<func> failed to json.Unmarshal the AppStatus.` | AppStatus の JSON デシリアライズに失敗 | 
+| 23 | `<func> failed to json.Marshal the fileData.` | fileData の JSON シリアライズに失敗 | 
+| 24 | `<func> is unable to write the file.` | ファイルの書き込みに失敗 | 
+| 25 | `<func> not found process name from the environment variable.` | 環境変数からのプロセス名取得に失敗 | 
+| 26 | `<func> detected an error in the findProcess.` | findProcess でエラーを検出 | 
+| 27 | `<func> detected that no process name was returned from the findProcess.` | findProcess からプロセス名が返されなかった | 
+| 28 | `<func> failed to send SIGHUP.` | SIGHUP の送信に失敗 | 
+| 29 | `<func> failed to close the file.` | ファイルのクローズに失敗 | 
+| 30 | `<func> failed to unlink the file.` | ファイルのアンリンクに失敗 | 
+|===
+
+'''
+
+
+=== app-conn-info-maker-dciが出力するエラーメッセージ
+[cols="1,4,3,2",options="header"]
+|===
+| # | エラーメッセージ / パターン | 概要（日本語） | 備考
+
+| 1 | `Failed to start manager` | コントローラーマネージャーの起動に失敗 | 
+| 2 | `Failed to create controller` (controller: `dciappconnection`) | DCIAppConnection コントローラーの作成に失敗 | 
+| 3 | `Failed to create controller` (controller: `pod`) | Pod コントローラーの作成に失敗 | 
+| 4 | `Failed to set up health check` | ヘルスチェックのセットアップに失敗 | 
+| 5 | `Failed to set up ready check` | 準備完了チェックのセットアップに失敗 | 
+| 6 | `Failed to run manager` | コントローラーマネージャーの実行中に問題が発生 | 
+| 7 | `<func> failed to get DCIAppConnectionCR.` | DCIAppConnectionCR の取得に失敗 | 
+| 8 | `<func> failed to patch DCIAppConnectionCR.` | DCIAppConnectionCR へのパッチに失敗 | 
+| 9 | `<func> failed to create Service resource.` | Service リソースの作成に失敗 | 
+| 10| `<func> failed to patch Service resource.` | Service リソースへのパッチに失敗 | 
+| 11 | `<func> failed to create EndpointSlice resource.` | EndpointSlice リソースの作成に失敗 | 
+| 12 | `<func> failed to patch EndpointSlice resource.` | EndpointSlice リソースへのパッチに失敗 | 
+| 13 | `<func> failed to get ConnectEndpointCR.` | ConnectEndpointCR の取得に失敗 | 
+| 14 | `<func> failed to delete ConnectEndpointCR.` | ConnectEndpointCR の削除に失敗 | 
+| 15 | `<func> failed to get Pod resource.` | Pod リソースの取得に失敗 | 
+| 16 | `<func> failed to get Deployment resource.` | Deployment リソースの取得に失敗 | 
+| 17 | `<func> failed to get EndpointSlice resource.` | EndpointSlice リソースの取得に失敗 | 
+| 18 | `<func> failed to delete EndpointSlice resource.` | EndpointSlice リソースの削除に失敗 | 
+| 19 | `<func> failed to get Service resource.` | Service リソースの取得に失敗 | 
+| 20 | `<func> failed to delete Service resource.` | Service リソースの削除に失敗 | 
+| 21 | `<func> detected that the dciappconnection label does not match DCIAppConnectionCR within Name/Namespace. It is not a call from the Pod controller, but a request for additional processing.` | dciappconnection ラベルが DCIAppConnectionCR と不一致。（Pod コントローラー以外からのリクエスト） | 「"err="を含まない」場合はエラーでは無い。
+| 22 | `<func> detected that it does not match the value of the dciappconnection label in the Pod. It is not a call from the Pod controller, but a request for additional processing.` | Pod の dciappconnection ラベル値が不一致。（Pod コントローラー以外からのリクエスト） | 「"err="を含まない」場合はエラーでは無い。
+| 23 | `<func> failed to get ConnectEndpointCR.` | ConnectEndpointCR の取得に失敗 | 
+| 24 | `<func> failed to get Service resource.` | Service リソースの取得に失敗 | 
+| 25 | `<func> failed to get EndpointSlice resource.` | EndpointSlice リソースの取得に失敗 | 
+| 26 | `<func> detected that Pod resource Status.Conditions is not Ready. Not a call from the Pod controller. And is a request for additional processing.` | Pod リソースのフェーズが Running でない（Pod コントローラー以外からのリクエスト） | 「"err="を含まない」場合はエラーでは無い。
+| 27 | `<func> failed to get Deployment resource.` | Deployment リソースの取得に失敗 | 
+| 28 | `<func> failed to list ReplicaSet resource.` | ReplicaSet リソース一覧の取得に失敗 | 
+| 29 | `<func> failed to list Pod resource.` | Pod リソース一覧の取得に失敗 | 
+| 30 | `<func> failed to fetch HostDeviceNetwork.` | HostDeviceNetwork の取得に失敗 | 
+| 31 | `<func> failed to json.unmarshal annotation.` | アノテーションの JSON デシリアライズに失敗 | 
+| 32 | `<func> failed to create ConnectEndpointCR.` | ConnectEndpointCR の作成に失敗 | 
+| 33 | `<func> failed to patch ConnectEndpointCR.` | ConnectEndpointCR へのパッチに失敗 | 
+| 34 | `<func> failed to delete ConnectEndpointCR.` | ConnectEndpointCR の削除に失敗 | 
+| 35 | `<func> failed to patch Pod resource.` | Pod リソースへのパッチに失敗 | 
+| 36 | `<func> failed to patch Deployment resource.` | Deployment リソースへのパッチに失敗 | 
+| 37 | `<func> failed to get Pod resource.` | Pod リソースの取得に失敗 | 
+| 38 | `<func> failed to patch Pod resource.` | Pod リソースへのパッチに失敗 | 
+| 39 | `<func> failed to get ReplicaSet resource.` | ReplicaSet リソースの取得に失敗 | 
+| 40 | `<func> failed to get Deployment resource.` | Deployment リソースの取得に失敗 | 
+| 41 | `<func> failed to get DCIAppConnectionCR.` | DCIAppConnectionCR の取得に失敗 | 
+| 42 | `<func> failed to get ConnectEndpointCR.` | ConnectEndpointCR の取得に失敗 | 
+| 43 | `<func> will requeue because ConnectEndpointCR has a DeletionTimestamp set. And it is a request for additional processing.` | Podの追加処理だが、ConnectEndpointCR に DeletionTimestamp があるためリキュー | 「"err="を含まない」場合はエラーでは無い。
+| 44 | `<func> failed to patch EndpointSlice resource.` | EndpointSlice リソースへのパッチに失敗 | 
+| 45 | `<func> failed to set ConnectEndpointCR OwnerReference.` | ConnectEndpointCR の OwnerReference 設定に失敗 | 
+| 46 | `<func> failed to set OwnerReference for EndpointSlice resource.` | EndpointSlice リソースの OwnerReference 設定に失敗 | 
+|===
+
+'''
+
+
+=== app-monitor-dciが出力するエラーメッセージ
+[cols="1,4,3,2",options="header"]
+|===
+| # | エラーメッセージ / パターン | 概要（日本語） | 備考
+
+| 1 | `k8sclient.New(): <err>` | k8s クライアントの作成に失敗 | 
+| 2 | `unable to create Temporal client: <err>` | Temporal クライアントの作成に失敗 | 
+| 3 | `Temporal worker failed unexpectedly: <err>` | Temporal ワーカーが予期せず停止 | 
+| 4 | `Activity failed` (err=<err>) | アクティビティが失敗 | 
+| 5 | `VectorSignalActivity failed with other error: <err>` | VectorSignalActivity が他のエラーで失敗 | 
+| 6 | `AlertManagerSignalActivity failed with other error: <err>` | AlertManagerSignalActivity が他のエラーで失敗 | 
+| 7 | `signalBuf overflow (size=<n>), dropped oldest signal: workflowID=<id> signalName=<name>` | シグナルバッファオーバーフロー：最古シグナルを破棄 | 
+| 8 | `Error reading vector-signal request body: <err> from <addr>` | vector-signal リクエストボディの読み取りエラー | 
+| 9 | `Request body size (<n> bytes) exceeds maxRequestSize (10MB) for request <method> <path> from <addr>` | リクエストボディが 10MB 制限を超過 | 
+| 10 | `Failed to decode outer JSON: <err>. Request URL: <url>, RemoteAddr: <addr>` | 外側 JSON のデコードに失敗 | 
+| 11 | `Failed to decode inner JSON from metadata string: <err>. Request URL: <url>, RemoteAddr: <addr>` | メタデータ文字列の内側 JSON デコードに失敗 | 
+| 12 | `namespace/pod label is empty in vector-signal: namespace=<ns>, pod=<pod>` | vector-signal の namespace/pod ラベルが空 | 
+| 13 | `failed to check pod existence in vector-signal: namespace=<ns>, pod=<pod>, err=<err>` | vector-signal での Pod 存在確認に失敗 | 
+| 14 | `pod not found in vector-signal: namespace=<ns>, pod=<pod>` | vector-signal で Pod が見つからない | 
+| 15 | `Failed to signal workflow '<id>': <err>. Signal Name: 'vector-signal'` | vector-signal ワークフローへのシグナル送信に失敗 | 
+| 16 | `Error writing response body: <err>, bytes written: <n>. Request URL: <url>, RemoteAddr: <addr>` | レスポンスボディの書き込みエラー | 
+| 17 | `failed to read alertmanager-signal request body: <err>` | alertmanager-signal リクエストボディの読み取りに失敗 | 
+| 18 | `Failed to decode outer JSON: <err>. Request URL: <url>, RemoteAddr: <addr>` | 外側 JSON のデコードに失敗（alertmanager-signal） | 
+| 19 | `Failed to decode inner JSON from metadata string: <err>. Request URL: <url>, RemoteAddr: <addr>` | メタデータ文字列の内側 JSON デコードに失敗（alertmanager-signal） | 
+| 20 | `namespace/pod label is empty in alertmanager-signal: namespace=<ns>, pod=<pod>` | alertmanager-signal の namespace/pod ラベルが空 | 
+| 21 | `failed to check pod existence in alertmanager-signal: namespace=<ns>, pod=<pod>, err=<err>` | alertmanager-signal での Pod 存在確認に失敗 | 
+| 22 | `Failed to signal workflow '<id>': <err>. Signal Name: 'alertmanager-signal'` | alertmanager-signal ワークフローへのシグナル送信に失敗 | 
+| 23 | `Failed to start HTTP server: <err>` | HTTP サーバーの起動に失敗 | 
+| 24 | `unable to create Temporal client: <err>` | Temporal クライアントの作成に失敗 | 
+| 25 | `Failed to start workflow <id>: <err>` | ワークフローの起動に失敗 | 
+| 26 | `All <n> workflow(s) failed to start` | 全ワークフローの起動に失敗 | 
+| 27 | `failed to marshal Usages: <err>` | Usages のマーシャルに失敗 | 
+| 28 | `failed to create or patch podStatus: <err>` | podStatus の作成またはパッチに失敗 | 
+| 29 | `failed to unmarshal: <err>` | デシリアライズに失敗 | 
+| 30 | `query failed, status: <status>` | クエリ失敗 | 
+| 31 | `result empty or value missing` | クエリ結果が空または値が欠落 | 
+| 32 | `value is not string` | 値が文字列型でない | 
+| 33 | `failed to check ResourceClaim: <err>` | ResourceClaim のチェックに失敗 | 
+| 34 | `failed to get in-cluster config: <err>` | In-Cluster 設定の取得に失敗 | 
+| 35 | `failed to create clientset: <err>` | クライアントセットの作成に失敗 | 
+| 36 | `failed to get pod: <err>` | Pod の取得に失敗 | 
+| 37 | `unsupported RESOURCE_API_VERSION: <version>` | 未対応の RESOURCE_API_VERSION | 
+| 38 | `failed to connect to prometheus for pod <ns>/<pod> [query: <query>]: <err>` | Pod 用 Prometheus への接続に失敗 | 
+| 39 | `failed to read prometheus response for pod <ns>/<pod> [query: <query>]: <err>` | Prometheus レスポンスの読み取りに失敗 | 
+| 40 | `prometheus response body too large (>= 10MB), truncated for pod <ns>/<pod> [query: <query>]` | Prometheus レスポンスが 10MB を超過 | 
+| 41 | `prometheus returned error status '<status>' for pod <ns>/<pod> [query: <query>]` | Prometheus がエラーステータスを返した | 
+| 42 | `prometheus query failed: <status>` | Prometheus クエリが失敗 | 
+|===
+
+
+'''
+
+++++
+<div style="text-align: right;">
+Copyright 2026 NTT, Inc.
+</div>
+++++

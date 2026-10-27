@@ -1,0 +1,101 @@
+- name: モニタリングスタック適用（エージェント配備）
+  hosts: all
+  vars:
+    play_description: |
+      事前準備(システム構築) - 監視用プロセスの配備（エージェント配備）
+    prometheus_namespace: prometheus
+    vector_namespace: vector
+    npd_namespace: npd
+    mgr_vector_values_file: "{{ dci_manager_path }}/others/monitoring/vector/mgr_vector_values.yaml"
+    mgr_vector_audit_values_file: "{{ dci_manager_path }}/others/monitoring/vector/mgr_vector_audit_values.yaml"
+    npd_values_file: "{{ dci_manager_path }}/others/monitoring/npd/values.yaml"
+    ipmi_exporter_values_file: "{{ dci_manager_path }}/others/monitoring/ipmi_exporter/values.yaml"
+  environment:
+    KUBECONFIG: "/home/{{ ansible_user }}/.kube/config"
+  tasks:
+    ## Vectorのデプロイ
+    - name: Vectorのデプロイ
+      ansible.builtin.command:
+        cmd: >
+          /usr/local/bin/helm upgrade --install vector vector/vector
+          --version {{ vector_chart_version }}
+          -n {{ vector_namespace }}
+          -f {{ mgr_vector_values_file }}
+          --set image.repository=docker.io/timberio/vector
+          --set haproxy.image.repository=haproxy.image.repository=docker.io/haproxytech/haproxy-alpine
+      register: helm_vector
+      changed_when:
+        - helm_vector.rc == 0
+        - ('"has been upgraded"' in helm_vector.stdout or '"has been installed"' in helm_vector.stdout)
+
+    - name: Vector-auditのデプロイ
+      ansible.builtin.command:
+        cmd: >
+          /usr/local/bin/helm upgrade --install vector-audit vector/vector
+          --version {{ vector_chart_version }}
+          -n {{ vector_namespace }}
+          -f {{ mgr_vector_audit_values_file }}
+          --set image.repository=docker.io/timberio/vector
+          --set haproxy.image.repository=docker.io/haproxytech/haproxy-alpine
+      register: helm_vector_audit
+      changed_when:
+        - helm_vector_audit.rc == 0
+        - ('"has been upgraded"' in helm_vector_audit.stdout or '"has been installed"' in helm_vector_audit.stdout)
+
+    # Grafana GUI接続用ポートフォワード設定
+    - name: ポートフォワード用スクリプトを転送
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/start_port_forward.sh"
+        dest: /tmp/start_port_forward.sh
+        mode: '0755'
+      when: grafana_port_forward_enabled | bool
+
+    - name: ポートフォワード実行（非同期）
+      ansible.builtin.shell: >
+        /tmp/start_port_forward.sh {{ item.service }} {{ item.src_port }}:{{ item.dest_port }} {{ prometheus_namespace }}
+      loop: "{{ grafana_port_forwards }}"
+      loop_control:
+        label: "{{ item.service }}"
+      async: 60
+      poll: 0
+      register: port_forward_async
+      when: grafana_port_forward_enabled | bool
+
+    # NodeProblemDetector(NPD)の配備
+    - name: NodeProblemDetectorのデプロイ
+      ansible.builtin.command:
+        cmd: >
+          /usr/local/bin/helm upgrade --install node-problem-detector
+          oci://ghcr.io/deliveryhero/helm-charts/node-problem-detector
+          --namespace {{ npd_namespace }}
+          --create-namespace
+          --version {{ npd_chart_version }}
+          -f {{ npd_values_file }}
+      register: helm_npd
+      changed_when:
+        - helm_npd.rc == 0
+        - ('"has been upgraded"' in helm_npd.stdout or '"has been installed"' in helm_npd.stdout)
+
+    # ipmi_exporterの配備
+    - name: ipmi_exporter values.yamlをテンプレートから生成
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/ipmi_exporter_values.j2"
+        dest: "{{ ipmi_exporter_values_file }}"
+        mode: '0600'
+        backup: yes
+      register: values_yaml_generated
+      when: ipmi_exporter_enabled and ipmi_servers is defined and ipmi_servers | length > 0
+
+    - name: IPMI Exporterのデプロイ
+      ansible.builtin.command:
+        cmd: >
+          /usr/local/bin/helm upgrade --install ipmi-exporter
+          oci://ghcr.io/prometheus-community/charts/prometheus-ipmi-exporter
+          -n {{ prometheus_namespace }}
+          --version {{ ipmi_exporter_chart_version }}
+          -f {{ ipmi_exporter_values_file }}
+      register: helm_ipmi
+      changed_when:
+        - helm_ipmi.rc == 0
+        - ('"has been upgraded"' in helm_ipmi.stdout or '"has been installed"' in helm_ipmi.stdout)
+      when: ipmi_exporter_enabled and ipmi_servers is defined and ipmi_servers | length > 0

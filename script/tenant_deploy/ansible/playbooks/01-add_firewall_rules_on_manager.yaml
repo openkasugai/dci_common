@@ -1,0 +1,55 @@
+- name: DCIマネージャCPノードにfirewalldルールを追加
+  hosts: all
+  gather_facts: false
+  become: true
+  vars:
+    play_description: |
+      A1 - 構成品配備
+      - テナントからDCI管理用クラスタのkube-apiserver等へのアクセスを許可するfirewalldのルールを追加
+  tasks:
+    - name: テナントCNIのソースアドレスをk8s-nodeゾーンに追加
+      ansible.builtin.command: >-
+        firewall-cmd --permanent --zone=k8s-node
+        --add-source={{ item.tenant_cni_cidr }}
+      loop: "{{ tenants }}"
+      register: add_source_result
+      changed_when: add_source_result.rc == 0
+      failed_when: add_source_result.rc != 0 and add_source_result.rc != 11
+      when: firewall_setup_enabled
+
+    - name: テナントCNI→kube-apiserver(6443)のfirewalldリッチルールを追加
+      ansible.builtin.command: >
+        firewall-cmd --permanent --zone=k8s-node
+        --add-rich-rule="rule family=ipv4 source address={{ item.tenant_cni_cidr }} port port=6443 protocol=tcp accept"
+      loop: "{{ tenants }}"
+      register: rich_rule_result
+      changed_when: rich_rule_result.rc == 0
+      failed_when: rich_rule_result.rc != 0 and rich_rule_result.rc != 11
+      when: firewall_setup_enabled
+
+    - name: テナントCNI→LoadBalancer VIP(8443)のfirewalldダイレクトルールを追加
+      ansible.builtin.command: >
+        firewall-cmd --permanent --direct --add-rule ipv4 raw PREROUTING 0
+        -p tcp -s {{ item.tenant_cni_cidr }} -d {{ mgr_gateway_loadbalancer_vip }}
+        -m multiport --dports 8443 -j ACCEPT
+      loop: "{{ tenants }}"
+      register: direct_rule_result
+      changed_when: direct_rule_result.rc == 0
+      failed_when: direct_rule_result.rc != 0 and direct_rule_result.rc != 11
+      when: firewall_setup_enabled
+
+    - name: テナントCNI→LOCAL(30003)のfirewalldダイレクトルールを追加
+      ansible.builtin.command: >-
+        firewall-cmd --permanent --direct --add-rule ipv4 raw PREROUTING 0
+        -p tcp -s {{ item.tenant_cni_cidr }} -m addrtype --dst-type LOCAL
+        -m multiport --dports 30003 -j ACCEPT
+      loop: "{{ tenants }}"
+      register: direct_rule_30003_result
+      changed_when: direct_rule_30003_result.rc == 0
+      failed_when: direct_rule_30003_result.rc != 0 and direct_rule_30003_result.rc != 11
+      when: firewall_setup_enabled
+
+    - name: firewalldをリロード
+      ansible.builtin.command: firewall-cmd --reload
+      changed_when: true
+      when: firewall_setup_enabled

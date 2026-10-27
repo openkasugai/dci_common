@@ -1,0 +1,9 @@
+# Ansible Vault暗号化用ファイル
+# 機密情報（パスワード、APIキー、SSH鍵、組織ID等）を格納
+
+# テナント機密情報
+tenant_1_velero_minio_password: "*****"          # tenant-1 Veleroバックアップストレージ(MinIO)のシークレットアクセスキー
+tenant_1_loki_storage_minio_password: "*****"    # tenant-1 Lokiストレージ(MinIO)のシークレットアクセスキー
+tenant_1_temporal_cassandra_password: "*****"    # tenant-1 TemporalのCassandraパスワード
+tenant_1_temporal_mysql_password: "*****"        # tenant-1 TemporalのMySQLパスワード
+tenant_1_prometheus_grafana_admin_password: "*****"  # tenant-1 テナント用Grafana管理者パスワード

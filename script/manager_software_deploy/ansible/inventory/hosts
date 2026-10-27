@@ -1,0 +1,10 @@
+[dci_mgmt_k8s_control_plane]
+#DCI管理用クラスタのK8s Control Plane
+mgr-cp-1 ansible_host=192.168.1.1 ansible_user=admin
+mgr-cp-2 ansible_host=192.168.1.2 ansible_user=admin
+mgr-cp-3 ansible_host=192.168.1.3 ansible_user=admin
+
+[dci_mgmt_k8s_node]
+#DCI管理用クラスタのK8s node
+mgr-wk-1 ansible_host=192.168.1.4 ansible_user=admin
+mgr-wk-2 ansible_host=192.168.1.5 ansible_user=admin

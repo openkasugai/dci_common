@@ -1,7 +1,0 @@
-{
-  "address": "192.0.2.200",
-  "inputSubsets":[
-    "tcp://localhost:10000",
-    "udp://localhost:10001"
-  ]
-}

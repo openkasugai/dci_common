@@ -1,0 +1,1025 @@
+- name: Harborへの資材格納
+  hosts: all
+  vars:
+    play_description: |
+      事前準備(システム構築) - Harborへの資材格納
+      - 一連の資材格納(CP1台目を対象とする手順)
+    resource_pool_manager_path: "{{ dci_manager_path }}/resource-pool-manager"        # リソースプール管理リポジトリパス
+    cluster_api_provider_dci_path: "{{ dci_manager_path }}/cluster-api-provider-dci"  # DCI独自プロバイダーリポジトリパス
+    dcgm_exporter_path: "/home/{{ ansible_user }}/dcgm-exporter"  # dcgm-exporterリポジトリパス
+    app_conn_info_maker_dci_path: "{{ dci_tenant_infrastructure_path }}/app-conn-info-maker-dci"  # app-conn-info-maker-dciリポジトリパス
+    scale_controller_base_path: "{{ ansible_work_dir }}/scale-controller"  # 作業ディレクトリ
+    app_conn_control_info_manager_dci_path: "{{ dci_tenant_infrastructure_path }}/app-conn-control-info-manager-dci"  # app-conn-control-info-manager-dciパス
+    temporal_base_path: "{{ dci_tenant_infrastructure_path }}/app-monitor-dci/temporal"  # Temporal関連ソースパス
+  environment:
+    KUBECONFIG: "/home/{{ ansible_user }}/.kube/config"
+  tasks:
+  # 資材格納前準備
+  ## 環境変数設定
+    - name: 環境変数を.bashrcに設定
+      ansible.builtin.blockinfile:
+        path: "/home/{{ ansible_user }}/.bashrc"
+        block: |
+          export HARBOR_MNG={{ harbor_manager_url }}
+          export TAG_MANAGER={{ tag_manager_version }}
+          export TAG_PHYSICAL={{ tag_physical_version }}
+          export TAG_TENANT={{ tag_tenant_version }}
+        insertafter: EOF
+        marker: "# {mark} ANSIBLE MANAGED BLOCK FOR HARBOR ENVIRONMENT VARIABLES"
+        state: present
+
+  ## プロジェクトの作成
+    - name: マネージャ側のHarborにログイン（buildah）
+      become: true
+      ansible.builtin.shell: >
+        buildah login -u {{ harbor_manager_user }} -p {{ harbor_manager_password }} {{ harbor_manager_url }}:{{ harbor_manager_port }}
+      register: harbor_login_result
+      retries: 3
+      delay: 10
+      until: harbor_login_result.rc == 0
+      changed_when: true
+      failed_when: 
+        - harbor_login_result.rc != 0
+        - "'connection refused' not in harbor_login_result.stderr | lower"
+        - "'timeout' not in harbor_login_result.stderr | lower"
+
+    - name: Harborプロジェクト存在確認
+      ansible.builtin.uri:
+        url: "https://{{ harbor_manager_url }}:{{ harbor_manager_port }}/api/v2.0/projects/{{ item }}"
+        method: GET
+        user: "{{ harbor_manager_user }}"
+        password: "{{ harbor_manager_password }}"
+        force_basic_auth: yes
+        validate_certs: no
+        status_code: [200, 404, 500, 502, 503, 504]
+      register: project_check_result
+      retries: 3
+      delay: 5
+      until: project_check_result.status in [200, 404]
+      changed_when: false
+      failed_when:
+        - project_check_result.status not in [200, 404]
+        - project_check_result.status not in [500, 502, 503, 504]
+      loop: "{{ harbor_projects }}"
+
+    - name: Harborプロジェクト作成
+      ansible.builtin.uri:
+        url: "https://{{ harbor_manager_url }}:{{ harbor_manager_port }}/api/v2.0/projects"
+        method: POST
+        user: "{{ harbor_manager_user }}"
+        password: "{{ harbor_manager_password }}"
+        force_basic_auth: yes
+        validate_certs: no
+        body_format: json
+        body:
+          project_name: "{{ item.item }}"
+          public: true
+          metadata:
+            auto_scan: "true"
+        status_code: [201, 409, 500, 502, 503, 504]
+      register: project_create_result
+      retries: 3
+      delay: 5
+      until: project_create_result.status in [201, 409]
+      changed_when: project_create_result.status == 201
+      failed_when:
+        - project_create_result.status not in [201, 409]
+        - project_create_result.status not in [500, 502, 503, 504]
+      when: item.status == 404
+      loop: "{{ project_check_result.results }}"
+
+  ## kubebuilderのインストール
+    - name: kubebuilder既存インストール確認
+      ansible.builtin.stat:
+        path: "{{ kubebuilder_install_path }}/kubebuilder"
+      register: kubebuilder_existing
+
+    - name: kubebuilderのダウンロード
+      ansible.builtin.get_url:
+        url: "{{ kubebuilder_download_url }}"
+        dest: "{{ ansible_work_dir }}/kubebuilder"
+        mode: '0755'
+        timeout: 120
+      register: kubebuilder_download
+      retries: 3
+      delay: 5
+      until: kubebuilder_download is succeeded
+      when: not kubebuilder_existing.stat.exists
+
+    - name: kubebuilderを/usr/local/binに移動
+      become: true
+      ansible.builtin.copy:
+        src: "{{ ansible_work_dir }}/kubebuilder"
+        dest: "{{ kubebuilder_install_path }}/kubebuilder"
+        mode: '0755'
+        remote_src: yes
+      register: kubebuilder_install
+      when: kubebuilder_download is defined and kubebuilder_download.changed
+
+    - name: 一時ディレクトリの削除
+      ansible.builtin.file:
+        path: "{{ ansible_work_dir }}/kubebuilder"
+        state: absent
+      when: kubebuilder_download is defined and kubebuilder_download.changed
+
+  # マネージャ資材の格納
+    - name: マネージャ側のHarborにログイン（helm）
+      ansible.builtin.shell: >
+        helm registry login -u {{ harbor_manager_user }} -p {{ harbor_manager_password }} {{ harbor_manager_url }}:{{ harbor_manager_port }}
+      register: helm_login_result
+      retries: 3
+      delay: 10
+      until: helm_login_result.rc == 0
+      changed_when: true
+      failed_when: 
+        - helm_login_result.rc != 0
+        - "'connection refused' not in helm_login_result.stderr | lower"
+        - "'timeout' not in helm_login_result.stderr | lower"
+
+    - name: マネージャイメージリストを設定
+      ansible.builtin.set_fact:
+        manager_images:
+          - component_name: "resource-pool-manager"
+            make_target: "buildah-build-manager"
+            make_var: "IMG"
+            image: "{{ resource_pool_manager_image }}"
+            rebuild: "{{ resource_pool_manager_rebuild }}"
+            fact_name: "harbor_rpm_image_exists"
+          - component_name: "rpm-alert-receiver"
+            make_target: "buildah-build-alert-receiver"
+            make_var: "ALERT_RECEIVER_IMG"
+            image: "{{ rpm_alert_receiver_image }}"
+            rebuild: "{{ rpm_alert_receiver_rebuild }}"
+            fact_name: "harbor_rpm_alert_image_exists"
+
+    - name: Harbor上のマネージャイメージ存在確認
+      ansible.builtin.include_role:
+        name: harbor_image_check
+      vars:
+        component_name: "{{ item.component_name }}"
+        harbor_url: "{{ harbor_manager_url }}"
+        harbor_port: "{{ harbor_manager_port }}"
+        harbor_user: "{{ harbor_manager_user }}"
+        harbor_password: "{{ harbor_manager_password }}"
+        harbor_project: "{{ harbor_project_manager }}"
+        repository_name: "{{ item.image }}"
+        version_tag: "{{ tag_manager_version }}"
+        rebuild_flag: "{{ item.rebuild }}"
+        fact_variable_name: "{{ item.fact_name }}"
+      loop: "{{ manager_images }}"
+      loop_control:
+        label: "Checking {{ item.component_name }}"
+
+    - name: マネージャイメージのDockerfileにプロキシ設定を追記
+      ansible.builtin.include_role:
+        name: dockerfile_proxy_config
+      vars:
+        dockerfile_paths:
+          - "{{ resource_pool_manager_path }}/Dockerfile"
+          - "{{ resource_pool_manager_path }}/Dockerfile.alert-receiver"
+
+    - name: マネージャイメージをbuildahでビルド
+      become: true
+      ansible.builtin.shell: >
+        make {{ item.make_target }} {{ item.make_var }}={{ harbor_manager_url }}:{{ harbor_manager_port }}/{{ harbor_project_manager }}/{{ item.image }}:{{ tag_manager_version }}
+      args:
+        chdir: "{{ resource_pool_manager_path }}"
+        executable: /bin/bash
+      register: buildah_build_result
+      changed_when: buildah_build_result.rc == 0
+      failed_when: 
+        - buildah_build_result is defined
+        - buildah_build_result.rc is defined
+        - buildah_build_result.rc != 0
+      when: >
+        item.rebuild | bool
+        or not vars[item.fact_name] | default(false)
+      loop: "{{ manager_images }}"
+      loop_control:
+        label: "Building {{ item.component_name }}"
+
+    - name: マネージャイメージをHarborにプッシュ
+      become: true
+      ansible.builtin.shell: >
+        buildah push {{ harbor_manager_url }}:{{ harbor_manager_port }}/{{ harbor_project_manager }}/{{ item.image }}:{{ tag_manager_version }}
+      register: buildah_push_result
+      retries: 3
+      delay: 10
+      until: buildah_push_result.rc == 0
+      changed_when: buildah_push_result.rc == 0
+      failed_when: 
+        - buildah_push_result.rc != 0
+        - "'connection refused' not in buildah_push_result.stderr | lower"
+        - "'timeout' not in buildah_push_result.stderr | lower"
+      when: >
+        item.rebuild | bool
+        or not vars[item.fact_name] | default(false)
+      loop: "{{ manager_images }}"
+      loop_control:
+        label: "Pushing {{ item.component_name }}"
+
+    - name: Helmチャートパッケージ作成
+      ansible.builtin.shell: >
+        make helmchart
+      args:
+        chdir: "{{ resource_pool_manager_path }}"
+        executable: /bin/bash
+      register: helm_chart_result
+      changed_when: 
+        - helm_chart_result.rc == 0
+        - "'Nothing to be done' not in helm_chart_result.stdout"
+      failed_when: helm_chart_result.rc != 0
+      when: >
+        resource_pool_manager_rebuild | bool 
+        or not harbor_rpm_image_exists | default(false)
+        or rpm_alert_receiver_rebuild | bool 
+        or not harbor_rpm_alert_image_exists | default(false)
+
+    - name: HelmチャートをHarborにプッシュ
+      ansible.builtin.shell: >
+        helm push ./dist/{{ resource_pool_manager_image }}-v{{ tag_manager_version }}.tgz
+        oci://{{ harbor_manager_url }}:{{ harbor_manager_port }}/{{ harbor_project_manager }}/
+      args:
+        chdir: "{{ resource_pool_manager_path }}"
+        executable: /bin/bash
+      register: helm_push_result
+      changed_when: helm_push_result.rc == 0
+      failed_when:
+        - helm_push_result is defined
+        - helm_push_result.rc is defined
+        - helm_push_result.rc != 0
+      when:
+        - helm_chart_result is defined
+        - helm_chart_result.changed
+
+  ## 物理インフラ
+    - name: Harbor上の物理インフライメージ存在確認
+      ansible.builtin.include_role:
+        name: harbor_image_check
+      vars:
+        component_name: "physical-infrastructure(cdi)"
+        harbor_url: "{{ harbor_manager_url }}"
+        harbor_port: "{{ harbor_manager_port }}"
+        harbor_user: "{{ harbor_manager_user }}"
+        harbor_password: "{{ harbor_manager_password }}"
+        harbor_project: "{{ harbor_project_physical_infrastructure }}"
+        repository_name: "cdi"
+        version_tag: "{{ tag_physical_version }}"
+        rebuild_flag: "{{ physical_infrastructure_rebuild }}"
+        fact_variable_name: "harbor_physical_image_exists"
+
+    - name: 物理インフライメージのDockerfileにプロキシ設定を追記
+      ansible.builtin.include_role:
+        name: dockerfile_proxy_config
+      vars:
+        dockerfile_paths:
+          - "{{ dci_physical_infrastructure_path }}/cdi/Dockerfile"
+          - "{{ dci_physical_infrastructure_path }}/maas/Dockerfile"
+          - "{{ dci_physical_infrastructure_path }}/network/Dockerfile"
+          - "{{ dci_physical_infrastructure_path }}/exporter/Dockerfile"
+          - "{{ dci_physical_infrastructure_path }}/log/Dockerfile"
+
+    - name: 物理インフライメージをbuildahでビルド
+      ansible.builtin.shell: >
+        make build-all IMG_TAG={{ tag_physical_version }}
+      args:
+        chdir: "{{ dci_physical_infrastructure_path }}"
+        executable: /bin/bash
+      register: buildah_build_all_result
+      changed_when: true
+      failed_when:
+        - buildah_build_all_result is defined
+        - buildah_build_all_result.rc is defined
+        - buildah_build_all_result.rc != 0
+      when: >
+        physical_infrastructure_rebuild | bool 
+        or not harbor_physical_image_exists | default(false)
+
+    - name: 物理インフライメージをHarbor用にタグ付け
+      become: true
+      ansible.builtin.shell: >
+        buildah tag localhost/{{ harbor_project_physical_infrastructure }}/{{ item }}:{{ tag_physical_version }} {{ harbor_manager_url }}:{{ harbor_manager_port }}/{{ harbor_project_physical_infrastructure }}/{{ item }}:{{ tag_physical_version }}
+      loop: "{{ physical_infrastructure_modules }}"
+      loop_control:
+        label: "Tagging {{ item }}"
+      register: buildah_tag_results_per_image
+      changed_when: true
+      failed_when: buildah_tag_results_per_image.rc != 0
+      when:
+        - buildah_build_all_result is changed
+
+    - name: 物理インフライメージをHarborにプッシュ
+      become: true
+      ansible.builtin.shell: >
+        buildah push \
+        {{ harbor_manager_url }}:{{ harbor_manager_port }}/{{ harbor_project_physical_infrastructure }}/{{ item }}:{{ tag_physical_version }}
+      loop: "{{ physical_infrastructure_modules }}"
+      loop_control:
+        label: "Pushing {{ item }}"
+      register: buildah_push_results
+      retries: 3
+      delay: 10
+      until: buildah_push_results.rc == 0
+      changed_when: true
+      failed_when:
+        - buildah_push_results.rc != 0
+        - "'connection refused' not in buildah_push_results.stderr | default('') | lower"
+        - "'timeout' not in buildah_push_results.stderr | default('') | lower"
+      when:
+        - buildah_build_all_result is changed
+
+    - name: Helmチャートパッケージ作成
+      ansible.builtin.shell: >
+        helm package ./chart/
+      args:
+        chdir: "{{ dci_physical_infrastructure_path }}"
+        executable: /bin/bash
+      register: helm_package_result
+      changed_when: 
+        - helm_package_result.rc == 0
+        - "'Successfully packaged chart' in helm_package_result.stdout"
+      failed_when: 
+        - helm_package_result.rc != 0
+      when: >
+        buildah_build_all_result is changed 
+        or (physical_infrastructure_rebuild | bool 
+            or not harbor_physical_image_exists | default(false))
+
+    - name: HelmチャートをHarborにプッシュ
+      ansible.builtin.shell: >
+        helm push {{ physical_infrastructure_chart }}-v{{ tag_physical_version }}.tgz oci://{{ harbor_manager_url }}:{{ harbor_manager_port }}/{{ harbor_project_physical_infrastructure }}/
+      args:
+        chdir: "{{ dci_physical_infrastructure_path }}"
+        executable: /bin/bash
+      register: helm_push_result
+      changed_when: helm_push_result.rc == 0
+      failed_when:
+        - helm_push_result.rc != 0
+      when:
+        - helm_package_result is defined
+        - helm_package_result.changed
+
+  ## DCI独自プロバイダー
+    - name: patchパッケージをインストール
+      become: true
+      ansible.builtin.dnf:
+        name: patch
+        state: present
+      retries: 3
+      delay: 10
+
+    - name: Harbor上のcluster-api-provider-dciイメージ存在確認
+      ansible.builtin.include_role:
+        name: harbor_image_check
+      vars:
+        component_name: "cluster-api-provider-dci"
+        harbor_url: "{{ harbor_manager_url }}"
+        harbor_port: "{{ harbor_manager_port }}"
+        harbor_user: "{{ harbor_manager_user }}"
+        harbor_password: "{{ harbor_manager_password }}"
+        harbor_project: "{{ harbor_project_manager }}"
+        repository_name: "{{ cluster_api_provider_dci_image }}"
+        version_tag: "{{ tag_manager_version }}"
+        rebuild_flag: "{{ cluster_api_provider_dci_rebuild }}"
+        fact_variable_name: "harbor_capdci_image_exists"
+
+    - name: cluster-api-provider-dciのDockerfileにプロキシ設定を追記
+      ansible.builtin.include_role:
+        name: dockerfile_proxy_config
+      vars:
+        dockerfile_paths:
+          - "{{ cluster_api_provider_dci_path }}/Dockerfile"
+
+    - name: cluster-api-provider-dciイメージをbuildahでビルド
+      become: true
+      ansible.builtin.shell: >
+        buildah bud -t {{ harbor_manager_url }}:{{ harbor_manager_port }}/{{ harbor_project_manager }}/{{ cluster_api_provider_dci_image }}:{{ tag_manager_version }} -f ./Dockerfile ..
+      args:
+        chdir: "{{ cluster_api_provider_dci_path }}"
+        executable: /bin/bash
+      register: buildah_build_result
+      retries: 3
+      delay: 15
+      until: buildah_build_result.rc == 0
+      changed_when: buildah_build_result.rc == 0
+      failed_when: 
+        - buildah_build_result.rc != 0
+        - "'connection refused' not in buildah_build_result.stderr | lower"
+        - "'timeout' not in buildah_build_result.stderr | lower"
+      when: >
+        cluster_api_provider_dci_rebuild | bool 
+        or not harbor_capdci_image_exists | default(false)
+
+    - name: cluster-api-provider-dciイメージをHarborにプッシュ
+      become: true
+      ansible.builtin.shell: >
+        buildah push {{ harbor_manager_url }}:{{ harbor_manager_port }}/{{ harbor_project_manager }}/{{ cluster_api_provider_dci_image }}:{{ tag_manager_version }}
+      register: buildah_push_result
+      retries: 3
+      delay: 10
+      until: buildah_push_result.rc == 0
+      changed_when: buildah_push_result.rc == 0
+      failed_when: 
+        - buildah_push_result.rc != 0
+        - "'connection refused' not in buildah_push_result.stderr | lower"
+        - "'timeout' not in buildah_push_result.stderr | lower"
+      when: >
+        buildah_build_result is changed 
+        or (cluster_api_provider_dci_rebuild | bool 
+            or not harbor_capdci_image_exists | default(false))
+
+    - name: Helmチャートパッケージ作成
+      ansible.builtin.shell: >
+        make helmchart
+      args:
+        chdir: "{{ cluster_api_provider_dci_path }}"
+        executable: /bin/bash
+      register: helm_chart_result
+      changed_when: 
+        - helm_chart_result.rc == 0
+        - "'Nothing to be done' not in helm_chart_result.stdout"
+      failed_when: helm_chart_result.rc != 0
+      when: >
+        buildah_build_result is changed 
+        or (cluster_api_provider_dci_rebuild | bool 
+            or not harbor_capdci_image_exists | default(false))
+
+    - name: HelmチャートをHarborにプッシュ
+      ansible.builtin.shell: >
+        helm push ./dist/capdci-v{{ tag_manager_version }}.tgz oci://{{ harbor_manager_url }}:{{ harbor_manager_port }}/{{ harbor_project_manager }}/
+      args:
+        chdir: "{{ cluster_api_provider_dci_path }}"
+        executable: /bin/bash
+      register: helm_push_result
+      changed_when: helm_push_result.rc == 0
+      failed_when: 
+        - helm_push_result is defined
+        - helm_push_result.rc is defined
+        - helm_push_result.rc != 0
+      when: 
+        - helm_chart_result is defined
+        - helm_chart_result.changed
+
+  # テナント提供資材の格納
+  ## dcgm-exporter
+    - name: dcgm-exporterリポジトリをクローン
+      ansible.builtin.git:
+        repo: "{{ dcgm_exporter_repo }}"
+        dest: "{{ dcgm_exporter_path }}"
+        version: "{{ dcgm_exporter_git_tag }}"
+        force: yes
+      register: dcgm_git_clone_result
+      retries: 3
+      delay: 10
+      until: dcgm_git_clone_result is succeeded
+
+    - name: パッチファイルの存在確認
+      ansible.builtin.stat:
+        path: "{{ dcgm_exporter_path }}/dra_mig_corefix.patch"
+      register: patch_file_check
+
+    - name: パッチファイルをdcgm-exporterディレクトリにコピー
+      ansible.builtin.copy:
+        src: "{{ dci_tenant_infrastructure_path }}/app-monitor-dci/gpu-operator/dra_mig_corefix.patch"
+        dest: "{{ dcgm_exporter_path }}/dra_mig_corefix.patch"
+        remote_src: yes
+      register: patch_copy_result
+      when: 
+        - not patch_file_check.stat.exists
+      failed_when: 
+        - patch_copy_result is defined
+        - patch_copy_result.failed is defined
+        - patch_copy_result.failed
+
+    - name: パッチを適用
+      ansible.builtin.shell: >
+        git apply dra_mig_corefix.patch
+      args:
+        chdir: "{{ dcgm_exporter_path }}"
+        executable: /bin/bash
+      register: patch_apply_result
+      changed_when: patch_apply_result.rc == 0
+      failed_when: false  # パッチが既に適用されている場合もあるため
+
+    - name: Harbor上のdcgm-exporterイメージ存在確認
+      ansible.builtin.include_role:
+        name: harbor_image_check
+      vars:
+        component_name: "dcgm-exporter"
+        harbor_url: "{{ harbor_manager_url }}"
+        harbor_port: "{{ harbor_manager_port }}"
+        harbor_user: "{{ harbor_manager_user }}"
+        harbor_password: "{{ harbor_manager_password }}"
+        harbor_project: "{{ harbor_project_tenant_infrastructure }}"
+        repository_name: "{{ dcgm_exporter_image }}"
+        version_tag: "{{ dcgm_exporter_version }}"
+        rebuild_flag: "{{ dcgm_exporter_rebuild }}"
+        fact_variable_name: "harbor_dcgm_image_exists"
+
+    - name: dcgm-exporterのDockerfileにプロキシ設定を追記
+      ansible.builtin.include_role:
+        name: dockerfile_proxy_config
+      vars:
+        dockerfile_paths:
+          - "{{ dcgm_exporter_path }}/docker/Dockerfile"
+
+    - name: dcgm-exporterイメージをbuildahでビルド
+      become: true
+      ansible.builtin.shell: >
+        buildah bud --format docker --file docker/Dockerfile --target runtime-ubi 
+        --tag {{ harbor_manager_url }}:{{ harbor_manager_port }}/{{ harbor_project_tenant_infrastructure }}/{{ dcgm_exporter_image }}:{{ dcgm_exporter_version }} 
+        --build-arg GOLANG_VERSION={{ dcgm_exporter_golang_version }} 
+        --build-arg VERSION={{ dcgm_exporter_app_version }} 
+        --build-arg DCGM_VERSION={{ dcgm_exporter_dcgm_version }} 
+        .
+      args:
+        chdir: "{{ dcgm_exporter_path }}"
+        executable: /bin/bash
+      register: buildah_build_result
+      retries: 3
+      delay: 15
+      until: buildah_build_result.rc == 0
+      changed_when: buildah_build_result.rc == 0
+      failed_when: 
+        - buildah_build_result.rc != 0
+        - "'connection refused' not in buildah_build_result.stderr | lower"
+        - "'timeout' not in buildah_build_result.stderr | lower"
+      when: >
+        dcgm_exporter_rebuild | bool
+        or not harbor_dcgm_image_exists | default(false)
+
+    - name: dcgm-exporterイメージをHarborにプッシュ
+      become: true
+      ansible.builtin.shell: >
+        buildah push {{ harbor_manager_url }}:{{ harbor_manager_port }}/{{ harbor_project_tenant_infrastructure }}/{{ dcgm_exporter_image }}:{{ dcgm_exporter_version }}
+      register: buildah_push_result
+      retries: 3
+      delay: 10
+      until: buildah_push_result.rc == 0
+      changed_when: buildah_push_result.rc == 0
+      failed_when: 
+        - buildah_push_result.rc != 0
+        - "'connection refused' not in buildah_push_result.stderr | lower"
+        - "'timeout' not in buildah_push_result.stderr | lower"
+      when: >
+        dcgm_exporter_rebuild | bool
+        or not harbor_dcgm_image_exists | default(false)
+
+  ## app-conn-info-maker-dci
+    - name: Harbor上のapp-conn-info-maker-dciイメージ存在確認
+      ansible.builtin.include_role:
+        name: harbor_image_check
+      vars:
+        component_name: "app-conn-info-maker-dci"
+        harbor_url: "{{ harbor_manager_url }}"
+        harbor_port: "{{ harbor_manager_port }}"
+        harbor_user: "{{ harbor_manager_user }}"
+        harbor_password: "{{ harbor_manager_password }}"
+        harbor_project: "{{ harbor_project_tenant_infrastructure }}"
+        repository_name: "{{ app_conn_info_maker_dci_image }}"
+        version_tag: "{{ tag_tenant_version }}"
+        rebuild_flag: "{{ app_conn_info_maker_dci_rebuild }}"
+        fact_variable_name: "harbor_app_conn_info_image_exists"
+
+    - name: app-conn-info-maker-dciのDockerfileにプロキシ設定を追記
+      ansible.builtin.include_role:
+        name: dockerfile_proxy_config
+      vars:
+        dockerfile_paths:
+          - "{{ app_conn_info_maker_dci_path }}/Dockerfile"
+
+    - name: app-conn-info-maker-dciイメージをbuildahでビルド
+      become: true
+      ansible.builtin.shell: >
+        buildah bud -t {{ harbor_manager_url }}:{{ harbor_manager_port }}/{{ harbor_project_tenant_infrastructure }}/{{ app_conn_info_maker_dci_image }}:{{ tag_tenant_version }} -f ./Dockerfile ..
+      args:
+        chdir: "{{ app_conn_info_maker_dci_path }}"
+        executable: /bin/bash
+      register: buildah_build_result
+      retries: 3
+      delay: 15
+      until: buildah_build_result.rc == 0
+      changed_when: buildah_build_result.rc == 0
+      failed_when: 
+        - buildah_build_result.rc != 0
+        - "'connection refused' not in buildah_build_result.stderr | lower"
+        - "'timeout' not in buildah_build_result.stderr | lower"
+      when: >
+        app_conn_info_maker_dci_rebuild | bool 
+        or not harbor_app_conn_info_image_exists | default(false)
+
+    - name: app-conn-info-maker-dciイメージをHarborにプッシュ
+      become: true
+      ansible.builtin.shell: >
+        buildah push {{ harbor_manager_url }}:{{ harbor_manager_port }}/{{ harbor_project_tenant_infrastructure }}/{{ app_conn_info_maker_dci_image }}:{{ tag_tenant_version }}
+      register: buildah_push_result
+      retries: 3
+      delay: 10
+      until: buildah_push_result.rc == 0
+      changed_when: buildah_push_result.rc == 0
+      failed_when: 
+        - buildah_push_result.rc != 0
+        - "'connection refused' not in buildah_push_result.stderr | lower"
+        - "'timeout' not in buildah_push_result.stderr | lower"
+      when: >
+        buildah_build_result is changed 
+        or (app_conn_info_maker_dci_rebuild | bool 
+            or not harbor_app_conn_info_image_exists | default(false))
+
+    - name: Helmチャートパッケージ作成
+      ansible.builtin.shell: >
+        helm package ./chart/
+      args:
+        chdir: "{{ app_conn_info_maker_dci_path }}"
+        executable: /bin/bash
+      register: helm_chart_result
+      changed_when: 
+        - helm_chart_result.rc == 0
+        - "'Nothing to be done' not in helm_chart_result.stdout"
+      failed_when: helm_chart_result.rc != 0
+      when: >
+        buildah_build_result is changed 
+        or (app_conn_info_maker_dci_rebuild | bool 
+            or not harbor_app_conn_info_image_exists | default(false))
+
+    - name: HelmチャートをHarborにプッシュ
+      ansible.builtin.shell: >
+        helm push {{ app_conn_info_maker_dci_image }}-v{{ tag_tenant_version }}.tgz oci://{{ harbor_manager_url }}:{{ harbor_manager_port }}/{{ harbor_project_tenant_infrastructure }}/
+      args:
+        chdir: "{{ app_conn_info_maker_dci_path }}"
+        executable: /bin/bash
+      register: helm_push_result
+      changed_when: helm_push_result.rc == 0
+      failed_when: 
+        - helm_push_result is defined
+        - helm_push_result.rc is defined
+        - helm_push_result.rc != 0
+      when:
+        - helm_chart_result is defined
+        - helm_chart_result.changed
+
+  ## scale-controller
+    - name: scale-controller作業ディレクトリ作成
+      become: false
+      ansible.builtin.file:
+        path: "{{ scale_controller_base_path }}"
+        state: directory
+        mode: '0755'
+
+    - name: dci_tenant_infrastructureリポジトリをクローン
+      ansible.builtin.git:
+        repo: "{{ dci_tenant_infrastructure_repo }}"
+        dest: "{{ scale_controller_base_path }}/dci_tenant_infrastructure"
+        version: "{{ dci_tenant_infrastructure_version }}"
+        force: yes
+      register: tenant_clone_result
+      retries: 3
+      delay: 10
+      until: tenant_clone_result is succeeded
+
+    - name: dci_managerリポジトリをクローン
+      ansible.builtin.git:
+        repo: "{{ dci_manager_repo }}"
+        dest: "{{ scale_controller_base_path }}/dci_manager"
+        version: "{{ dci_manager_version }}"
+        force: yes
+      register: manager_clone_result
+      retries: 3
+      delay: 10
+      until: manager_clone_result is succeeded
+
+    - name: resource-pool-managerをdci_tenant_infrastructureにコピー
+      ansible.builtin.copy:
+        src: "{{ scale_controller_base_path }}/dci_manager/resource-pool-manager/"
+        dest: "{{ scale_controller_base_path }}/dci_tenant_infrastructure/resource-pool-manager"
+        remote_src: yes
+        mode: preserve
+
+    - name: cluster-api-provider-dciをdci_tenant_infrastructureにコピー
+      ansible.builtin.copy:
+        src: "{{ scale_controller_base_path }}/dci_manager/cluster-api-provider-dci/"
+        dest: "{{ scale_controller_base_path }}/dci_tenant_infrastructure/cluster-api-provider-dci"
+        remote_src: yes
+        mode: preserve
+
+    - name: scale-controllerイメージリストを設定
+      ansible.builtin.set_fact:
+        scale_controller_images:
+          - component_name: "scale-controller"
+            image: "{{ scale_controller_image }}"
+            make_var: "IMG"
+            rebuild: "{{ scale_controller_rebuild }}"
+            fact_name: "harbor_scale_controller_image_exists"
+          - component_name: "card-alert-receiver"
+            image: "{{ card_alert_receiver_image }}"
+            make_var: "ALERT_RECEIVER_IMG"
+            rebuild: "{{ card_alert_receiver_rebuild }}"
+            fact_name: "harbor_card_alert_receiver_image_exists"
+
+    - name: Harbor上のscale-controllerイメージ存在確認
+      ansible.builtin.include_role:
+        name: harbor_image_check
+      vars:
+        component_name: "{{ item.component_name }}"
+        harbor_url: "{{ harbor_manager_url }}"
+        harbor_port: "{{ harbor_manager_port }}"
+        harbor_user: "{{ harbor_manager_user }}"
+        harbor_password: "{{ harbor_manager_password }}"
+        harbor_project: "{{ harbor_project_tenant_infrastructure }}"
+        repository_name: "{{ item.image }}"
+        version_tag: "{{ tag_tenant_version }}"
+        rebuild_flag: "{{ item.rebuild }}"
+        fact_variable_name: "{{ item.fact_name }}"
+      loop: "{{ scale_controller_images }}"
+      loop_control:
+        label: "Checking {{ item.component_name }}"
+
+    - name: scale-controllerのDockerfileにプロキシ設定を追記
+      ansible.builtin.include_role:
+        name: dockerfile_proxy_config
+      vars:
+        dockerfile_paths:
+          - "{{ scale_controller_base_path }}/dci_tenant_infrastructure/scale-controller/Dockerfile.local"
+          - "{{ scale_controller_base_path }}/dci_tenant_infrastructure/scale-controller/Dockerfile.alert-receiver.local"
+
+    - name: scale-controllerイメージをbuildahでビルド
+      become: true
+      ansible.builtin.shell: >
+        make buildah-build {{ item.make_var }}={{ harbor_manager_url }}:{{ harbor_manager_port }}/{{ harbor_project_tenant_infrastructure }}/{{ item.image }}:{{ tag_tenant_version }}
+      args:
+        chdir: "{{ scale_controller_base_path }}/dci_tenant_infrastructure/scale-controller"
+        executable: /bin/bash
+      register: buildah_build_result
+      retries: 3
+      delay: 15
+      until: buildah_build_result.rc == 0
+      changed_when: buildah_build_result.rc == 0
+      failed_when: 
+        - buildah_build_result.rc != 0
+        - "'connection refused' not in buildah_build_result.stderr | lower"
+        - "'timeout' not in buildah_build_result.stderr | lower"
+      when: >
+        item.rebuild | bool
+        or not vars[item.fact_name] | default(false)
+      loop: "{{ scale_controller_images }}"
+      loop_control:
+        label: "Building {{ item.component_name }}"
+
+    - name: scale-controllerイメージをHarborにプッシュ
+      become: true
+      ansible.builtin.shell: >
+        buildah push {{ harbor_manager_url }}:{{ harbor_manager_port }}/{{ harbor_project_tenant_infrastructure }}/{{ item.image }}:{{ tag_tenant_version }}
+      register: buildah_push_result
+      retries: 3
+      delay: 10
+      until: buildah_push_result.rc == 0
+      changed_when: buildah_push_result.rc == 0
+      failed_when: 
+        - buildah_push_result.rc != 0
+        - "'connection refused' not in buildah_push_result.stderr | lower"
+        - "'timeout' not in buildah_push_result.stderr | lower"
+      when: >
+        item.rebuild | bool
+        or not vars[item.fact_name] | default(false)
+      loop: "{{ scale_controller_images }}"
+      loop_control:
+        label: "Pushing {{ item.component_name }}"
+
+    - name: Helmチャートパッケージ作成
+      ansible.builtin.shell: >
+        make helmchart
+      args:
+        chdir: "{{ scale_controller_base_path }}/dci_tenant_infrastructure/scale-controller"
+        executable: /bin/bash
+      register: helm_chart_result
+      changed_when: 
+        - helm_chart_result.rc == 0
+        - "'Nothing to be done' not in helm_chart_result.stdout"
+      failed_when: helm_chart_result.rc != 0
+      when: >
+        scale_controller_rebuild | bool
+        or not harbor_scale_controller_image_exists | default(false)
+        or card_alert_receiver_rebuild | bool
+        or not harbor_card_alert_receiver_image_exists | default(false)
+
+    - name: HelmチャートをHarborにプッシュ
+      ansible.builtin.shell: >
+        helm push dist/scale-controller-v{{ tag_tenant_version }}.tgz oci://{{ harbor_manager_url }}:{{ harbor_manager_port }}/{{ harbor_project_tenant_infrastructure }}/
+      args:
+        chdir: "{{ scale_controller_base_path }}/dci_tenant_infrastructure/scale-controller"
+        executable: /bin/bash
+      register: helm_push_result
+      changed_when: helm_push_result.rc == 0
+      failed_when: 
+        - helm_push_result is defined
+        - helm_push_result.rc is defined
+        - helm_push_result.rc != 0
+      when:
+        - helm_chart_result is defined
+        - helm_chart_result.changed
+
+  ## app-conn-control-info-manager-dci
+    - name: Harbor上のapp-conn-control-info-manager-dciイメージ存在確認
+      ansible.builtin.include_role:
+        name: harbor_image_check
+      vars:
+        component_name: "app-conn-control-info-manager-dci"
+        harbor_url: "{{ harbor_manager_url }}"
+        harbor_port: "{{ harbor_manager_port }}"
+        harbor_user: "{{ harbor_manager_user }}"
+        harbor_password: "{{ harbor_manager_password }}"
+        harbor_project: "{{ harbor_project_tenant_infrastructure }}"
+        repository_name: "{{ app_conn_control_info_manager_dci_image }}"
+        version_tag: "{{ tag_tenant_version }}"
+        rebuild_flag: "{{ app_conn_control_info_manager_dci_rebuild }}"
+        fact_variable_name: "harbor_app_conn_control_image_exists"
+
+    - name: app-conn-control-info-manager-dciのDockerfileにプロキシ設定を追記
+      ansible.builtin.include_role:
+        name: dockerfile_proxy_config
+      vars:
+        dockerfile_paths:
+          - "{{ app_conn_control_info_manager_dci_path }}/Dockerfile"
+
+    - name: app-conn-control-info-manager-dciイメージをbuildahでビルド
+      become: true
+      ansible.builtin.shell: >
+        buildah bud -t {{ harbor_manager_url }}:{{ harbor_manager_port }}/{{ harbor_project_tenant_infrastructure }}/{{ app_conn_control_info_manager_dci_image }}:{{ tag_tenant_version }} -f ./Dockerfile ..
+      args:
+        chdir: "{{ app_conn_control_info_manager_dci_path }}"
+        executable: /bin/bash
+      register: buildah_build_result
+      retries: 3
+      delay: 15
+      until: buildah_build_result.rc == 0
+      changed_when: buildah_build_result.rc == 0
+      failed_when: 
+        - buildah_build_result.rc != 0
+        - "'connection refused' not in buildah_build_result.stderr | lower"
+        - "'timeout' not in buildah_build_result.stderr | lower"
+      when: >
+        app_conn_control_info_manager_dci_rebuild | bool 
+        or not harbor_app_conn_control_image_exists | default(false)
+
+    - name: app-conn-control-info-manager-dciイメージをHarborにプッシュ
+      become: true
+      ansible.builtin.shell: >
+        buildah push {{ harbor_manager_url }}:{{ harbor_manager_port }}/{{ harbor_project_tenant_infrastructure }}/{{ app_conn_control_info_manager_dci_image }}:{{ tag_tenant_version }}
+      register: buildah_push_result
+      retries: 3
+      delay: 10
+      until: buildah_push_result.rc == 0
+      changed_when: buildah_push_result.rc == 0
+      failed_when: 
+        - buildah_push_result.rc != 0
+        - "'connection refused' not in buildah_push_result.stderr | lower"
+        - "'timeout' not in buildah_push_result.stderr | lower"
+      when: >
+        buildah_build_result is changed 
+        or (app_conn_control_info_manager_dci_rebuild | bool 
+            or not harbor_app_conn_control_image_exists | default(false))
+
+  ## Temporal
+    - name: Harbor上のtemporal-workflowイメージ存在確認
+      ansible.builtin.include_role:
+        name: harbor_image_check
+      vars:
+        component_name: "temporal-workflow"
+        harbor_url: "{{ harbor_manager_url }}"
+        harbor_port: "{{ harbor_manager_port }}"
+        harbor_user: "{{ harbor_manager_user }}"
+        harbor_password: "{{ harbor_manager_password }}"
+        harbor_project: "{{ harbor_project_tenant_infrastructure }}"
+        repository_name: "{{ temporal_workflow_image }}"
+        version_tag: "{{ tag_tenant_version }}"
+        rebuild_flag: "{{ temporal_rebuild }}"
+        fact_variable_name: "harbor_temporal_image_exists"
+
+    - name: TemporalのDockerfileにプロキシ設定を追記
+      ansible.builtin.include_role:
+        name: dockerfile_proxy_config
+      vars:
+        dockerfile_paths:
+          - "{{ temporal_base_path }}/workflow/Dockerfile"
+          - "{{ temporal_base_path }}/gateway/Dockerfile"
+          - "{{ temporal_base_path }}/client/Dockerfile"
+
+    - name: Temporalイメージをbuildahでビルド
+      become: true
+      ansible.builtin.shell: >
+        buildah bud -t {{ harbor_manager_url }}:{{ harbor_manager_port }}/{{ harbor_project_tenant_infrastructure }}/{{ item.image }}:{{ tag_tenant_version }} -f {{ item.dockerfile }}
+      args:
+        chdir: "{{ temporal_base_path }}"
+        executable: /bin/bash
+      loop:
+        - { image: "{{ temporal_workflow_image }}", dockerfile: "workflow/Dockerfile" }
+        - { image: "{{ temporal_gateway_image }}", dockerfile: "gateway/Dockerfile" }
+        - { image: "{{ temporal_client_image }}", dockerfile: "client/Dockerfile" }
+      loop_control:
+        label: "Building {{ item.image }}:{{ tag_tenant_version }}"
+      register: buildah_build_results
+      retries: 3
+      delay: 15
+      until: buildah_build_results.rc == 0
+      changed_when: true
+      failed_when:
+        - buildah_build_results.rc != 0
+        - "'connection refused' not in buildah_build_results.stderr | default('') | lower"
+        - "'timeout' not in buildah_build_results.stderr | default('') | lower"
+      when: >
+        temporal_rebuild | bool 
+        or not harbor_temporal_image_exists | default(false)
+
+    - name: TemporalイメージをHarborにプッシュ
+      become: true
+      ansible.builtin.shell: >
+        buildah push {{ harbor_manager_url }}:{{ harbor_manager_port }}/{{ harbor_project_tenant_infrastructure }}/{{ item.image }}:{{ tag_tenant_version }}
+      loop:
+        - { image: "{{ temporal_workflow_image }}" }
+        - { image: "{{ temporal_gateway_image }}" }
+        - { image: "{{ temporal_client_image }}" }
+      loop_control:
+        label: "Pushing {{ item.image }}:{{ tag_tenant_version }}"
+      register: buildah_push_results
+      retries: 3
+      delay: 10
+      until: buildah_push_results.rc == 0
+      changed_when: true
+      failed_when:
+        - buildah_push_results.rc != 0
+        - "'connection refused' not in buildah_push_results.stderr | default('') | lower"
+        - "'timeout' not in buildah_push_results.stderr | default('') | lower"
+      when: >
+        buildah_build_results is changed 
+        or (temporal_rebuild | bool 
+            or not harbor_temporal_image_exists | default(false))
+
+    - name: 既存のTemporal Helmチャートディレクトリを削除
+      ansible.builtin.file:
+        path: "{{ temporal_base_path }}/temporal"
+        state: absent
+      when: >
+        buildah_build_results is changed
+        or (temporal_rebuild | bool
+            or not harbor_temporal_image_exists | default(false))
+
+    - name: Temporal Helmチャートを取得
+      ansible.builtin.shell: >
+        helm pull temporal --repo https://go.temporal.io/helm-charts/ --version {{ temporal_chart_version }} --untar
+      args:
+        chdir: "{{ temporal_base_path }}"
+        executable: /bin/bash
+      register: temporal_helm_pull_result
+      changed_when: temporal_helm_pull_result.rc == 0
+      failed_when:
+        - temporal_helm_pull_result.rc != 0
+      when: >
+        buildah_build_results is changed
+        or (temporal_rebuild | bool
+            or not harbor_temporal_image_exists | default(false))
+
+    - name: Temporal Helmチャートにパッチを適用
+      ansible.builtin.shell: >
+        patch -p1 < ../temporal-chart.patch
+      args:
+        chdir: "{{ temporal_base_path }}/temporal"
+        executable: /bin/bash
+      register: temporal_patch_result
+      changed_when: temporal_patch_result.rc == 0
+      failed_when:
+        - temporal_patch_result.rc != 0
+      when: >
+        temporal_helm_pull_result is defined
+        and not temporal_helm_pull_result.skipped | default(false)
+        and temporal_helm_pull_result.rc == 0
+
+    - name: Temporal Helmチャートパッケージ作成
+      ansible.builtin.shell: >
+        helm package ./temporal
+      args:
+        chdir: "{{ temporal_base_path }}"
+        executable: /bin/bash
+      register: temporal_helm_package_result
+      changed_when: 
+        - temporal_helm_package_result.rc == 0
+        - "'Successfully packaged chart' in temporal_helm_package_result.stdout"
+      failed_when: 
+        - temporal_helm_package_result.rc != 0
+      when: >
+        buildah_build_results is changed 
+        or (temporal_rebuild | bool 
+            or not harbor_temporal_image_exists | default(false))
+
+    - name: Temporal HelmチャートをHarborにプッシュ
+      ansible.builtin.shell: >
+        helm push temporal-{{ temporal_chart_version }}.tgz oci://{{ harbor_manager_url }}:{{ harbor_manager_port }}/{{ harbor_project_tenant_infrastructure }}/
+      args:
+        chdir: "{{ temporal_base_path }}"
+        executable: /bin/bash
+      register: temporal_helm_push_result
+      changed_when: temporal_helm_push_result.rc == 0
+      failed_when:
+        - temporal_helm_push_result.rc != 0
+      when:
+        - temporal_helm_package_result is defined
+        - temporal_helm_package_result.changed
